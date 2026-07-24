@@ -1,0 +1,61 @@
+{
+  "analysis_git_commit": "44f1f4514e2f05e4774e16be91d2bfb24ad9a088",
+  "device_spread": {
+    "r_hi": [
+      1.8828696517794156e-11,
+      1.9373701035649892e-11
+    ],
+    "r_lo": [
+      1.3416609263595342e-12,
+      1.365795621385999e-12
+    ],
+    "r_lo_cov": [
+      1.096889690715024e-12,
+      1.1295704359278256e-12
+    ]
+  },
+  "gpu_uuids": [
+    "GPU-4bb93dfb-3fdc-5488-3fd4-e0b21a61c070",
+    "GPU-617f2717-9853-b1ea-bbf3-2a96938015c0",
+    "GPU-aa412071-d605-ad1c-d99f-5a4bfd2038e4"
+  ],
+  "inputs": {
+    "core": {
+      "n_records": 180,
+      "path": "['results/bench/exp4_core_29be9ab775bd.jsonl', 'results/bench/exp4_core_65295e34a0a2.jsonl', 'results/bench/exp4_core_99c98d91aec3.jsonl', 'results/bench/exp4_core_dcf016ca4ecf.jsonl']",
+      "sweep_ids": [
+        "29be9ab775bd",
+        "65295e34a0a2",
+        "99c98d91aec3",
+        "dcf016ca4ecf"
+      ],
+      "uuids": [
+        "GPU-4bb93dfb-3fdc-5488-3fd4-e0b21a61c070",
+        "GPU-617f2717-9853-b1ea-bbf3-2a96938015c0",
+        "GPU-aa412071-d605-ad1c-d99f-5a4bfd2038e4"
+      ]
+    }
+  },
+  "n_devices": 3,
+  "n_records": 180,
+  "per_device": {
+    "GPU-4bb93dfb-3fdc-5488-3fd4-e0b21a61c070": {
+      "n_records": 32,
+      "r_hi": 1.9373701035649892e-11,
+      "r_lo": 1.3604993310454028e-12,
+      "r_lo_cov": 1.096889690715024e-12
+    },
+    "GPU-617f2717-9853-b1ea-bbf3-2a96938015c0": {
+      "n_records": 64,
+      "r_hi": 1.9218531926557168e-11,
+      "r_lo": 1.3416609263595342e-12,
+      "r_lo_cov": 1.097953860667965e-12
+    },
+    "GPU-aa412071-d605-ad1c-d99f-5a4bfd2038e4": {
+      "n_records": 32,
+      "r_hi": 1.8828696517794156e-11,
+      "r_lo": 1.365795621385999e-12,
+      "r_lo_cov": 1.1295704359278256e-12
+    }
+  }
+}

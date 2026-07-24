@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "power-to-flops"
+version = "1.0.0"
+description = "Can power draw constrain covert compute? The closed-form verification floor and its measurement on A100s."
+requires-python = ">=3.10"
+dependencies = [
+    "numpy>=2.2",
+    "scipy>=1.15",
+    "matplotlib>=3.10",
+    "SciencePlots>=2.2",
+]
+
+[project.optional-dependencies]
+# NVML is only needed to *capture* records, not to analyse the committed ones.
+bench = ["nvidia-ml-py>=13.610"]
+
+[tool.setuptools]
+packages = ["powertoflops", "powertoflops.bench"]
+
+# `pip install -e .` is a convenience, not a requirement: every script in
+# scripts/ puts the repo root on sys.path itself, and `pythonpath = ["."]` does
+# the same for pytest. A fresh clone reproduces every figure and number with
+# `pip install -r requirements.txt` alone.
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+markers = [
+    "gpu: test requires a CUDA GPU + NVML (run under SLURM; skipped by `pytest -m 'not gpu'`)",
+]

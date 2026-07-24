@@ -1,0 +1,22 @@
+# CPU-only dependencies: the test suite, the band analysis, and all five figures.
+# Pinned to the versions present in the project conda env
+# (/fred/oz022/tkimpson/miniconda3, Python 3.10). Reproducibility is a
+# first-class concern (see CLAUDE.md).
+numpy==2.2.6
+scipy==1.15.3
+matplotlib==3.10.5
+pytest==9.0.2
+
+# Publication figure style. Used via plt.style.use(['science','nature','no-latex']);
+# the no-latex variant means regenerating figures needs no LaTeX install.
+# See powertoflops/plotstyle.py.
+SciencePlots==2.2.2
+
+# NVML binding for the energy/power meter (powertoflops/bench/, scripts/run_bench.py).
+# This is the *official* nvidia-ml-py, NOT the third-party `pynvml` fork — both
+# expose the `pynvml` import name, so installing the wrong one fails obscurely.
+# Needed only to CAPTURE records. torch is pinned separately in
+# requirements-gpu.txt so this CPU-only install stays light: the pure-Python band
+# analysis (powertoflops/bench/bands.py, records.py), every figure, and
+# `pytest -m "not gpu"` need neither torch nor a GPU.
+nvidia-ml-py==13.610.43

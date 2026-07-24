@@ -1,0 +1,238 @@
+{
+  "config": {
+    "calib_matmuls": 5,
+    "core_dtypes": [
+      "fp32",
+      "fp16",
+      "int8"
+    ],
+    "core_zeros_dtype": "fp16",
+    "discard_frac": 0.2,
+    "dtypes": [
+      "fp32",
+      "tf32",
+      "fp16",
+      "bf16",
+      "int8"
+    ],
+    "dvfs_sm_clocks": null,
+    "exp1_shape": [
+      2048,
+      2048,
+      2048
+    ],
+    "exp2_dtype": "fp16",
+    "exp2_locality": "streamed",
+    "exp2_rounds": 4,
+    "exp3_cooldown_s": 60.0,
+    "exp3_dtype": "fp16",
+    "exp3_idle_variants": [
+      "no_ctx",
+      "ctx",
+      "cached",
+      "post_load",
+      "cooled"
+    ],
+    "exp3_idle_window_s": 5.0,
+    "exp3_ladder": [
+      [
+        256,
+        256,
+        256
+      ],
+      [
+        512,
+        512,
+        512
+      ],
+      [
+        1024,
+        1024,
+        1024
+      ],
+      [
+        8192,
+        8192,
+        64
+      ],
+      [
+        8192,
+        8192,
+        256
+      ],
+      [
+        2048,
+        2048,
+        2048
+      ],
+      [
+        3072,
+        3072,
+        3072
+      ],
+      [
+        4096,
+        4096,
+        4096
+      ],
+      [
+        6144,
+        6144,
+        6144
+      ],
+      [
+        8192,
+        8192,
+        8192
+      ]
+    ],
+    "exp3_locality": "streamed",
+    "iters": 64,
+    "locality_buffers": [
+      [
+        "resident",
+        1
+      ],
+      [
+        "streamed",
+        8
+      ]
+    ],
+    "marg_cov_dist": "zeros",
+    "marg_cov_dtypes": [
+      "int8",
+      "fp16"
+    ],
+    "marg_cov_fracs": [
+      0.0,
+      0.06,
+      0.12,
+      0.24,
+      0.36,
+      0.48
+    ],
+    "marg_cov_shape": [
+      2048,
+      2048,
+      2048
+    ],
+    "marg_declared_dist": "declared_typical",
+    "marg_declared_dtype": "fp16",
+    "marg_declared_frac": 0.3,
+    "marg_declared_locality": "streamed",
+    "marg_declared_shape": [
+      2048,
+      2048,
+      2048
+    ],
+    "marg_window_s": 10.0,
+    "max_iters": 400000,
+    "operand_dists": [
+      "zeros",
+      "sparse_struct",
+      "low_entropy",
+      "dense_random",
+      "adversarial_toggle",
+      "declared_typical"
+    ],
+    "pair_calib_busy_frac": 0.3,
+    "pair_calib_repeats": 3,
+    "pair_cheap_dist": "zeros",
+    "pair_covert_dist": "zeros",
+    "pair_covert_dtype": "int8",
+    "pair_covert_shape": [
+      2048,
+      2048,
+      2048
+    ],
+    "pair_dear_dist": "adversarial_toggle",
+    "pair_declared_dtype": "fp16",
+    "pair_declared_locality": "streamed",
+    "pair_declared_shape": [
+      2048,
+      2048,
+      2048
+    ],
+    "pair_h_auto_edge": true,
+    "pair_h_values": [
+      0.1,
+      0.15,
+      0.25
+    ],
+    "pair_max_tune": 6,
+    "pair_repeats": 8,
+    "pair_safety_frac": 0.95,
+    "pair_tol_frac": 0.01,
+    "pair_warmup_windows": 3,
+    "pair_window_s": 10.0,
+    "qblock_acts_npz": "data/qblock/pythia-6.9b_layer15_acts.npz",
+    "qblock_alpha": 0.05,
+    "qblock_cells": [
+      [
+        512,
+        4
+      ],
+      [
+        512,
+        8
+      ],
+      [
+        1024,
+        8
+      ],
+      [
+        2048,
+        4
+      ],
+      [
+        2048,
+        8
+      ]
+    ],
+    "qblock_d_model": 4096,
+    "qblock_ffn_mult": 4,
+    "qblock_manifest": "data/qblock/pythia-6.9b_layer15_manifest.json",
+    "qblock_max_rel_l2": 0.25,
+    "qblock_min_cosine": 0.98,
+    "qblock_n_head": 32,
+    "qblock_repeats": 8,
+    "qblock_soak_s": 10.0,
+    "qblock_weights_npz": "data/qblock/pythia-6.9b_layer15_weights.npz",
+    "ref_every": 8,
+    "repeats": 5,
+    "seed": 0,
+    "sweep_version": "r2",
+    "target_window_s": 1.5,
+    "warmup": 3
+  },
+  "driver_version": "595.84",
+  "experiment": 6,
+  "extra": {
+    "acts_sha256": "49e40cb08b02421cbaf09bb1be5a7a0ae5aed772be535005227319666b25536f",
+    "validation": {
+      "all_finite": true,
+      "cosine": 0.9973120093345642,
+      "max_abs": 1809.0,
+      "rel_l2": 0.07622416317462921
+    },
+    "weights_provenance": {
+      "layer": 15,
+      "model": "EleutherAI/pythia-6.9b",
+      "revision": "main",
+      "weights_sha256": "f2a0ca0353e7c4519bb1ac12736b495055ca7a03fe8b77f64ab0915408734cfc"
+    }
+  },
+  "finished_utc": "2026-07-23T22:12:03.826922+00:00",
+  "git_commit": "eba64a7a0076daab183f8606376c251af36cc3fe",
+  "gpu_name": "NVIDIA A100-SXM4-80GB",
+  "gpu_uuid": "GPU-757ff02a-b2e1-521c-fa48-b30ea4467d00",
+  "hostname": "gina304",
+  "n_records": 40,
+  "outputs": [
+    "qblock_5ba826fed96c.jsonl",
+    "qblock_5ba826fed96c.csv"
+  ],
+  "slurm_job_id": "14664411",
+  "started_utc": "2026-07-23T22:10:27.053243+00:00",
+  "sweep_id": "5ba826fed96c"
+}

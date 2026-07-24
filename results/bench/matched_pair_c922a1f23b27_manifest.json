@@ -1,0 +1,165 @@
+{
+  "config": {
+    "calib_matmuls": 5,
+    "core_dtypes": [
+      "fp32",
+      "fp16",
+      "int8"
+    ],
+    "core_zeros_dtype": "fp16",
+    "discard_frac": 0.2,
+    "dtypes": [
+      "fp32",
+      "tf32",
+      "fp16",
+      "bf16",
+      "int8"
+    ],
+    "dvfs_sm_clocks": null,
+    "exp1_shape": [
+      2048,
+      2048,
+      2048
+    ],
+    "exp2_dtype": "fp16",
+    "exp2_locality": "streamed",
+    "exp2_rounds": 4,
+    "exp3_cooldown_s": 60.0,
+    "exp3_dtype": "fp16",
+    "exp3_idle_variants": [
+      "no_ctx",
+      "ctx",
+      "cached",
+      "post_load",
+      "cooled"
+    ],
+    "exp3_idle_window_s": 5.0,
+    "exp3_ladder": [
+      [
+        256,
+        256,
+        256
+      ],
+      [
+        512,
+        512,
+        512
+      ],
+      [
+        1024,
+        1024,
+        1024
+      ],
+      [
+        8192,
+        8192,
+        64
+      ],
+      [
+        8192,
+        8192,
+        256
+      ],
+      [
+        2048,
+        2048,
+        2048
+      ],
+      [
+        3072,
+        3072,
+        3072
+      ],
+      [
+        4096,
+        4096,
+        4096
+      ],
+      [
+        6144,
+        6144,
+        6144
+      ],
+      [
+        8192,
+        8192,
+        8192
+      ]
+    ],
+    "exp3_locality": "streamed",
+    "iters": 64,
+    "locality_buffers": [
+      [
+        "resident",
+        1
+      ],
+      [
+        "streamed",
+        8
+      ]
+    ],
+    "max_iters": 400000,
+    "operand_dists": [
+      "zeros",
+      "sparse_struct",
+      "low_entropy",
+      "dense_random",
+      "adversarial_toggle",
+      "declared_typical"
+    ],
+    "pair_covert_dist": "zeros",
+    "pair_covert_dtype": "int8",
+    "pair_covert_shape": [
+      8192,
+      8192,
+      8192
+    ],
+    "pair_declared_dtype": "fp32",
+    "pair_declared_shape": [
+      8192,
+      8192,
+      8192
+    ],
+    "pair_h": 0.5,
+    "pair_max_tune": 8,
+    "pair_tol_frac": 0.01,
+    "pair_window_s": 30.0,
+    "qblock_cells": [
+      [
+        512,
+        8
+      ],
+      [
+        2048,
+        4
+      ],
+      [
+        2048,
+        8
+      ]
+    ],
+    "qblock_d_model": 4096,
+    "qblock_ffn_mult": 4,
+    "qblock_n_head": 32,
+    "ref_every": 8,
+    "repeats": 5,
+    "seed": 0,
+    "sweep_version": "r2",
+    "target_window_s": 1.5,
+    "warmup": 3
+  },
+  "driver_version": "595.84",
+  "experiment": 5,
+  "finished_utc": "2026-07-21T04:55:42.441013+00:00",
+  "git_commit": "c3dbccf641595d2c4981ab0ba0009bcd9ec5abbb",
+  "gpu_name": "NVIDIA A100-SXM4-80GB",
+  "gpu_uuid": "GPU-aa412071-d605-ad1c-d99f-5a4bfd2038e4",
+  "hostname": "gina17",
+  "n_records": 3,
+  "outputs": [
+    "matched_pair_c922a1f23b27.json"
+  ],
+  "slurm_job_id": "14572879",
+  "started_utc": "2026-07-21T04:53:59.173592+00:00",
+  "sweep_id": "c922a1f23b27"
+}
