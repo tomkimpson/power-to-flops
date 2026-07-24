@@ -1,0 +1,46 @@
+"""A2 single-GPU bench harness — measure the exchange-rate bands on real silicon.
+
+The closed form reports the verification floor beta in terms of three band
+widths: the declared exchange-rate band r_hi/r_lo, the cheapest covert rate
+r_lo^cov (and the operand core w0 = r_hi^0/r_lo^0), and the overhead band dE0.
+This package runs paper-Sec.-3 Experiments 1-8 on NVIDIA A100s and extracts
+those bands, replacing the Horowitz-2014 placeholders in
+:mod:`powertoflops.config` with measured numbers (wired in via :mod:`powertoflops.measured`).
+
+NVML is a *proxy* meter: on-chip and prover-owned, which is the untrusted
+channel the framework distinguishes from a trusted off-chip meter. For the
+Amount query this is largely benign — we integrate to energy — and the paper
+states the assumption explicitly; characterising the on-chip/off-chip gap needs
+external metering hardware and is out of scope here.
+
+Submodules:
+    records   RunRecord schema + JSONL/CSV/manifest (de)serialisation [pure]
+    bands     records -> measured bands (r_hi/r_lo, w0, dE0)    [pure, no GPU]
+    analysis  bands + provenance payload, mixed-UUID guard      [pure, no GPU]
+    workload  matmul builder, operand generators, FLOP count    [torch]
+    meter     NVML energy/power meter + measurement loop         [torch + NVML]
+    device    device introspection + (graceful) DVFS control     [NVML]
+    runner    sweep construction + experiment orchestration      [torch + NVML]
+
+The pure submodules (records, bands, analysis) and `pytest -m "not gpu"` need
+neither torch nor NVML, so the analysis layer runs anywhere; only the live
+measurement does.
+"""
+
+from __future__ import annotations
+
+from .records import RunRecord, build_manifest, read_jsonl, to_csv, to_jsonl
+from .bands import BandResult, extract_bands
+from .analysis import MixedDeviceError, band_payload
+
+__all__ = [
+    "RunRecord",
+    "to_jsonl",
+    "read_jsonl",
+    "to_csv",
+    "build_manifest",
+    "BandResult",
+    "extract_bands",
+    "MixedDeviceError",
+    "band_payload",
+]

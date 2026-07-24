@@ -1,0 +1,49 @@
+{
+  "capacity_feasible": true,
+  "capacity_frac_used": 0.7716567445783555,
+  "converged": true,
+  "covert": {
+    "dist": "zeros",
+    "dtype": "int8",
+    "e_per_iter_j": 0.7604128806789815,
+    "iters": 6592,
+    "ops_nominal_per_iter": 1099511627776,
+    "shape": [
+      8192,
+      8192,
+      8192
+    ]
+  },
+  "declared": {
+    "dtype": "fp32",
+    "iters_a": 523,
+    "iters_b": 262,
+    "ops_nominal_per_iter": 1099511627776,
+    "shape": [
+      8192,
+      8192,
+      8192
+    ]
+  },
+  "delta_frac": 0.006810049544466936,
+  "driver_version": "595.84",
+  "e_a_j": 10044.714,
+  "e_b_j": 10113.119,
+  "finished_utc": "2026-07-21T04:55:42.441013+00:00",
+  "gpu_name": "NVIDIA A100-SXM4-80GB",
+  "gpu_uuid": "GPU-aa412071-d605-ad1c-d99f-5a4bfd2038e4",
+  "h": 0.5,
+  "pair_id": "c922a1f23b27",
+  "sm_clock_mhz": 1410,
+  "started_utc": "2026-07-21T04:53:59.173592+00:00",
+  "tol_frac": 0.01,
+  "tuning_history": [
+    [
+      6592,
+      10113.119
+    ]
+  ],
+  "wall_a_s": 30.10497527004918,
+  "wall_b_s": 31.470687118009664,
+  "wall_feasible": false
+}

@@ -1,0 +1,309 @@
+{
+  "acceptance": {
+    "all_accepted": true,
+    "delta_frac": 0.009977313804884048,
+    "mean_e_a_j": 1577.391,
+    "mean_e_b_j": 1561.6528750000002,
+    "rule": "alarm iff E_obs > mean + 3*std of honest repeats",
+    "std_e_a_j": 3.630647561287923,
+    "std_e_b_j": 4.195900088606915,
+    "threshold_j": 1601.0518650000001,
+    "threshold_max_j": 1583.217,
+    "verdicts": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "z": 3.0
+  },
+  "calibration": {
+    "T_s": 10.0,
+    "e_idle_j": 721.866,
+    "m_cheap_j": 0.014014669393319702,
+    "m_cov_j": 0.009185403692778326,
+    "m_dear_j": 0.03153581709941586,
+    "ops_cov": 17179869184,
+    "ops_dec": 17179869184,
+    "t_cheap_s": 8.179940050467849e-05,
+    "t_cov_s": 6.55529904179275e-05,
+    "t_dear_s": 8.384720422327518e-05
+  },
+  "capacity_feasible": true,
+  "capacity_frac_used": 0.16830700651187933,
+  "covert": {
+    "dist": "zeros",
+    "dtype": "int8",
+    "iters": 51962,
+    "m_j_per_iter": 0.009185403692778326,
+    "ops_nominal_per_iter": 17179869184,
+    "shape": [
+      2048,
+      2048,
+      2048
+    ]
+  },
+  "declared": {
+    "dist_cheap": "zeros",
+    "dist_dear": "adversarial_toggle",
+    "dtype": "fp16",
+    "iters_a": 27241,
+    "iters_b": 27241,
+    "locality": "streamed",
+    "ops_nominal_per_iter": 17179869184,
+    "shape": [
+      2048,
+      2048,
+      2048
+    ]
+  },
+  "driver_version": "595.84",
+  "finished_utc": "2026-07-23T00:19:01.171004+00:00",
+  "gpu_name": "NVIDIA A100-SXM4-80GB",
+  "gpu_uuid": "GPU-108c1549-a9d4-f531-802a-b59939b19a6b",
+  "h": 0.15,
+  "h_definition": "C_dec / (F_max_dec * T), nominal ops",
+  "h_max": 0.23959058861484725,
+  "pair_id": "03ae3aaefa9f",
+  "plan": {
+    "busy_a_s": 2.2840816902462393,
+    "busy_b_s": 5.634561957244296,
+    "capacity_frac": 0.16830700651187933,
+    "e_gap_j": 477.29358466176535,
+    "h": 0.15,
+    "h_max": 0.23959058861484725,
+    "n_cov0": 51962,
+    "n_dec": 27241
+  },
+  "repeats_a": [
+    {
+      "duration_s": 10.007807722024154,
+      "energy_j": 1579.09,
+      "mean_power_w": 157.7858052293412,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 0,
+      "pad_s": 8.001504471991211,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1275.0,
+      "temperature_max_c": 61.0,
+      "throttle_union": 4
+    },
+    {
+      "duration_s": 10.007845494023059,
+      "energy_j": 1583.217,
+      "mean_power_w": 158.19758617831758,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 2,
+      "pad_s": 8.006662535015494,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1275.0,
+      "temperature_max_c": 60.0,
+      "throttle_union": 4
+    },
+    {
+      "duration_s": 10.00815720501123,
+      "energy_j": 1576.095,
+      "mean_power_w": 157.48103948755184,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 4,
+      "pad_s": 8.001711110991891,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1275.0,
+      "temperature_max_c": 61.0,
+      "throttle_union": 4
+    },
+    {
+      "duration_s": 10.008013034996111,
+      "energy_j": 1574.062,
+      "mean_power_w": 157.28017084867952,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 6,
+      "pad_s": 7.994080633041449,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1275.0,
+      "temperature_max_c": 60.0,
+      "throttle_union": 4
+    },
+    {
+      "duration_s": 10.007828027009964,
+      "energy_j": 1576.344,
+      "mean_power_w": 157.51109988557266,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 8,
+      "pad_s": 8.000503415998537,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1275.0,
+      "temperature_max_c": 60.0,
+      "throttle_union": 4
+    },
+    {
+      "duration_s": 10.008052226970904,
+      "energy_j": 1573.411,
+      "mean_power_w": 157.21450731040179,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 10,
+      "pad_s": 7.994194856961258,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1275.0,
+      "temperature_max_c": 60.0,
+      "throttle_union": 4
+    },
+    {
+      "duration_s": 10.00814737699693,
+      "energy_j": 1581.881,
+      "mean_power_w": 158.05932311067377,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 12,
+      "pad_s": 8.001896818983369,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1275.0,
+      "temperature_max_c": 60.0,
+      "throttle_union": 4
+    },
+    {
+      "duration_s": 10.007901595032308,
+      "energy_j": 1575.028,
+      "mean_power_w": 157.3784459253484,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 14,
+      "pad_s": 7.996191009005997,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1275.0,
+      "temperature_max_c": 60.0,
+      "throttle_union": 4
+    }
+  ],
+  "repeats_b": [
+    {
+      "duration_s": 10.005223076033872,
+      "energy_j": 1565.766,
+      "mean_power_w": 156.4948615439246,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 1,
+      "pad_s": 5.161378054996021,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1410.0,
+      "temperature_max_c": 46.0,
+      "throttle_union": 0
+    },
+    {
+      "duration_s": 10.00533167400863,
+      "energy_j": 1564.08,
+      "mean_power_w": 156.3246527911805,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 3,
+      "pad_s": 5.16721108998172,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1410.0,
+      "temperature_max_c": 46.0,
+      "throttle_union": 0
+    },
+    {
+      "duration_s": 10.00529970700154,
+      "energy_j": 1561.293,
+      "mean_power_w": 156.046599874208,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 5,
+      "pad_s": 5.157739207032137,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1410.0,
+      "temperature_max_c": 46.0,
+      "throttle_union": 0
+    },
+    {
+      "duration_s": 10.005202364001889,
+      "energy_j": 1565.167,
+      "mean_power_w": 156.4353166540015,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 7,
+      "pad_s": 5.167735391005408,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1410.0,
+      "temperature_max_c": 46.0,
+      "throttle_union": 0
+    },
+    {
+      "duration_s": 10.00521352502983,
+      "energy_j": 1557.648,
+      "mean_power_w": 155.68363394776782,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 9,
+      "pad_s": 5.156542313052341,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1410.0,
+      "temperature_max_c": 46.0,
+      "throttle_union": 0
+    },
+    {
+      "duration_s": 10.005323211022187,
+      "energy_j": 1564.335,
+      "mean_power_w": 156.35027145116894,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 11,
+      "pad_s": 5.166546732012648,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1410.0,
+      "temperature_max_c": 46.0,
+      "throttle_union": 0
+    },
+    {
+      "duration_s": 10.005232661031187,
+      "energy_j": 1553.615,
+      "mean_power_w": 155.28024711020333,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 13,
+      "pad_s": 5.154458195029292,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1410.0,
+      "temperature_max_c": 46.0,
+      "throttle_union": 0
+    },
+    {
+      "duration_s": 10.005267645989079,
+      "energy_j": 1561.319,
+      "mean_power_w": 156.04969854313723,
+      "meter_method": "nvml_energy_counter",
+      "order_index": 15,
+      "pad_s": 5.166861562000122,
+      "sm_clock_max_mhz": 1410.0,
+      "sm_clock_min_mhz": 1275.0,
+      "sm_clock_p50_mhz": 1410.0,
+      "temperature_max_c": 46.0,
+      "throttle_union": 0
+    }
+  ],
+  "sm_clock_mhz": 1275,
+  "started_utc": "2026-07-23T00:07:47.229999+00:00",
+  "tol_frac": 0.01,
+  "tuning": {
+    "converged": true,
+    "e_a_ref_j": 1570.6416666666667,
+    "history": [
+      [
+        51962,
+        1564.519
+      ]
+    ],
+    "n_covert": 51962
+  },
+  "window_s": 10.0
+}

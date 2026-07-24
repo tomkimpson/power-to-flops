@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.run.xml
+*.bcf
+# The PDF is a build artifact: build it from source rather than trusting a
+# committed copy that can silently fall behind main.tex.
+paper/main.pdf
+
+# Large binary data formats (not tracked). data/qblock/*.npz is sha256-pinned by
+# the committed manifest instead — see PROVENANCE.md.
+*.hdf5
+*.h5
+*.fits
+*.pkl
+*.npy
+*.npz
+
+# qblock trained-weight corpus (local, regenerable; see data/qblock/README.md)
+data/qblock/*.txt
+
+# Slurm job logs from the capture harness (the records themselves are tracked)
+results/bench/slurm-*.out
+
+# IDE / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Secrets
+.env
+*.key
+credentials.*

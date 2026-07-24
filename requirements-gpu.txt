@@ -1,0 +1,40 @@
+# GPU bench stack — exact versions behind every measured band in
+# results/bench/ (OzSTAR milan-gpu; Exp 1-3 + Exp 7 captured 22 Jul 2026,
+# Exp 8 on 25 Jul 2026).
+#
+# Kernel dispatch is load-bearing for the results: the int8 marginal covert
+# edge (r_lo^cov = 0.51 pJ/op, the denominator of every reported bound) comes
+# from torch._int_mm dispatching cuBLASLt IMMA kernels in THIS torch/CUDA
+# build, with the B operand column-major. A different build may dispatch
+# different kernels and move the band edges. Re-measure rather than assume if
+# you change any pin below.
+#
+# Install (CPU deps first): pip install -r requirements.txt -r requirements-gpu.txt
+--extra-index-url https://download.pytorch.org/whl/cu124
+torch==2.5.1+cu124
+
+# Trained-weight extraction for the Exp 8 useful-work edge
+# (scripts/fetch_qblock_weights.py -> data/qblock/*.npz, which prices ladder
+# rungs 4-5). The transformers pin is load-bearing: 5.x renamed the GPT-NeoX
+# rotary config field (rotary_pct -> rope_parameters), which broke the
+# extraction cross-check once already. `datasets` reproduces the WikiText-103
+# activation corpus in the row order the committed sha256 pins.
+transformers==5.4.0
+datasets==4.8.4
+huggingface_hub==1.8.0
+
+# Cluster-environment lock note (not pip-installable) — the environment the
+# R2/R2.5 records were captured in:
+#   Python           3.10.16  (conda base, /fred/oz022/tkimpson/miniconda3)
+#   NVIDIA driver    595.84
+#   CUDA (torch)     12.4     (driver reports 13.2; torch build is cu124)
+#   GPU              NVIDIA A100-SXM4-80GB (Exp 1-3 + Exp 7: GPU-ac1cbae9, one
+#                    Slurm allocation; Exp 4 spread: 3 further distinct cards;
+#                    Exp 8 useful-work sweep: GPU-747045fa; B3 matched-pair
+#                    witnesses: GPU-108c1549)
+#   Extraction env   the transformers/datasets pins above were captured under
+#                    torch 2.5.1+cu121 (conda env `error-correction`); only the
+#                    bench captures require the cu124 build
+#   NVML power       10 Hz zero-order hold on these A100s, +/-5 % stated
+# Each results/bench/*_manifest.json records the driver version, GPU UUID,
+# config snapshot, and git commit for its own records.
