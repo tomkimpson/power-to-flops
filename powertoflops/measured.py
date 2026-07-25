@@ -24,19 +24,25 @@ from .config import Config, DEFAULT
 
 @dataclass(frozen=True)
 class MeasuredBands:
-    """The six band fields A2 grounds, plus measurement provenance.
+    """The measured band fields, plus measurement provenance.
 
     Maps onto config placeholders as:
         r_lo, r_hi      -> FloorParams.r_lo, .r_hi      (Exp 1 exchange band)
-        r_lo_cov        -> FloorParams.r_lo_cov         (Exp 2 covert edge)
         P0_lo, P0_hi    -> FloorParams.P0_lo, .P0_hi    (Exp 3 overhead band)
         sigma_dec       -> ChannelParams.sigma_dec      (Exp 2 declared-typical)
-    ``w0`` is recorded for reporting (= r_hi_op/r_lo_op) but is not a config field.
+
+    ``FloorParams.r_lo_cov`` -- the covert denominator -- is NOT taken from
+    Exp 2. It is the Exp-7 marginal dose slope, reached via
+    :func:`covert_edge`; see :func:`config_with_measured`.
+
+    ``r_lo_op`` and ``w0`` (= r_hi_op/r_lo_op) are Exp-2 total quotients kept
+    for reporting only. They are descriptive -- the operand families ran at
+    different governor-selected clocks -- and price no bound.
     """
 
     r_lo: float
     r_hi: float
-    r_lo_cov: float
+    r_lo_op: float
     w0: float
     P0_lo: float
     P0_hi: float
@@ -161,17 +167,23 @@ def useful_marginal_edge(mb: MeasuredBands) -> tuple[float, float]:
 
 
 def config_with_measured(mb: MeasuredBands, base: Config = DEFAULT) -> Config:
-    """Return a new Config with the six measured fields overriding ``base``.
+    """Return a new Config with the measured fields overriding ``base``.
 
     Uses :func:`dataclasses.replace` so ``base`` (default ``DEFAULT``) is left
     untouched. Everything not measured here — hfu_dec, F_max, T, z_gamma,
     r_bar_dec, the SimParams and BenchConfig — is carried through unchanged.
+
+    ``floor.r_lo_cov`` is the int8 Exp-7 marginal LCB via :func:`covert_edge`,
+    NOT an Exp-2 total quotient: the covert cost divides the energy slack, so
+    it must be a one-sided lower bound on the *incremental* cost of an added
+    covert operation. An Exp-2 quotient amortises baseline power the covert
+    work does not draw and would understate beta.
     """
     floor = dataclasses.replace(
         base.floor,
         r_lo=mb.r_lo,
         r_hi=mb.r_hi,
-        r_lo_cov=mb.r_lo_cov,
+        r_lo_cov=covert_edge(mb, "int8"),
         P0_lo=mb.P0_lo,
         P0_hi=mb.P0_hi,
     )

@@ -350,7 +350,7 @@ def test_core_payload_per_device_and_spread():
     assert set(payload["per_device"]) == {"GPU-aaa", "GPU-bbb"}
     assert payload["per_device"]["GPU-aaa"]["r_lo"] == 1e-12
     assert payload["per_device"]["GPU-aaa"]["r_hi"] == 10e-12
-    assert payload["per_device"]["GPU-aaa"]["r_lo_cov"] == 0.5e-12
+    assert payload["per_device"]["GPU-aaa"]["r_lo_op"] == 0.5e-12
     assert payload["device_spread"]["r_lo"] == [1e-12, 1.2e-12]
     assert payload["n_devices"] == 2
 

@@ -109,8 +109,8 @@ def _core_main(args) -> None:
         r_lo, r_hi = bands.get("r_lo"), bands.get("r_hi")
         if r_lo is not None:
             print(f"  {u}: r_lo/r_hi = {r_lo:.3e} / {r_hi:.3e} J/op"
-                  + (f"  r_lo^cov = {bands['r_lo_cov']:.3e}"
-                     if "r_lo_cov" in bands else ""))
+                  + (f"  r_lo^0 = {bands['r_lo_op']:.3e}"
+                     if "r_lo_op" in bands else ""))
     for k, (lo, hi) in payload["device_spread"].items():
         print(f"  spread {k}: [{lo:.3e}, {hi:.3e}]  ({hi / lo:.3f}x)")
 
@@ -196,7 +196,8 @@ def main() -> None:
               f"(idle + compute-bound cubes, R^2 = "
               f"{payload['r_marginal_cubes_r2']:.3f}, "
               f"n = {payload['r_marginal_cubes_n_cells']})")
-    print(f"  r_lo^cov    = {payload['r_lo_cov']:.3e} J/op   w0 = {payload['w0']:.3f}")
+    print(f"  r_lo^0      = {payload['r_lo_op']:.3e} J/op   w0 = {payload['w0']:.3f}"
+          f"   (Exp-2 descriptive; not the covert edge)")
     print(f"  P0 band     = [{payload['P0_lo']:.1f}, {payload['P0_hi']:.1f}] W  "
           f"(observed idle +/- tolerance); fit intercept "
           f"{payload['P0_fit_intercept']:.1f} +/- {payload['P0_fit_se']:.1f} W "

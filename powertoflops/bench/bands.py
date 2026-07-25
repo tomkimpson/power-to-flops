@@ -4,8 +4,13 @@ These functions turn lists of :class:`powertoflops.bench.records.RunRecord` into
 measured band widths that ground the closed-form floor (paper Sec. 3.6):
 
     Exp 1 -> (r_lo, r_hi)                       the declared exchange-rate band
-    Exp 2 -> (r_lo_cov, r_lo_op, r_hi_op, w0)   covert edge + operand core
+    Exp 2 -> (r_lo_op, r_hi_op, w0)             the descriptive operand envelope
     Exp 3 -> OverheadBand                       observed-idle band + marginal-r fit
+
+    Exp 2's edges are total quotients E/C and are DESCRIPTIVE only: they price
+    no bound. The covert denominator r_lo^cov is the Exp-7 marginal dose slope
+    (:func:`marginal_covert_cost`, reached via
+    :func:`powertoflops.measured.covert_edge`), never an Exp-2 edge.
 
     The per-record ``r_j_per_op`` is the total quotient E/C (a secondary,
     clearly-labelled quantity); the theory's marginal rate dP/dF is estimated
@@ -50,10 +55,10 @@ class BandResult:
     r_lo: float
     r_hi: float
 
-    # Exp 2: covert edge and operand core.
-    r_lo_cov: float            # cheapest admissible rate = min operand-activity run
-    r_lo_op: float             # operand-core lower edge (== r_lo_cov)
-    r_hi_op: float             # operand-core upper edge
+    # Exp 2: the descriptive operand envelope (total quotients E/C). These
+    # price NO bound -- the covert denominator is the Exp-7 marginal edge.
+    r_lo_op: float             # operand-envelope lower edge = cheapest operand cell
+    r_hi_op: float             # operand-envelope upper edge
     w0: float                  # operand core ratio r_hi_op / r_lo_op
 
     # Exp 3: overhead band [W] + affine fit diagnostics. The band is the
@@ -240,14 +245,14 @@ def exchange_band_strata(exp1: Sequence[RunRecord]) -> dict[int, dict]:
 def operand_core_strata(exp2: Sequence[RunRecord]) -> dict[int, dict]:
     """Per-achieved-clock-stratum operand cores (R2.3).
 
-    Returns {stratum_mhz: {r_lo_cov, r_hi_op, w0, n_cells, n_records}}.
+    Returns {stratum_mhz: {r_lo_op, r_hi_op, w0, n_cells, n_records}}.
     """
     out: dict[int, dict] = {}
     for stratum, rows in sorted(_by_stratum(clean_records(exp2)).items()):
         cells = _median_per_cell(rows, key=lambda r: r.operand_dist_a)
         rs = list(cells.values())
         r_lo, r_hi = min(rs), max(rs)
-        out[stratum] = {"r_lo_cov": r_lo, "r_hi_op": r_hi, "w0": r_hi / r_lo,
+        out[stratum] = {"r_lo_op": r_lo, "r_hi_op": r_hi, "w0": r_hi / r_lo,
                         "n_cells": len(cells), "n_records": len(rows)}
     return out
 
@@ -361,13 +366,19 @@ def useful_band(
 
 def operand_core(
     exp2: Sequence[RunRecord],
-) -> tuple[float, float, float, float]:
-    """Exp 2: (r_lo_cov, r_lo_op, r_hi_op, w0) over operand-value cells.
+) -> tuple[float, float, float]:
+    """Exp 2: (r_lo_op, r_hi_op, w0) over operand-value cells.
 
-    Only the operand *values* vary (precision/shape/clock fixed), so the spread
-    is the activity factor alpha. The cheapest cell is the covert edge r_lo^cov
-    (the divisor of beta); the ratio of the extreme cells is the operand core
-    w0 = r_hi^0 / r_lo^0 (the sensor-irreducible residue).
+    Only the operand *values* vary (precision/shape fixed), so the spread
+    tracks the activity factor alpha; the clock was governor-selected rather
+    than locked, so read it as a descriptive within-device envelope rather
+    than a clean isolation of alpha. Both edges are total quotients E/C and
+    the ratio of the extreme cells is the operand core w0 = r_hi^0 / r_lo^0.
+
+    None of these three quantities prices any bound. In particular the
+    cheapest cell is NOT the covert denominator r_lo^cov: that is the Exp-7
+    marginal dose slope, obtained via
+    :func:`powertoflops.measured.covert_edge`.
     """
     clean = clean_records(exp2)
     if not clean:
@@ -376,7 +387,7 @@ def operand_core(
     rs = list(cells.values())
     r_lo_op, r_hi_op = min(rs), max(rs)
     w0 = r_hi_op / r_lo_op
-    return r_lo_op, r_lo_op, r_hi_op, w0
+    return r_lo_op, r_hi_op, w0
 
 
 def sigma_dec_from(exp2: Sequence[RunRecord], dist: str = "declared_typical") -> float:
@@ -765,13 +776,12 @@ def extract_bands(
 ) -> BandResult:
     """Compose all three experiments into a single :class:`BandResult`."""
     r_lo, r_hi = exchange_band(exp1)
-    r_lo_cov, r_lo_op, r_hi_op, w0 = operand_core(exp2)
+    r_lo_op, r_hi_op, w0 = operand_core(exp2)
     ob = overhead_band(exp3)
     sigma_dec = sigma_dec_from(exp2)
     return BandResult(
         r_lo=r_lo,
         r_hi=r_hi,
-        r_lo_cov=r_lo_cov,
         r_lo_op=r_lo_op,
         r_hi_op=r_hi_op,
         w0=w0,

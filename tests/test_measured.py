@@ -12,7 +12,7 @@ from powertoflops.measured import MeasuredBands, config_with_measured, load_meas
 
 def _mb(**over) -> MeasuredBands:
     base = dict(
-        r_lo=2.0e-12, r_hi=8.0e-12, r_lo_cov=2.0e-12, w0=2.5,
+        r_lo=2.0e-12, r_hi=8.0e-12, r_lo_op=2.0e-12, w0=2.5,
         P0_lo=60.0, P0_hi=110.0, sigma_dec=1.0e-13,
         gpu_name="NVIDIA A100", driver_version="580.159.04",
     )
@@ -21,12 +21,15 @@ def _mb(**over) -> MeasuredBands:
 
 
 def test_override_touches_exactly_the_six_fields():
-    mb = _mb()
+    from powertoflops.measured import covert_edge
+
+    mb = _mb(r_marg_cov=_R_MARG_COV)
     cfg = config_with_measured(mb)
     # the six measured fields are swapped in
     assert cfg.floor.r_lo == mb.r_lo
     assert cfg.floor.r_hi == mb.r_hi
-    assert cfg.floor.r_lo_cov == mb.r_lo_cov
+    # the covert denominator is the Exp-7 MARGINAL edge, not an Exp-2 quotient
+    assert cfg.floor.r_lo_cov == covert_edge(mb, "int8")
     assert cfg.floor.P0_lo == mb.P0_lo
     assert cfg.floor.P0_hi == mb.P0_hi
     assert cfg.channel.sigma_dec == mb.sigma_dec
@@ -42,19 +45,40 @@ def test_override_touches_exactly_the_six_fields():
 
 def test_default_is_not_mutated():
     before = dataclasses.asdict(DEFAULT)
-    config_with_measured(_mb())
+    config_with_measured(_mb(r_marg_cov=_R_MARG_COV))
     assert dataclasses.asdict(DEFAULT) == before
 
 
 def test_measured_flows_through_beta_bare():
-    cfg = config_with_measured(_mb())
+    cfg = config_with_measured(_mb(r_marg_cov=_R_MARG_COV))
     f = cfg.floor
-    # Mirror the headline path (plot_beta_phys): bare-meter band floor is the
-    # covert edge r_lo_cov (here == r_lo).
+    # Mirror the headline path (plot_beta_phys): the bare-meter denominator is
+    # the covert edge r_lo_cov = the Exp-7 marginal LCB, 0.55 pJ/op here.
     beta = beta_bare(f.hfu_dec, f.r_hi, f.r_lo_cov, f.dE0, f.C_max)
     assert beta > 0.0
-    # with r_hi/r_lo_cov = 4 and hfu_dec = 1, the declared term alone is 3
-    assert beta > 3.0
+    # with r_hi/r_lo_cov = 8.0/0.55 and hfu_dec = 1, the declared term alone
+    # is ~13.5, so the marginal edge concedes strictly more than the Exp-2
+    # quotient (2.0 pJ/op) would have: 13.5 vs 3.
+    assert beta > 13.0
+
+
+def test_config_never_prices_covert_work_at_the_exp2_quotient():
+    # Regression guard: the Exp-2 operand edge r_lo_op is a total quotient that
+    # amortises baseline power the covert work does not draw. Wiring it into the
+    # covert DENOMINATOR would understate beta. It must never be used there.
+    mb = _mb(r_marg_cov=_R_MARG_COV)
+    cfg = config_with_measured(mb)
+    assert cfg.floor.r_lo_cov != mb.r_lo_op
+    assert cfg.floor.r_lo_cov < mb.r_lo_op      # marginal edge is the cheaper one
+
+
+def test_config_refuses_an_artifact_without_the_marginal_edge():
+    # No Exp-7 capture means no defensible covert denominator: fail loud rather
+    # than silently falling back to the Exp-2 quotient.
+    import pytest
+
+    with pytest.raises(ValueError, match="r_marg_cov"):
+        config_with_measured(_mb())
 
 
 def test_load_measured_bands_ignores_extra_keys(tmp_path):

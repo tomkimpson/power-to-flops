@@ -1,9 +1,11 @@
 """A2 single-GPU bench harness — measure the exchange-rate bands on real silicon.
 
 The closed form reports the verification floor beta in terms of three band
-widths: the declared exchange-rate band r_hi/r_lo, the cheapest covert rate
-r_lo^cov (and the operand core w0 = r_hi^0/r_lo^0), and the overhead band dE0.
-This package runs paper-Sec.-3 Experiments 1-8 on NVIDIA A100s and extracts
+widths: the declared exchange-rate band r_hi/r_lo, the covert rate r_lo^cov,
+and the overhead band dE0. The covert rate is a MARGINAL dose slope (capture
+exp7), never an Exp-2 total quotient; the Exp-2 operand core
+w0 = r_hi^0/r_lo^0 is descriptive and prices nothing.
+This package runs the manuscript's Experiments 1-5 on NVIDIA A100s and extracts
 those bands, replacing the Horowitz-2014 placeholders in
 :mod:`powertoflops.config` with measured numbers (wired in via :mod:`powertoflops.measured`).
 

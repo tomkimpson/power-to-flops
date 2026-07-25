@@ -41,7 +41,7 @@ ARTIFACT = pathlib.Path(__file__).resolve().parent.parent / (
 def _mb(**over) -> MeasuredBands:
     """Artifact stub shaped like a post-Exp-7, post-qblock measured_bands.json."""
     base = dict(
-        r_lo=0.8e-12, r_hi=20.0e-12, r_lo_cov=1.2e-12, w0=1.8,
+        r_lo=0.8e-12, r_hi=20.0e-12, r_lo_op=1.2e-12, w0=1.8,
         P0_lo=60.0, P0_hi=100.0, sigma_dec=1.0e-13,
         r_useful_lo=1.8e-12, r_useful_hi=2.4e-12,
         r_useful_marg_lo=2.0e-12, r_useful_marg_hi=2.9e-12,
@@ -170,12 +170,12 @@ def test_useful_band_width_never_enters_declared_numerator():
 
 
 def test_w0_pooled_floor_and_covert_edge_do_not_price_any_rung():
-    # B6 ban: Exp-2's w0, the pooled floor r_lo, and the pooled/observed covert
-    # edge r_lo_cov must not enter ANY priced rung — guarantee rungs price off
-    # the Exp-7 marginal edge and the per-format bands. Poisoning them leaves
-    # every priced rung finite and unchanged.
+    # B6 ban: Exp-2's w0 and operand edge r_lo_op, and the pooled floor r_lo,
+    # must not enter ANY priced rung — guarantee rungs price off the Exp-7
+    # marginal edge and the per-format bands. Poisoning them leaves every
+    # priced rung finite and unchanged.
     clean = build_ladder(_mb())
-    poisoned = build_ladder(_mb(w0=math.nan, r_lo_cov=math.nan, r_lo=math.nan))
+    poisoned = build_ladder(_mb(w0=math.nan, r_lo_op=math.nan, r_lo=math.nan))
     for c, p in zip(clean, poisoned):
         if c.priced:
             assert math.isfinite(p.beta_star)
