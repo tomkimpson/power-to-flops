@@ -244,7 +244,8 @@ def test_record_for_fails_loudly_when_named_record_missing(tmp_path):
 
 def test_record_for_resolves_the_committed_artifact():
     # End-to-end against the real artifact: each band figure's record must be
-    # the one measured_bands.json names, and must exist.
-    for experiment in (1, 2, 3):
+    # the one measured_bands.json names, and must exist. Experiment 7 backs the
+    # dose-response figure (fig:marginal-dose).
+    for experiment in (1, 2, 3, 7):
         path = record_for(experiment)
         assert path.exists() and path.name.startswith(f"exp{experiment}_")

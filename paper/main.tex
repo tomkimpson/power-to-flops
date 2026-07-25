@@ -546,7 +546,7 @@ power, no reading of the trace can tell them apart because the data hold no info
 
 We now derive a closed form for $\beta$. The derivation is straightforward: integrate the forward model over the window, split the total energy into declared,
 covert, and overhead pieces, and ask how large the covert piece can grow
-before the total stops looking honest. We work with the integrated trace (i.e. the total energy) rather than the resolved time series. Treating power as affine in the operation rate (\cref{eq:forward}) lets its integral depend on the workload only through time-integrated quantities. This is a modelling assumption; \cref{rmk:incremental} shows that the security bound needs only a weaker one-sided condition on the \emph{incremental} covert cost, with the affine map recovered as the special case that also fixes the closed form.
+before the total stops looking honest. We work with the integrated trace (i.e. the total energy) rather than the resolved time series. Treating power as affine in the operation rate (\cref{eq:forward}) lets its integral depend on the workload only through time-integrated quantities. This is a modelling assumption; \cref{rmk:incremental} shows that the security bound needs only a weaker one-sided condition on the \emph{incremental} covert cost---measured directly and found near-perfectly linear in \cref{fig:marginal-dose}---with the affine map recovered as the special case that also fixes the closed form.
 
 \subsection{How much compute can hide?}
 \label{subsec:derivation}
@@ -1439,11 +1439,15 @@ this quotient amortises in.
 	\includegraphics[width=\columnwidth]{overhead_affine}
 	\caption{The overhead band and the affine forward map (Experiment~3,
 	$n=65$ windows across a $15$-cell rate ladder). \emph{Top:} mean power
-	$P$ vs.\ nominal-op rate $F$ with the affine fit $P = rF + P_0$
-	($R^2 = 0.852$; slope $r = 1.60$\,pJ/op); the shaded band is the
-	observed idle range across five idle variants,
+	$P$ vs.\ nominal-op rate $F$, plotted as per-cell medians with
+	$\pm1$\,SD error bars over each cell's repeats, against the affine fit
+	$P = rF + P_0$ ($R^2 = 0.852$; slope $r = 1.60$\,pJ/op); the shaded band
+	is the observed idle range across five idle variants,
 	$P_0 \in [59.8, 101.0]$\,W. \emph{Bottom:} residuals; the
-	launch- and bandwidth-bound mid-ladder shapes carry the scatter.}
+	launch- and bandwidth-bound mid-ladder shapes carry the scatter. This is a
+	\emph{between-shape} diagnostic of the affine map; the covert denominator
+	the floor actually uses is the \emph{within-cell} marginal cost of
+	\cref{fig:marginal-dose} (Experiment~7), not this fit.}
 	\label{fig:overhead-affine}
 \end{figure}
 
@@ -1467,6 +1471,24 @@ floor's covert denominator: it averages over shapes whose non-covert
 factors vary together, where the theorem needs the derivative at fixed
 declared work. That derivative is what Experiment~7 identifies.
 
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=\columnwidth]{marginal_dose}
+	\caption{The marginal covert cost (Experiment~7): window energy $E$ vs.\
+	covert dose $C_{\mathrm{cov}}$ for int8 and fp16 covert work, added to a
+	fixed fp16 declared burst inside a fixed $10$\,s window. \emph{Top:}
+	per-cell medians with $\pm1$\,SD error bars over the five repeats,
+	against the dose fit $E = r_{\mathrm{cov}}\,C_{\mathrm{cov}} + E_0$; both
+	slopes are linear to $R^2 > 0.999$ ($0.53$\,pJ/op int8, $0.77$\,pJ/op
+	fp16) and share a zero-dose intercept matching the directly measured
+	zero-dose windows to $0.02\%$. \emph{Bottom:} residuals. Because the
+	baseline burns identically at every dose, it cancels in the slope: unlike
+	the between-shape fit of \cref{fig:overhead-affine}, this within-cell
+	slope is the incremental estimand $\partial E/\partial C_{\mathrm{cov}}$
+	the floor's covert denominator requires (\cref{rmk:incremental}).}
+	\label{fig:marginal-dose}
+\end{figure}
+
 \paragraph{Experiment 7---the marginal covert cost.}
 The covert denominator, measured as the theorem defines it: the energy an
 \emph{added} covert operation costs, with everything else held fixed. Every
@@ -1477,7 +1499,8 @@ of one format (int8 or fp16, zero operands---the adversary's cheapest
 case), then idle-pad to the window. Sweeping the covert dose over six
 levels from zero to a $0.48$ busy fraction (randomised order,
 drift-reference splices, five repeats per cell) and regressing window
-energy on covert nominal operations gives the marginal cost as a slope:
+energy on covert nominal operations gives the marginal cost as a slope
+(\cref{fig:marginal-dose}):
 $0.53$\,pJ/op for int8 and $0.77$\,pJ/op for fp16, both fits linear to
 $R^2 > 0.999$, with the fitted zero-dose intercept agreeing with the
 directly measured zero-dose windows to $0.02\%$. Because the fixed window

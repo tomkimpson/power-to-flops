@@ -1,8 +1,8 @@
 """Standalone single-column band figures (Sec. 3 experiments).
 
-The manuscript is two-column ICML (\\columnwidth ~ 3.25 in), so each of the three
-measured results gets one standalone figure authored at that *native* width,
-rendering 1:1 with no text rescaling. The band helpers come from
+The manuscript is two-column ICML (\\columnwidth ~ 3.25 in), so each measured
+result gets one standalone figure authored at that *native* width, rendering
+1:1 with no text rescaling. The band helpers come from
 powertoflops.bench.bands, so the plotted numbers are by construction the ones in
 the text.
 
@@ -12,6 +12,7 @@ Output:
     figures/exchange_band.{pdf,png}
     figures/operand_envelope.{pdf,png}
     figures/overhead_affine.{pdf,png}
+    figures/marginal_dose.{pdf,png}
 """
 
 from __future__ import annotations
@@ -30,9 +31,12 @@ import numpy as np  # noqa: E402
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from powertoflops.bench.bands import (  # noqa: E402
+    _cell_key,
+    clean_marginal_records,
     clean_overhead_records,
     clean_records,
     exchange_band,
+    marginal_covert_cost,
     operand_core,
     overhead_band,
 )
@@ -181,13 +185,27 @@ def fig_operand_envelope(bench_dir: pathlib.Path) -> None:
 
 def fig_overhead_affine(bench_dir: pathlib.Path) -> None:
     recs = clean_overhead_records(read_jsonl(record_for(3, bench_dir)))
-    F = np.array([r.ops_nominal / r.duration_s for r in recs]) / 1e12   # Top/s
-    P = np.array([r.mean_power_w for r in recs])
     ob = overhead_band(recs)
     P0_lo, P0_hi, slope_r, affine_r2 = ob.P0_lo, ob.P0_hi, ob.r_marginal, ob.affine_r2
 
-    # fit in Top/s units for the line, extended to F = 0 to expose the intercept
-    slope, intercept = np.polyfit(F, P, 1)
+    # Aggregate the raw windows to sweep cells and plot the per-cell median with
+    # std error bars over its repeats. The cells are exactly what marginal_rate
+    # (hence the quoted r and R^2) regresses over, so the plotted points, the
+    # fitted line, and the caption numbers all refer to the same estimand.
+    by_cell: dict[tuple, list] = defaultdict(list)
+    for r in recs:
+        by_cell[_cell_key(r)].append(r)
+    F = np.array([np.median([r.ops_nominal / r.duration_s for r in rows])
+                  for rows in by_cell.values()]) / 1e12   # Top/s
+    P = np.array([float(np.median([r.mean_power_w for r in rows]))
+                  for rows in by_cell.values()])
+    Perr = np.array([float(np.std([r.mean_power_w for r in rows]))
+                     for rows in by_cell.values()])
+
+    # Line from the cell-median fit (marginal_rate): slope in W per Top/s, and the
+    # intercept in W. Extended to F = 0 to expose the P_0 intercept.
+    slope = slope_r * 1e12
+    intercept = ob.fit_intercept_w
     xs = np.linspace(0, F.max() * 1.02, 100)
 
     fig, (ax, axr) = plt.subplots(
@@ -197,7 +215,8 @@ def fig_overhead_affine(bench_dir: pathlib.Path) -> None:
                label=fr"$P_0$ band [{P0_lo:.0f}, {P0_hi:.0f}] W")
     ax.plot(xs, slope * xs + intercept, color=C["vermillion"], lw=1.2, zorder=2,
             label="affine fit")
-    ax.scatter(F, P, s=10, color=C["blue"], zorder=3, label="measured windows")
+    ax.errorbar(F, P, yerr=Perr, fmt="o", ms=3, color=C["blue"], ecolor=C["blue"],
+                elinewidth=0.8, capsize=1.5, zorder=3, label="cell median $\\pm$ SD")
     ax.set_ylabel(r"Mean power, $P$ (W)")
     # Headline fit numbers in an unframed in-panel box rather than a title.
     ax.text(0.04, 0.96,
@@ -208,14 +227,77 @@ def fig_overhead_affine(bench_dir: pathlib.Path) -> None:
     resid = P - (slope * F + intercept)
     rmax = float(np.abs(resid).max()) * 1.25
     axr.axhline(0, color=C["black"], lw=0.8, zorder=1)
-    axr.scatter(F, resid, s=10, color=C["blue"], zorder=3)
+    axr.errorbar(F, resid, yerr=Perr, fmt="o", ms=3, color=C["blue"], ecolor=C["blue"],
+                 elinewidth=0.8, capsize=1.5, zorder=3)
     axr.set_ylim(-rmax, rmax)
     axr.set_ylabel("Residual (W)")
     axr.set_xlabel(r"nominal-op rate, $F$ (Top/s)")
     save(fig, "overhead_affine")
     plt.close(fig)
     print(f"[3] P0 band [{P0_lo:.1f}, {P0_hi:.1f}] W, affine R^2 {affine_r2:.4f} "
-          f"-> figures/overhead_affine.*")
+          f"({len(by_cell)} cells) -> figures/overhead_affine.*")
+
+
+# Covert format -> (colour, label) for the dose-response figure.
+COV_STYLE = {
+    "int8": (C["blue"], "int8"),
+    "fp16": (C["orange"], "fp16"),
+}
+
+
+def fig_marginal_dose(bench_dir: pathlib.Path) -> None:
+    """Experiment 7: window energy vs covert dose, the marginal-cost estimand.
+
+    Unlike the between-shape overhead fit (fig_overhead_affine), this intervenes
+    on the covert dose alone inside a fixed window, so its slope is the genuine
+    marginal cost dE/dC_cov the floor's covert denominator uses. Near-perfect
+    linearity (R^2 > 0.999) is the load-bearing result; points are per-dose-cell
+    medians with std error bars over the repeats.
+    """
+    all_recs = read_jsonl(record_for(7, bench_dir))
+
+    fig, (ax, axr) = plt.subplots(
+        2, 1, figsize=(WIDTH_ICML_COL, 3.0), sharex=True,
+        layout="constrained", gridspec_kw={"height_ratios": [3, 1]})
+
+    dose_max = 0.0
+    for fmt, (colour, label) in COV_STYLE.items():
+        recs = clean_marginal_records(all_recs, fmt)
+        by_dose: dict[int, list] = defaultdict(list)
+        for r in recs:
+            by_dose[r.cov_iters].append(r)
+        # Per dose cell: median covert ops (x) and median window energy (y),
+        # with the std of energy over the cell's repeats as the error bar.
+        D = np.array([float(np.median([r.cov_ops_nominal for r in rows]))
+                      for rows in by_dose.values()])
+        E = np.array([float(np.median([r.energy_j for r in rows]))
+                      for rows in by_dose.values()])
+        Eerr = np.array([float(np.std([r.energy_j for r in rows]))
+                         for rows in by_dose.values()])
+
+        mc = marginal_covert_cost(all_recs, fmt)   # slope (J/op), intercept (J), R^2
+        dose_max = max(dose_max, float(D.max()))
+        xs = np.linspace(0, D.max(), 100)
+        ax.plot(xs / 1e15, mc.r_marg * xs + mc.intercept_j,
+                color=colour, lw=1.2, zorder=2)
+        ax.errorbar(D / 1e15, E, yerr=Eerr, fmt="o", ms=3, color=colour,
+                    ecolor=colour, elinewidth=0.8, capsize=1.5, zorder=3,
+                    label=fr"{label}: {mc.r_marg*1e12:.2f} pJ/op, "
+                          fr"$R^2 = {mc.r2:.4f}$")
+
+        resid = E - (mc.r_marg * D + mc.intercept_j)
+        axr.errorbar(D / 1e15, resid, yerr=Eerr, fmt="o", ms=3, color=colour,
+                     ecolor=colour, elinewidth=0.8, capsize=1.5, zorder=3)
+
+    ax.set_ylabel(r"Window energy, $E$ (J)")
+    ax.legend(frameon=False, loc="upper left")
+    axr.axhline(0, color=C["black"], lw=0.8, zorder=1)
+    axr.set_ylabel("Residual (J)")
+    axr.set_xlabel(r"covert dose, $C_{\mathrm{cov}}$ ($10^{15}$ nominal ops)")
+    save(fig, "marginal_dose")
+    plt.close(fig)
+    print(f"[7] dose-response, doses up to {dose_max/1e15:.2f}e15 ops "
+          f"-> figures/marginal_dose.*")
 
 
 def main() -> None:
@@ -227,6 +309,7 @@ def main() -> None:
     fig_exchange_band(bench_dir)
     fig_operand_envelope(bench_dir)
     fig_overhead_affine(bench_dir)
+    fig_marginal_dose(bench_dir)
 
 
 if __name__ == "__main__":
