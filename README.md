@@ -2,55 +2,8 @@
 
 **Can power draw constrain covert compute?**
 
-Compute governance rests on counting operations: past a threshold, a training run
-triggers registration, reporting, and audit obligations. One channel a verifier can read
-without trusting the operator's hardware is an off-chip power meter, and the hope is that
-an energy budget bounds an operation count. This repository establishes exactly when it
-does — and by how much.
+A verifier wants to constrain the total compute that an adversarial prover is running, given only an off-chip power meter.
 
-The energy cost of an operation is unknown and data-dependent, so inverting a power trace
-returns a **set**, not a number. The set's width is a floor `β` on the covert compute the
-trace admits, measured in *machines* of declared-format capacity. We derive `β` in closed
-form from named physical bands, measure those bands on NVIDIA A100s, and price what each
-additional verifier capability buys.
-
-We do **not** claim energy accounting is vacuous. It is loose against a bare meter and
-tightens substantially as capabilities are added.
-
-## Results
-
-Every term is evaluated inside **one jointly feasible scenario** — one declared format,
-one covert format, one observation window sharing the machine — with the covert cost
-measured as a genuine incremental lower bound.
-
-| quantity | value | status |
-|---|---|---|
-| Exchange-rate span on one A100 | **24.8×** (0.79–19.5 pJ/op) | measured (Exp 1) |
-| Overhead power band `P₀` | **[59.8, 101.0] W** | measured (Exp 3) |
-| Attained covert work, accepted by the sensor's own rule | **0.41 machines** at declared utilisation `h ≈ 0.22` | measured (3 witnesses) |
-| Busy-time ceiling `h_max` | **≈ 0.24** | measured |
-| Model worst case, precision checked | **`β*_phys` = 1.16** at `h* = 0.42` | model **upper bound** |
-| Model worst case restricted to feasible `h` | **≈ 0.77** | model |
-| Against a bare meter (format not even pinned) | **1.91** | model |
-
-The `1.16` peak sits *above* the utilisation any single window can hold, so it is an upper
-bound rather than an attained width. The attained result is the `0.41`: three fixed-`T`,
-same-`C_dec` witnesses that hide four-tenths of a machine of covert int8 work while the
-meter raises no alarm.
-
-The identified set then narrows down the **capability ladder**:
-
-| rung | `β*_phys` | condition it rests on |
-|---|---|---|
-| bare meter | 1.91 | — |
-| precision declared & checked | 1.16 | declared-format execution |
-| clock & locality observed | *unpriced* (prospective) | + prospective |
-| declared work re-executed | 0.34 | + operating point observed |
-| covert work on useful data | 0.071 | + operating point observed |
-| covert work at top of useful band | 0.057 | + operating point observed |
-
-The rungs **interlock** — re-execution pays only at an observed operating point — and the
-chain is cumulative, not a menu.
 
 ## Setup
 
@@ -61,11 +14,11 @@ pip install -r requirements.txt        # CPU-only: tests, analysis, all five fig
 pip install -r requirements-gpu.txt    # only to re-capture on hardware (pinned torch)
 ```
 
+## Reproducing the results
+
 Reproducing every number and figure below needs **no GPU and no LaTeX** — it consumes the
 committed records in `results/bench/`. `pip install -e .` is optional; the scripts put the
 repo root on `sys.path` themselves.
-
-## Reproducing the results
 
 **Tests** — numerical anchors guard the closed form, the band extraction, and every
 reported headline value:
@@ -116,22 +69,13 @@ python scripts/plot_beta_phys.py           # figures/beta_phys_curve.*     (the 
 python scripts/plot_capability_ladder.py   # figures/capability_ladder.*   (β down the rungs)
 ```
 
-Each script prints its own anchors, so a regression is visible without opening the PDF.
-`plotstyle.save` suppresses the PDF `CreationDate`, so re-running on unchanged data
-produces **byte-identical** files — `git status figures/` staying clean is a real check,
-not timestamp luck.
 
-**The attained bound.** Re-validate one of the three matched-pair witnesses:
 
-```bash
-python scripts/analyze_pair.py results/bench/matched_pair_133496492841.json
-# -> β_witness = 0.411 machines, NO ALARM on any cheating repeat
-```
 
 ## Measurement campaign
 
 Re-capturing needs A100s with NVML under Slurm. The recipes in `scripts/*.slurm` are
-written for OzSTAR (`--account=oz022`, `--partition=milan-gpu`); adapt the header for
+written for a specific cluster; one may need to adapt the header for
 another site. Every record carries a provenance manifest with GPU UUID, config snapshot,
 and git commit.
 
@@ -186,6 +130,3 @@ different kernels and move the band edges. Re-measure rather than assume.
 ```bash
 cd paper && latexmk -pdf main.tex
 ```
-
-`paper/main.pdf` is a build artifact and is **not** tracked — build it from source rather
-than trusting a committed copy.
