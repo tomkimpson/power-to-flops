@@ -26,9 +26,7 @@ env/
 *.lot
 *.run.xml
 *.bcf
-# The PDF is a build artifact: build it from source rather than trusting a
-# committed copy that can silently fall behind main.tex.
-paper/main.pdf
+
 
 # Large binary data formats (not tracked). data/qblock/*.npz is sha256-pinned by
 # the committed manifest instead — see PROVENANCE.md.
