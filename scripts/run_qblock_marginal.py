@@ -1,4 +1,4 @@
-"""Run Exp 8 — the marginal useful-cost dose-response (referee B5, third round).
+"""Run qblock-marginal — the marginal useful-cost dose-response (referee B5, third round).
 
 The Exp-7 construction (fixed fp16 declared burst, idle-padded to a fixed
 window) with the trained-weight qblock forward as the swept covert dose, so
@@ -59,7 +59,7 @@ def main() -> None:
     pts = build_dose_sweep(arms, cfg.qblock_marg_cov_fracs,
                            cfg.marg_declared_frac)
     n_windows = len(pts) * (cfg.warmup + cfg.repeats)
-    print(f"exp8 qblock-marginal: declared {cfg.marg_declared_dtype} "
+    print(f"qblock-marginal: declared {cfg.marg_declared_dtype} "
           f"{cfg.marg_declared_shape} at h={cfg.marg_declared_frac} of a "
           f"{cfg.marg_window_s:.0f}s window; {len(arms)} arms x "
           f"{len(cfg.qblock_marg_cov_fracs)} doses x {cfg.repeats} repeats "

@@ -4,7 +4,8 @@ Entry point invoked by scripts/run_bench.slurm (one experiment per array task)
 and scripts/run_core_sweep.slurm (experiment 4, one device per array task).
 Experiments (R2 campaign; see README.md, "Measurement campaign"):
     1  exchange-rate band r_hi/r_lo  (precision x operand x locality factorial)
-    2  operand envelope -> r_lo^cov, w0  (operand VALUES only, interleaved rounds)
+    2  operand envelope -> r_lo^0, w0  (operand VALUES only, interleaved rounds;
+       descriptive quotients, NOT the covert edge — that is exp7)
     3  marginal rate dP/dF + overhead band  (sustained-F ladder + idle variants)
     4  cross-device core sweep  (band corners; one short allocation per device)
 

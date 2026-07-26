@@ -19,7 +19,7 @@ Usage (after ``matplotlib.use("Agg")``)::
 We drive matplotlib with ``plt.style.use(['science', 'nature', 'no-latex'])``: the
 ``nature`` style gives the sans-serif Nature look, and ``no-latex`` renders text
 through matplotlib's own mathtext so regenerating figures needs no LaTeX install
-(reproducibility, CLAUDE.md). Fonts are embedded as editable TrueType
+(reproducibility, see the README). Fonts are embedded as editable TrueType
 (``pdf.fonttype = 42``) as journals require.
 """
 

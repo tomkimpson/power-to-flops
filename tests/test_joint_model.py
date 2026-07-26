@@ -24,7 +24,7 @@ def _mb(**over) -> MeasuredBands:
     base = dict(
         # pooled descriptive span (cross-format by construction — the min is
         # an int8 cell, the max an fp32 cell, as in the committed artifact)
-        r_lo=0.8e-12, r_hi=20.0e-12, r_lo_cov=1.2e-12, w0=1.8,
+        r_lo=0.8e-12, r_hi=20.0e-12, r_lo_op=1.2e-12, w0=1.8,
         P0_lo=60.0, P0_hi=100.0, sigma_dec=1.0e-13,
         format_bands={
             "fp16": {"r_lo": 1.1e-12, "r_hi": 2.2e-12, "n_cells": 12},
@@ -109,7 +109,7 @@ def test_total_ec_edge_rejected_as_covert_denominator():
     # total-E/C edge that amortises baseline power over the ops.
     mb = _mb()
     with pytest.raises(FormatMixError, match="marginal LCB"):
-        validate_joint_case(_case(mb, r_lo_cov=mb.r_lo_cov), mb)
+        validate_joint_case(_case(mb, r_lo_cov=mb.r_lo_op), mb)
 
 
 def test_mismatched_capacity_and_kappa_rejected():

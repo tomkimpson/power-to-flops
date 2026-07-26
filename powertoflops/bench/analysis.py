@@ -80,8 +80,8 @@ def _device_bands(exp1: Sequence[RunRecord], exp2: Sequence[RunRecord],
     except ValueError:
         pass
     try:
-        r_lo_cov, r_lo_op, r_hi_op, w0 = operand_core(exp2)
-        out.update(r_lo_cov=r_lo_cov, r_lo_op=r_lo_op, r_hi_op=r_hi_op, w0=w0,
+        r_lo_op, r_hi_op, w0 = operand_core(exp2)
+        out.update(r_lo_op=r_lo_op, r_hi_op=r_hi_op, w0=w0,
                    sigma_dec=sigma_dec_from(exp2))
     except ValueError:
         pass
@@ -130,7 +130,7 @@ def band_payload(
     ``extra`` block) is recorded verbatim under ``weights_provenance``.
 
     ``qblock_marg`` (referee B5, third round) contributes the MARGINAL useful
-    edge ``r_useful_marg_lo``/``r_useful_marg_hi`` from the Exp-8 dose-response
+    edge ``r_useful_marg_lo``/``r_useful_marg_hi`` from the qblock-marginal dose-response
     (:func:`powertoflops.bench.bands.useful_marginal_band`) — the incremental covert
     cost of useful work, which replaces the total-quotient ``qblock`` band as
     the ladder denominator. Like qblock it is a covert denominator on a possibly
@@ -228,7 +228,7 @@ def band_payload(
             "qblock", qblock, inputs.get("qblock"))
 
     if qblock_marg:
-        # Exp 8 (referee B5, third round): the MARGINAL useful edge — a covert
+        # qblock-marginal (referee B5, third round): the MARGINAL useful edge — a covert
         # denominator, so (like qblock) a separate quantity excluded from the
         # single-device guard, min-over-devices for the multi-UUID lower limit.
         qm_uuids = gather_uuids(qblock_marg)
@@ -305,7 +305,12 @@ def _spread_over(per_device: Mapping[str, Mapping[str, float]]) -> dict:
 
 
 def _core_bands(core: Sequence[RunRecord]) -> dict:
-    """One device's core-sweep quantities: exchange corners + covert edge."""
+    """One device's core-sweep quantities: exchange corners + cheapest cell.
+
+    ``r_lo_op`` is the cheapest zero-operand cell as a total quotient E/C. It
+    is a descriptive per-device edge for the cross-device spread, NOT the
+    covert denominator (that is the Exp-7 marginal edge).
+    """
     clean = clean_records(core)
     dense = [r for r in clean if r.operand_dist_a == "dense_random"]
     zeros = [r for r in clean if r.operand_dist_a == "zeros"]
@@ -314,7 +319,7 @@ def _core_bands(core: Sequence[RunRecord]) -> dict:
         out["r_lo"], out["r_hi"] = exchange_band(dense)
     if zeros:
         cells = _median_per_cell(zeros, key=lambda r: (r.dtype, r.locality))
-        out["r_lo_cov"] = min(cells.values())
+        out["r_lo_op"] = min(cells.values())
     return out
 
 

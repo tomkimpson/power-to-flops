@@ -216,8 +216,9 @@ def u_dec_reexec(sigma_dec: float, C_dec: float, n: int, z_gamma: float) -> floa
     the bare-meter full-band term (r_hi - r_lo) C_dec. The bare meter concedes the
     *entire* operand band because it cannot see operands; re-execution *replaces*
     that with the narrow statistical width sigma_dec. The worst-case band and the
-    sqrt(n) width answer two different questions (w0 keeps its
-    force only where no re-execution channel exists).
+    sqrt(n) width answer two different questions. (The Exp-2 operand core w0 is
+    descriptive only and prices neither: the ladder leaves the clock/locality
+    rung unpriced rather than reading w0 as a certified edge.)
     """
     if n <= 0:
         raise ValueError("n (re-execution samples) must be >= 1")

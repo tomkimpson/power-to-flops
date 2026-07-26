@@ -139,7 +139,7 @@ def fig_operand_envelope(bench_dir: pathlib.Path) -> None:
     dists = [d for d in OPERAND_ORDER if d in by_dist] + \
             [d for d in by_dist if d not in OPERAND_ORDER]
     x = np.arange(len(dists))
-    r_lo_cov, r_lo_op, r_hi_op, w0 = operand_core(recs)
+    r_lo_op, r_hi_op, w0 = operand_core(recs)
     lo, hi = r_lo_op * 1e12, r_hi_op * 1e12
 
     fig, ax = plt.subplots(figsize=(WIDTH_ICML_COL, 2.6), layout="constrained")
@@ -156,10 +156,13 @@ def fig_operand_envelope(bench_dir: pathlib.Path) -> None:
         ax.scatter(np.full_like(vals, i), vals, s=12, alpha=0.7, color=C["blue"],
                    edgecolors="white", linewidths=0.3, zorder=3)
 
-    # Covert edge = cheapest rate reached (operand zeros); the band floor.
-    cov_line = ax.axhline(
-        r_lo_cov * 1e12, ls="--", color=C["vermillion"], lw=1.1, zorder=2,
-        label=fr"$r_{{\mathrm{{lo}}}}^{{\mathrm{{cov}}}} = {r_lo_cov*1e12:.2f}$ pJ/op")
+    # Envelope floor = cheapest rate reached (operand zeros), as a total
+    # quotient E/C. This is the DESCRIPTIVE operand edge r_lo^0, NOT the
+    # covert denominator r_lo^cov (that is the Exp-7 marginal edge, which is
+    # cheaper because it strips the baseline power this quotient amortises).
+    floor_line = ax.axhline(
+        r_lo_op * 1e12, ls="--", color=C["vermillion"], lw=1.1, zorder=2,
+        label=fr"$r_{{\mathrm{{lo}}}}^{{0}} = {r_lo_op*1e12:.2f}$ pJ/op")
 
     # Bracket the envelope span and label the operand core w0 in a right gutter.
     x_arrow = (len(dists) - 1) + 0.62
@@ -176,10 +179,10 @@ def fig_operand_envelope(bench_dir: pathlib.Path) -> None:
     ax.set_ylim(lo * 0.90, y_top * 1.05)
     ax.set_ylabel(r"Energy per nominal op, $r = E/C$ (pJ/op)")
     ax.set_xlabel(r"Operand value distribution (activity $\alpha$)")
-    ax.legend(handles=[cov_line], frameon=False, loc="upper left")
+    ax.legend(handles=[floor_line], frameon=False, loc="upper left")
     save(fig, "operand_envelope")
     plt.close(fig)
-    print(f"[2] w0 = {w0:.3f}, r_lo^cov = {r_lo_cov:.3e} J/op "
+    print(f"[2] w0 = {w0:.3f}, r_lo^0 = {r_lo_op:.3e} J/op "
           f"-> figures/operand_envelope.*")
 
 

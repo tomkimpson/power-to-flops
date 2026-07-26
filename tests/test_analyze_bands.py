@@ -269,14 +269,14 @@ def test_payload_without_exp7_has_no_marginal_covert_block():
     assert "r_marg_cov" not in payload
 
 
-# ---- marginal useful band (Exp 8; referee B5, third round) ------------------
+# ---- marginal useful band (qblock-marginal; referee B5, third round) ------------------
 
 _QM_ARMS = (("qblock_512x8", 3.1e-12, 1_680_000_000_000),      # dearer arm
             ("qblock_2048x8", 2.2e-12, 7_150_000_000_000))     # cheaper arm
 
 
 def _qblock_marg_records(uuid="GPU-qm", arms=_QM_ARMS):
-    """A fit-able Exp-8 dose sweep: per-arm qblock dose at a fixed declared burst."""
+    """A fit-able qblock-marginal dose sweep: per-arm qblock dose at a fixed declared burst."""
     recs = []
     for arm, r, ops in arms:
         for d in (0, 10, 20, 30, 40):
@@ -350,7 +350,7 @@ def test_core_payload_per_device_and_spread():
     assert set(payload["per_device"]) == {"GPU-aaa", "GPU-bbb"}
     assert payload["per_device"]["GPU-aaa"]["r_lo"] == 1e-12
     assert payload["per_device"]["GPU-aaa"]["r_hi"] == 10e-12
-    assert payload["per_device"]["GPU-aaa"]["r_lo_cov"] == 0.5e-12
+    assert payload["per_device"]["GPU-aaa"]["r_lo_op"] == 0.5e-12
     assert payload["device_spread"]["r_lo"] == [1e-12, 1.2e-12]
     assert payload["n_devices"] == 2
 

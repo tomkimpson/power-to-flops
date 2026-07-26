@@ -68,7 +68,7 @@ def build_dose_sweep(
     """Format-agnostic dose grid: covert arms x dose fractions.
 
     The pure core shared by Exp 7 (arms = covert *formats*,
-    :func:`build_marginal_sweep`) and Exp 8 (arms = qblock *cells*,
+    :func:`build_marginal_sweep`) and qblock-marginal (arms = qblock *cells*,
     :func:`powertoflops.bench.qblock.run_qblock_marginal`). Every arm carries its own
     zero-dose anchor (tagged with the arm label so each arm's regression has its
     intercept cell). ``cov_fracs`` must include the zero dose; raises when the

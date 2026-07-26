@@ -57,8 +57,12 @@ class FloorParams:
     r_lo: float = 1.0e-12          # cheapest declared op (~A100 fp16 ballpark)
     r_hi: float = 15.0e-12         # ~15x band (mid of the 10-20x range)
 
-    # Cheapest covert edge r_lo^cov (the divisor of beta). For the bare power
-    # meter the covert edge coincides with the declared cheapest rate.
+    # Cheapest covert edge r_lo^cov (the divisor of beta). These placeholders
+    # set it equal to r_lo, the beta(emptyset) special case where a bare meter
+    # cannot separate the two. The MEASURED config does not: it prices the
+    # covert side at exp7's marginal dose slope, which is strictly cheaper than
+    # r_lo, so r_lo_cov < r_lo there and the floor is beta_two_band. See
+    # :func:`powertoflops.measured.config_with_measured`.
     r_lo_cov: float = 1.0e-12
 
     # Declared hardware FLOP utilisation HFU_dec = C_dec / C_max (dimensionless).
@@ -133,8 +137,10 @@ class BenchConfig:
 
         Exp 1  exchange-rate band r_hi/r_lo : precision x operand x locality
                factorial at ONE fixed shape on ONE GPU (review C4/C5)
-        Exp 2  covert edge r_lo^cov, operand core w0 : operand VALUES only,
-               repeated rounds so each dist samples several thermal states
+        Exp 2  operand envelope r_lo^0/r_hi^0, operand core w0 : operand
+               VALUES only, repeated rounds so each dist samples several
+               thermal states. Descriptive total quotients — NOT the covert
+               edge (that is exp7's marginal dose slope).
         Exp 3  marginal rate dP/dF + overhead band : workload-intrinsic
                sustained-F ladder plus idle-variation cells (no duty cycle, C3)
         Exp 4  compact cross-device core sweep (band corners on >=3 GPUs, C5/C6)
@@ -298,7 +304,7 @@ class BenchConfig:
     qblock_min_cosine: float = 0.98
     qblock_max_rel_l2: float = 0.25
 
-    # Exp 8 (referee B5, third round): marginal useful-cost dose-response. The
+    # qblock-marginal (referee B5, third round): marginal useful-cost dose-response. The
     # Exp-7 construction (fixed fp16 declared burst, idle-padded to a fixed
     # window) with the trained-weight qblock forward as the swept covert dose,
     # so baseline power cancels in the slope and the useful edge becomes a

@@ -29,7 +29,7 @@ env/
 
 
 # Large binary data formats (not tracked). data/qblock/*.npz is sha256-pinned by
-# the committed manifest instead — see PROVENANCE.md.
+# the committed manifest instead — see data/qblock/README.md.
 *.hdf5
 *.h5
 *.fits
@@ -55,3 +55,9 @@ results/bench/slurm-*.out
 .env
 *.key
 credentials.*
+
+# Working conventions and split provenance: local only, not part of the
+# published artifact. Anchored so nested docs (data/qblock/README.md) stay
+# tracked; README.md is the front page and IS tracked.
+/CLAUDE.md
+/PROVENANCE.md

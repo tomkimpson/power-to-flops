@@ -287,7 +287,7 @@ def test_validate_rejects_the_retired_first_round_artifact():
 
 def _fake_bands() -> MeasuredBands:
     return MeasuredBands(
-        r_lo=1.0e-12, r_hi=2.0e-12, r_lo_cov=5.0e-13, w0=2.0,
+        r_lo=1.0e-12, r_hi=2.0e-12, r_lo_op=5.0e-13, w0=2.0,
         P0_lo=60.0, P0_hi=100.0, sigma_dec=6.0e-14,
         format_bands={"fp16": {"r_lo": 1.0e-12, "r_hi": 2.0e-12,
                                "n_cells": 12}},

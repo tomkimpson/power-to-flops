@@ -61,7 +61,7 @@ from .qweights import (
 from .records import RunRecord, build_manifest, to_csv, to_jsonl
 
 QBLOCK_EXPERIMENT = 6
-# Exp 8 (referee B5, third round): the marginal useful-cost dose-response
+# qblock-marginal (referee B5, third round): the marginal useful-cost dose-response
 # (run_qblock_marginal). Distinct experiment id so the total-quotient qblock
 # capture (6) and the incremental one (8) never mix.
 QBLOCK_MARG_EXPERIMENT = 8
@@ -566,7 +566,7 @@ def _seconds_per_qblock(spec: QBlockSpec, qw: QuantizedQBlockWeights,
 
 def run_qblock_marginal(out_dir: str | Path, cfg: BenchConfig = DEFAULT.bench,
                         device_index: int = 0) -> Path:
-    """Exp 8 (referee B5, third round): marginal useful-cost dose-response.
+    """qblock-marginal (referee B5, third round): marginal useful-cost dose-response.
 
     The Exp-7 construction (:mod:`powertoflops.bench.marginal`) with the trained-weight
     qblock forward as the swept covert dose: every measured window holds the

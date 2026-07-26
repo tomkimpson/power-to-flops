@@ -131,13 +131,12 @@ def test_exchange_band_excludes_stalled_window():
     assert r_lo == 1.75e-12          # median of the 3 kept bf16 windows, not 1.775
 
 
-def test_operand_core_w0_and_covert_edge():
+def test_operand_core_returns_descriptive_envelope_and_w0():
     dists = {"zeros": 1.0e-12, "low_entropy": 1.5e-12,
              "dense_random": 2.0e-12, "adversarial_toggle": 3.0e-12}
     recs = [_rec(experiment=2, operand_dist_a=d, operand_dist_b=d, r_j_per_op=r)
             for d, r in dists.items()]
-    r_lo_cov, r_lo_op, r_hi_op, w0 = operand_core(recs)
-    assert r_lo_cov == 1.0e-12
+    r_lo_op, r_hi_op, w0 = operand_core(recs)
     assert r_lo_op == 1.0e-12
     assert r_hi_op == 3.0e-12
     assert w0 == 3.0
@@ -346,7 +345,7 @@ def test_extract_bands_composes():
     br = extract_bands(exp1, exp2, exp3)
     assert br.r_lo == 1e-12 and br.r_hi == 10e-12
     assert br.w0 == 2.0
-    assert br.r_lo_cov == 1e-12
+    assert br.r_lo_op == 1e-12
 
 
 # ---- R2: shape-varying ladder, idle variants, operand-crossed Exp 1 ---------
@@ -442,7 +441,7 @@ def test_operand_core_strata_partitions_by_achieved_clock():
     ]
     strata = operand_core_strata(recs)
     assert set(strata) == {1395, 1125}
-    assert strata[1395]["r_lo_cov"] == 1e-12
+    assert strata[1395]["r_lo_op"] == 1e-12
     assert strata[1395]["w0"] == 2.0
     assert np.isclose(strata[1125]["w0"], 3.0)
 
@@ -609,7 +608,7 @@ def test_marginal_covert_cost_splits_strata_when_clock_mixed():
     assert np.isclose(mc.strata[1125]["r_marg"], r_lo_clk, rtol=1e-9, atol=0.0)
 
 
-# ---- marginal useful band (Exp 8 dose-response; referee B5, third round) ----
+# ---- marginal useful band (qblock-marginal dose-response; referee B5, third round) ----
 
 
 def _qexp7(arm, dose_iters, energy_j, ops_per_iter, **over):
