@@ -92,35 +92,37 @@
 \printAffiliationsAndNotice{}
 
 \begin{abstract}
-Compute governance rests on counting operations: past a threshold, a
-training run triggers registration, reporting, and audit obligations.
-One channel a verifier can read without trusting the operator's
-hardware is an off-chip power meter; the hope is that an energy budget
-bounds an operation count. We show exactly when it does. The energy cost
-of an operation is unknown and data-dependent, so inverting a power
-trace returns a set, not a number; the set's width is a floor on the
-covert compute the trace admits.
-We derive the floor in closed form from named physical bands and measure
-those bands on NVIDIA A100s, evaluating every term inside a single jointly
-feasible scenario: one declared format, one covert format, and one
-observation window sharing the machine. We construct explicit
-same-declaration, same-window cheating witnesses that the meter accepts,
-hiding up to four-tenths of a machine of covert work; above these attained
-points the model bounds the worst case at one to two machines of the
-declared-format capacity ($\beta_{\mathrm{phys}}^{*} = 1.16$ once the
-declared precision is checked --- a peak that lies above the utilisation any
-single window can hold, and so an upper bound rather than an attained width
---- rising to $1.95$ against a bare meter that cannot even pin the declared
-format, a figure scoped to the five numeric formats we measure, which
-unmeasured cheaper datapaths on the same card can only widen). The closed form
-then prices what each added verifier capability buys and states the
-condition each rung rests on: re-execution of the declared work at an
-observed operating point brings the floor to a few tenths, under a
-stated hardware-transfer assumption. The rungs interlock
---- re-execution pays only at an observed operating point --- and no
-capability reaches the covert side, which closes only by assumption on
-the adversary. A power-based verification regime can then be designed --- or
-rejected --- on numbers rather than on the intuition that joules imply
+Managing the risks of frontier AI will require international agreements.
+
+Agreements require verification: an outside party must be able to check what a compute operator actually ran, for example constraining the total number of floating-point operations (FLOP).
+
+Verification must be robust to an adversarial operator who hides
+computation, yet the hardware mechanisms proposed to catch one typically read silicon the operator controls.
+
+Analogue side-channel measurements have been identified as a path forwards: sensors for power, electromagnetic, acoustic, or thermal emissions sit off the chip, beyond the operator's reach.
+
+We quantify how tightly an off-chip power meter can constrain compute. 
+
+
+We derive a closed form for this tightness: the floor $\beta$, the
+largest covert computation a power trace cannot rule out, in units of
+one machine's declared capacity.
+
+We measure every quantity entering the closed form on NVIDIA A100 GPUs.
+
+We find the floor is large: we construct explicit cheating strategies
+that attain $\beta = 0.4$ behind a trace the meter accepts, and the
+closed form bounds the worst case at $\beta = 1.16$ when the declared
+number format can be checked, rising to $\beta = 1.95$ against a bare
+meter.
+
+Additional verifier capabilities each buy a stated reduction ---
+re-executing the declared work at an observed operating point brings
+$\beta$ to $0.34$ --- but no capability reaches the covert side, which
+closes only by assumption on the adversary.
+
+A power-based verification regime can then be designed --- or
+rejected --- on numbers rather than the intuition that joules imply
 operations.
 \end{abstract}
 
