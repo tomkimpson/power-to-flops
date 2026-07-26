@@ -233,7 +233,7 @@ def test_run_qblock_refuses_to_start_without_weight_artifact(tmp_path):
         run_qblock(tmp_path, cfg, device_index=0)
 
 
-# ---------------------------------------- marginal useful dose (Exp 8; B5)
+# ---------------------------------------- marginal useful dose (qblock-marginal; B5)
 
 def test_qblock_marg_experiment_number_is_eight():
     # 4=core, 5=pair, 6=qblock, 7=exp7 taken; the marginal useful capture is 8.

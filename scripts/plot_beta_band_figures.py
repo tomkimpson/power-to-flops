@@ -160,7 +160,7 @@ def fig_operand_envelope(bench_dir: pathlib.Path) -> None:
     # quotient E/C. This is the DESCRIPTIVE operand edge r_lo^0, NOT the
     # covert denominator r_lo^cov (that is the Exp-7 marginal edge, which is
     # cheaper because it strips the baseline power this quotient amortises).
-    cov_line = ax.axhline(
+    floor_line = ax.axhline(
         r_lo_op * 1e12, ls="--", color=C["vermillion"], lw=1.1, zorder=2,
         label=fr"$r_{{\mathrm{{lo}}}}^{{0}} = {r_lo_op*1e12:.2f}$ pJ/op")
 
@@ -179,7 +179,7 @@ def fig_operand_envelope(bench_dir: pathlib.Path) -> None:
     ax.set_ylim(lo * 0.90, y_top * 1.05)
     ax.set_ylabel(r"Energy per nominal op, $r = E/C$ (pJ/op)")
     ax.set_xlabel(r"Operand value distribution (activity $\alpha$)")
-    ax.legend(handles=[cov_line], frameon=False, loc="upper left")
+    ax.legend(handles=[floor_line], frameon=False, loc="upper left")
     save(fig, "operand_envelope")
     plt.close(fig)
     print(f"[2] w0 = {w0:.3f}, r_lo^0 = {r_lo_op:.3e} J/op "

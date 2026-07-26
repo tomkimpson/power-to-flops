@@ -65,7 +65,7 @@ def test_unknown_covert_format_is_refused():
 
 
 def test_build_dose_sweep_is_arms_by_doses_with_zero_anchors():
-    # The format-agnostic core (Exp 8 / qblock uses cell labels as arms).
+    # The format-agnostic core (qblock-marginal / qblock uses cell labels as arms).
     arms = ("qblock_512x8", "qblock_2048x8")
     fracs = (0.0, 0.1, 0.2, 0.3, 0.4)
     pts = build_dose_sweep(arms, fracs, declared_frac=0.30)

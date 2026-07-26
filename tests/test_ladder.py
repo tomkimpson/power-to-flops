@@ -250,7 +250,7 @@ def test_pre_exp7_artifact_fails_loudly():
 
 
 def test_missing_marginal_useful_band_fails_loudly():
-    # Rungs 4-5 price off the Exp-8 MARGINAL useful edge (B5); an artifact that
+    # Rungs 4-5 price off the qblock-marginal MARGINAL useful edge (B5); an artifact that
     # predates that capture must fail loudly, not fall back to the retired
     # total-quotient useful band.
     with pytest.raises(ValueError, match="r_useful_marg"):
@@ -272,7 +272,7 @@ def test_committed_artifact_rung_values():
     assert betas["bare meter"] == pytest.approx(1.910, abs=5e-3)
     assert betas["precision declared & checked"] == pytest.approx(1.156, abs=5e-3)
     assert betas["declared work re-executed"] == pytest.approx(0.337, abs=5e-3)
-    # Rungs 4-5 price off the Exp-8 MARGINAL useful edge (B5, third round):
+    # Rungs 4-5 price off the qblock-marginal MARGINAL useful edge (B5, third round):
     # r_useful^marg [2.53, 3.16] pJ/op replaced the total-quotient [3.18, 4.22],
     # so covert work is cheaper and the rungs RISE (0.057->0.071, 0.043->0.057).
     assert betas["covert work on useful data"] == pytest.approx(0.071, abs=5e-3)

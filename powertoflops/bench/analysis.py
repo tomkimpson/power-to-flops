@@ -130,7 +130,7 @@ def band_payload(
     ``extra`` block) is recorded verbatim under ``weights_provenance``.
 
     ``qblock_marg`` (referee B5, third round) contributes the MARGINAL useful
-    edge ``r_useful_marg_lo``/``r_useful_marg_hi`` from the Exp-8 dose-response
+    edge ``r_useful_marg_lo``/``r_useful_marg_hi`` from the qblock-marginal dose-response
     (:func:`powertoflops.bench.bands.useful_marginal_band`) — the incremental covert
     cost of useful work, which replaces the total-quotient ``qblock`` band as
     the ladder denominator. Like qblock it is a covert denominator on a possibly
@@ -228,7 +228,7 @@ def band_payload(
             "qblock", qblock, inputs.get("qblock"))
 
     if qblock_marg:
-        # Exp 8 (referee B5, third round): the MARGINAL useful edge — a covert
+        # qblock-marginal (referee B5, third round): the MARGINAL useful edge — a covert
         # denominator, so (like qblock) a separate quantity excluded from the
         # single-device guard, min-over-devices for the multi-UUID lower limit.
         qm_uuids = gather_uuids(qblock_marg)

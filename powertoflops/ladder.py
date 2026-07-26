@@ -29,7 +29,7 @@ Semantics fixed by the second-round review (user decisions 2026-07-23):
     it models is prospective. The row stays as the slot where attested
     telemetry would land; w0 remains descriptive prose.
   * **The bottom rung is "covert at the top of the useful band"** — the top of
-    the MARGINAL useful band (Exp-8 dose-response, :func:`powertoflops.measured.
+    the MARGINAL useful band (qblock-marginal dose-response, :func:`powertoflops.measured.
     useful_marginal_edge`), replacing the w0-derived dense rate; monotone below
     the useful-data rung by construction.
 
@@ -145,7 +145,7 @@ def build_ladder(mb: MeasuredBands, *, gap: float = HW_GAP) -> list[Rung]:
     quotes the default and a sensitivity sweep around it.
     """
     edge = covert_edge(mb, COVERT_FORMAT)          # Exp-7 marginal LCB [J/op]
-    useful_lo, useful_hi = useful_marginal_edge(mb)  # Exp-8 marginal LCBs (B5)
+    useful_lo, useful_hi = useful_marginal_edge(mb)  # qblock-marginal dose LCBs (B5)
 
     # Rung 0 — bare meter, unconditional: the genuine power-only floor of
     # subsec:poweronly. A bare meter cannot separate declared from covert work,
@@ -184,7 +184,7 @@ def build_ladder(mb: MeasuredBands, *, gap: float = HW_GAP) -> list[Rung]:
     # declared work is re-executed at a matched operating point; after that
     # only the covert edge moves (the correct cumulative arithmetic — the
     # useful band's width never re-enters the declared numerator). Rungs 4-5
-    # price the covert denominator at the MARGINAL useful edge (Exp-8
+    # price the covert denominator at the MARGINAL useful edge (qblock-marginal
     # dose-response, useful_lo/useful_hi), not the retired total-quotient
     # useful band, so baseline power does not inflate the covert cost (B5).
     chain = (COND_FORMAT, COND_OPERATING_POINT)

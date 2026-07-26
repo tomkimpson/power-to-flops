@@ -608,7 +608,7 @@ def test_marginal_covert_cost_splits_strata_when_clock_mixed():
     assert np.isclose(mc.strata[1125]["r_marg"], r_lo_clk, rtol=1e-9, atol=0.0)
 
 
-# ---- marginal useful band (Exp 8 dose-response; referee B5, third round) ----
+# ---- marginal useful band (qblock-marginal dose-response; referee B5, third round) ----
 
 
 def _qexp7(arm, dose_iters, energy_j, ops_per_iter, **over):

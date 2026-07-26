@@ -58,14 +58,14 @@ class MeasuredBands:
     r_useful_hi: float | None = None
     useful_band: dict | None = None
 
-    # MARGINAL useful-operand band (Exp 8 dose-response; referee B5, third
+    # MARGINAL useful-operand band (qblock-marginal dose-response; referee B5, third
     # round). The incremental covert cost of useful transformer work, from an
     # Exp-7-style dose sweep with the qblock forward as the swept covert dose
     # (analyze_bands.py --qblock-marg). Both endpoints are one-sided 95% LOWER
     # limits on the dose slope dE/dC_cov, so baseline power cancels and the
     # ladder denominator is a genuine marginal lower bound — unlike ``useful_*``
     # above, which is a total quotient E/C (anti-conservative). None until the
-    # Exp-8 capture lands; ``useful_marginal_band`` carries the versioned block.
+    # qblock-marginal capture lands; ``useful_marginal_band`` carries the versioned block.
     r_useful_marg_lo: float | None = None
     r_useful_marg_hi: float | None = None
     useful_marginal_band: dict | None = None
@@ -152,15 +152,15 @@ def covert_edge(mb: MeasuredBands, fmt: str) -> float:
 def useful_marginal_edge(mb: MeasuredBands) -> tuple[float, float]:
     """The marginal useful-cost band (r_lo, r_hi) [J/op] for the ladder rungs.
 
-    Both endpoints are one-sided LOWER limits on the Exp-8 dose slope dE/dC_cov
-    (referee B5, third round). Fails loudly on artifacts that predate the Exp-8
+    Both endpoints are one-sided LOWER limits on the qblock-marginal dose slope dE/dC_cov
+    (referee B5, third round). Fails loudly on artifacts that predate the qblock-marginal
     capture rather than falling back to the total-quotient ``r_useful`` band,
     which is anti-conservative as a covert denominator (referee B2).
     """
     if mb.r_useful_marg_lo is None or mb.r_useful_marg_hi is None:
         raise ValueError(
             f"artifact {mb.source_path or '<unknown>'} carries no marginal "
-            f"useful band (r_useful_marg) — capture Exp 8 with "
+            f"useful band (r_useful_marg) — capture qblock-marginal with "
             f"scripts/run_qblock_marginal.py and regenerate with "
             f"scripts/analyze_bands.py --qblock-marg (referee B5)")
     return float(mb.r_useful_marg_lo), float(mb.r_useful_marg_hi)

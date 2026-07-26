@@ -1290,7 +1290,9 @@ Experiments~1--4 ran sequentially on one NVIDIA A100-SXM4-80GB
 22~July 2026 ($340$, $135$, $85$, and $70$ recorded windows
 respectively).\footnote{The released records and capture scripts index
 experiments by their capture identifiers, which differ from the numbering
-used here; the repository's \texttt{README} maps the two.}
+used here---in particular, capture \texttt{exp4} is the cross-device sweep
+and \emph{not} Experiment~4, whose records are \texttt{exp7}. The
+repository's \texttt{README} maps the two schemes.}
 Every record carries the device UUID, sweep id, configuration snapshot,
 and git commit, and the band-extraction code refuses to mix devices
 silently; because Experiment~4's marginal cost and Experiment~1's declared
@@ -1411,8 +1413,10 @@ and DVFS with the precision factor held fixed.
 	minimum (zeros, dashed) is the descriptive fp16 operand floor
 	$r_{\mathrm{lo}}^{0} = 1.16$\,pJ/op as a total quotient. That floor is
 	\emph{not} the covert denominator: $r_{\mathrm{lo}}^{\mathrm{cov}}$ is
-	Experiment~4's marginal edge, cheaper because it strips the baseline
-	power this quotient amortises.}
+	Experiment~4's marginal edge. Like for like, the fp16 marginal edge is
+	$0.76$\,pJ/op---cheaper than this quotient by the baseline power the
+	quotient amortises; the headline $0.51$ is cheaper again because it is
+	int8.}
 	\label{fig:operand-envelope}
 \end{figure}
 

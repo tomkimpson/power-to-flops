@@ -5,9 +5,23 @@ from __future__ import annotations
 import dataclasses
 import json
 
+import pytest
+
 from powertoflops.config import DEFAULT
-from powertoflops.floor import beta_bare
-from powertoflops.measured import MeasuredBands, config_with_measured, load_measured_bands
+from powertoflops.floor import beta_bare, beta_two_band
+from powertoflops.measured import (
+    MeasuredBands,
+    config_with_measured,
+    covert_edge,
+    load_measured_bands,
+)
+
+_FORMAT_BANDS = {"fp16": {"r_lo": 1.1e-12, "r_hi": 2.2e-12, "n_cells": 12}}
+_R_MARG_COV = {"int8": {"r_marg": 0.6e-12, "r_marg_lcb95": 0.55e-12,
+                        "se_slope": 2e-14, "r2": 0.99, "n_cells": 6,
+                        "intercept_j": 900.0, "dose0_energy_j": 905.0,
+                        "stratum_mhz": 1395, "cov_dtype": "int8",
+                        "alpha": 0.05, "strata": {}}}
 
 
 def _mb(**over) -> MeasuredBands:
@@ -21,8 +35,6 @@ def _mb(**over) -> MeasuredBands:
 
 
 def test_override_touches_exactly_the_six_fields():
-    from powertoflops.measured import covert_edge
-
     mb = _mb(r_marg_cov=_R_MARG_COV)
     cfg = config_with_measured(mb)
     # the six measured fields are swapped in
@@ -49,17 +61,26 @@ def test_default_is_not_mutated():
     assert dataclasses.asdict(DEFAULT) == before
 
 
-def test_measured_flows_through_beta_bare():
-    cfg = config_with_measured(_mb(r_marg_cov=_R_MARG_COV))
-    f = cfg.floor
-    # Mirror the headline path (plot_beta_phys): the bare-meter denominator is
-    # the covert edge r_lo_cov = the Exp-7 marginal LCB, 0.55 pJ/op here.
-    beta = beta_bare(f.hfu_dec, f.r_hi, f.r_lo_cov, f.dE0, f.C_max)
-    assert beta > 0.0
-    # with r_hi/r_lo_cov = 8.0/0.55 and hfu_dec = 1, the declared term alone
-    # is ~13.5, so the marginal edge concedes strictly more than the Exp-2
-    # quotient (2.0 pJ/op) would have: 13.5 vs 3.
-    assert beta > 13.0
+def test_measured_flows_through_the_two_band_floor():
+    # The declared band and the covert edge no longer coincide, so the floor
+    # this config evaluates is beta_two_band, NOT beta(emptyset). beta_bare's
+    # docstring forbids feeding it a covert edge that differs from r_lo.
+    mb = _mb(r_marg_cov=_R_MARG_COV)
+    f = config_with_measured(mb).floor
+    beta = beta_two_band(f.hfu_dec, f.r_hi, f.r_lo, f.r_lo_cov, f.dE0, f.C_max)
+    # (8.0 - 2.0)/0.55 + dE0/(0.55 pJ * C_max) = 10.909 + 0.091
+    assert beta == pytest.approx(11.0, abs=1e-3)
+
+    # The point of pricing the covert side marginally: it concedes strictly
+    # more than the Exp-2 total quotient would have, so the floor is higher.
+    with_quotient = beta_two_band(
+        f.hfu_dec, f.r_hi, f.r_lo, mb.r_lo_op, f.dE0, f.C_max)
+    assert with_quotient == pytest.approx(3.025, abs=1e-3)
+    assert beta > with_quotient
+
+    # beta(emptyset) is the single-band special case and divides by r_lo.
+    assert beta_bare(f.hfu_dec, f.r_hi, f.r_lo, f.dE0, f.C_max) == pytest.approx(
+        3.025, abs=1e-3)
 
 
 def test_config_never_prices_covert_work_at_the_exp2_quotient():
@@ -75,8 +96,6 @@ def test_config_never_prices_covert_work_at_the_exp2_quotient():
 def test_config_refuses_an_artifact_without_the_marginal_edge():
     # No Exp-7 capture means no defensible covert denominator: fail loud rather
     # than silently falling back to the Exp-2 quotient.
-    import pytest
-
     with pytest.raises(ValueError, match="r_marg_cov"):
         config_with_measured(_mb())
 
@@ -93,14 +112,6 @@ def test_load_measured_bands_ignores_extra_keys(tmp_path):
 
 
 # ---- referee B1/B2: per-format bands + Exp-7 marginal fields ---------------
-
-
-_FORMAT_BANDS = {"fp16": {"r_lo": 1.1e-12, "r_hi": 2.2e-12, "n_cells": 12}}
-_R_MARG_COV = {"int8": {"r_marg": 0.6e-12, "r_marg_lcb95": 0.55e-12,
-                        "se_slope": 2e-14, "r2": 0.99, "n_cells": 6,
-                        "intercept_j": 900.0, "dose0_energy_j": 905.0,
-                        "stratum_mhz": 1395, "cov_dtype": "int8",
-                        "alpha": 0.05, "strata": {}}}
 
 
 def test_new_band_fields_load_from_artifact(tmp_path):
@@ -137,7 +148,7 @@ def test_legacy_artifact_fails_loudly_not_silently(tmp_path):
 
 
 def test_useful_marginal_edge_reads_fields_and_fails_loud(tmp_path):
-    # B5 (third round): the ladder denominator is the Exp-8 MARGINAL useful edge
+    # B5 (third round): the ladder denominator is the qblock-marginal MARGINAL useful edge
     # (r_useful_marg); an artifact predating that capture must fail loud, never
     # fall back to the total-quotient useful band.
     import pytest

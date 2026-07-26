@@ -129,7 +129,8 @@ def main() -> None:
                          "the min-over-devices LCB and records the spread)")
     ap.add_argument("--qblock-marg", action="append", default=[],
                     dest="qblock_marg",
-                    help="Exp-8 marginal useful-cost dose-response records JSONL "
+                    help="qblock-marginal capture (manuscript Experiment 5): "
+                         "marginal useful-cost dose-response records JSONL "
                          "(referee B5; repeatable for the multi-card capture). "
                          "The incremental useful edge replacing --qblock as the "
                          "ladder denominator; like --qblock it may be a separate "
@@ -197,7 +198,7 @@ def main() -> None:
               f"{payload['r_marginal_cubes_r2']:.3f}, "
               f"n = {payload['r_marginal_cubes_n_cells']})")
     print(f"  r_lo^0      = {payload['r_lo_op']:.3e} J/op   w0 = {payload['w0']:.3f}"
-          f"   (Exp-2 descriptive; not the covert edge)")
+          "   (Exp-2 descriptive; not the covert edge)")
     print(f"  P0 band     = [{payload['P0_lo']:.1f}, {payload['P0_hi']:.1f}] W  "
           f"(observed idle +/- tolerance); fit intercept "
           f"{payload['P0_fit_intercept']:.1f} +/- {payload['P0_fit_se']:.1f} W "
@@ -218,7 +219,7 @@ def main() -> None:
     if "r_useful_marg_lo" in payload:
         umb = payload["useful_marginal_band"]
         print(f"  r_useful^marg = [{payload['r_useful_marg_lo']:.3e}, "
-              f"{payload['r_useful_marg_hi']:.3e}] J/op  (Exp-8 dose slope "
+              f"{payload['r_useful_marg_hi']:.3e}] J/op  (qblock-marginal dose slope "
               f"one-sided LCB{100 * (1 - umb['alpha']):.0f}; points "
               f"[{umb['r_lo_point']:.3e}, {umb['r_hi_point']:.3e}], "
               f"{umb['n_cells']} arms) -- the ladder covert denominator (B5)")

@@ -306,7 +306,7 @@ def useful_band(
     E/C, so this band folds in baseline power the covert work does not draw
     incrementally — anti-conservative as a covert-cost DENOMINATOR. It is
     therefore RETIRED as the ladder denominator and kept only for disclosure /
-    back-compat. The shipped fix is :func:`useful_marginal_band` (Exp-8
+    back-compat. The shipped fix is :func:`useful_marginal_band` (qblock-marginal
     dose-response, :func:`powertoflops.bench.qblock.run_qblock_marginal`), whose slope
     cancels the baseline; :func:`powertoflops.ladder.build_ladder` prices rungs 4-5 off
     that marginal edge via :func:`powertoflops.measured.useful_marginal_edge`.
@@ -661,7 +661,7 @@ class UsefulMarginalBand:
 def useful_marginal_band(
     qblock_marg: Sequence[RunRecord], *, alpha: float = 0.05,
 ) -> UsefulMarginalBand:
-    """Aggregate the per-arm Exp-8 dose fits into the marginal useful band.
+    """Aggregate the per-arm qblock-marginal dose fits into the marginal useful band.
 
     Each qblock arm (tagged in ``cov_dtype`` as ``qblock_<seq>x<batch>``) is fit
     by :func:`marginal_covert_cost` to its marginal slope + one-sided LCB; the
@@ -674,7 +674,7 @@ def useful_marginal_band(
         raise ValueError(
             "useful_marginal_band: no qblock covert arms (cov_dtype "
             f"'{QBLOCK_MARG_ARM_PREFIX}<seq>x<batch>') in the records — capture "
-            "Exp 8 with scripts/run_qblock_marginal.py")
+            "qblock-marginal with scripts/run_qblock_marginal.py")
     fits = {a: marginal_covert_cost(qblock_marg, a, alpha=alpha) for a in arms}
     top = max(fits.values(), key=lambda f: f.r_marg)
     return UsefulMarginalBand(
