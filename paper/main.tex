@@ -142,69 +142,70 @@ trained using more than $10^{26}$ integer or floating-point operations
 
 
 %But the prover is not honest
-Compute verification policies need to be robust to adversarial operators who do not declare honestly, but instead subvert the threshold by hiding computation. The hardware mechanisms proposed to catch such an operator \citep[e.g. utilisation counters, on-chip clocks, memory telemetry;][]{ogara2025hardware} all read silicon controlled by the operator. Verification methods built on these mechanisms are therefore
-conditional on tamper-resistant read paths and attested monitoring firmware
-that do not yet exist \citep{ogara2025hardware,rahman2026telemetry}. 
-
+A threshold in operation counts is only as good as the count it is applied
+to, so compute verification policies need to be robust to adversarial
+operators who do not declare honestly, but instead subvert the threshold by
+hiding computation. The mechanisms proposed to catch such an operator share
+a common weakness: they trust hardware or software that the operator
+controls. Utilisation counters, on-chip clocks, and memory telemetry all
+read silicon in the operator's hands, and so are conditional on
+tamper-resistant read paths and attested monitoring firmware that do not
+yet exist \citep{ogara2025hardware,ansari2026hardware,rahman2026telemetry}.
+Cryptographic proof-of-training protocols
+\citep{jia2021proofoflearning,garg2023zkpot} need the prover's cooperation,
+and active challenge--response schemes \citep{monfared2026timing} must run
+their probes on the same untrusted hardware. An operator can even attempt
+to restructure its computation to evade compute-based oversight, though
+\citet{seferis2025structuring} argue such structuring is itself detectable.
 
 % off-chip analogue sensors
-In order to circumvent the reach of the adversarial operator, ``off-chip'' analogue sensors have been suggested as a path forward \citep{baker2025verifying}. These sensors could be retrofitted to existing data centres and physically secured against tampering by the adversary, returning measurements of physical side channels such as power, electromagnetic, acoustic, or thermal emissions.
+``Off-chip'' analogue sensors have been suggested precisely to escape this
+trust dependence \citep{baker2025verifying}. Such sensors could be
+retrofitted to existing data centres and physically secured against
+tampering by the adversary, returning measurements of physical side
+channels---power, electromagnetic, acoustic, or thermal emissions---that
+the operator cannot edit in software.
 
 % prior work: emissions leak workload information
 There are reasons for optimism: in non-adversarial settings, physical
-emissions are known to leak workload information, from architectures and
-hyperparameters down to operand values (\cref{sec:related} surveys this corpus).
-But that work fits forward models under cooperative conditions, mapping
-known workloads to their emissions. Verification poses the inverse
+emissions leak workload information. Emissions let an observer recover
+model architectures and hyperparameters
+\citep{hu2020deepsniffer,maia2022magnetic,gao2023deeptheft,chaudhuri2025energon},
+and software-visible counters and timing let a co-resident process do the
+same \citep{naghibijouybari2018rendered,wei2020leaky}. On-node telemetry
+and on-chip counters classify workloads
+\citep{tang2022supercloud,xu2026wave,gangwal2019cryptomining}, and power
+draw betrays anomalous computation \citep{clark2013wattsupdoc} and running
+GPU activity \citep{arefin2024hdmi}; a related body of work characterises
+power draw for GPUs and data centres
+\citep{patel2023polca,choukse2025power,latif2025power}. But these are
+forward models, fitted largely in cooperative conditions: they map known
+workloads to their emissions. Verification poses the inverse
 problem---emissions to workload---against an operator actively trying to
 evade the sensor, and the question is how tightly analogue-sensor
-measurements can constrain compute in that setting. Of the physical side channels an off-chip sensor could read, we take power
+measurements can constrain compute in that setting.
+
+% detection vs identification
+That question is one of identification, not detection. Closest to our
+setting, \citet{rahman2026telemetry} evaluate the \emph{detection} of
+hidden ML training from zero-overhead telemetry against an explicitly
+adversarial operator, across nine GPU models. Detection asks whether hidden
+work of a known kind trips a particular detector; we ask the complementary
+question---how much compute \emph{any} verifier reading the sensor can
+bound, whatever detector it runs---and answer it with a closed-form floor
+rather than a classifier benchmark. A detector can raise alarms above the
+floor; it cannot narrow the identified set below the physics.
+
+% why power
+Of the physical side channels an off-chip sensor could read, we take power
 first: it already serves in the governance literature as a coarse proxy for
 compute, and it bears the most direct link to computation, since every
-operation costs energy and total energy therefore budgets total work. Whether the framework carries to the other channels is open, and we
-leave that to future work.
+operation costs energy and total energy therefore budgets total work.
+Whether the framework carries to the other channels is open, and we leave
+that to future work. Our contribution to the verification programme is the
+exchange rate between what the sensor reads and what the threshold counts.
 
-Our contributions:
-\begin{itemize}
-	\item \textbf{A closed-form identifiability floor.} The covert compute a
-	power trace admits is the capacity-clipped
-	$\beta_{\mathrm{phys}}(h) = \min[\,S(h),\,(1-h)\,\gamma\,]$, with
-	$S(h) = h\,(r_{\mathrm{hi}}^{\mathrm{dec}} -
-	r_{\mathrm{lo}}^{\mathrm{dec}})/r_{\mathrm{lo}}^{\mathrm{cov}} + \Delta
-	E_0/(r_{\mathrm{lo}}^{\mathrm{cov}} C_{\max})$ the energy-slack index---a
-	structural bound that
-	precedes statistics: it is what the meter cannot rule out even noiseless
-	(\cref{sec:floor}).
-	\item \textbf{The bands measured on real silicon.} Factorial,
-	single-variable, and dose--response experiments on an A100 ground every
-	term: per-format exchange-rate bands (the pooled envelope spans
-	$24.8\times$, precision-dominated; the fp16 band alone spans
-	$2.0\times$), the descriptive within-device operand
-	spread ($w_0 = 1.83$, clock-confounded and priced into no bound), the
-	overhead band, and the marginal cost of an added covert
-	operation, identified by intervening on the covert dose alone
-	($0.51$--$0.76$\,pJ/op one-sided lower limits;
-	\cref{sec:empirical-measurements}).
-	\item \textbf{The capability ladder, priced.} From the same bands,
-	each rung the capacity-clipped worst case
-	$\max_h \beta_{\mathrm{phys}}(h)$: $1.95$ (bare meter, scoped to the
-	measured five-format envelope) $\to 1.16$
-	(precision declared and checked, conditional on declared-format
-	execution) $\to 0.34$ (declared work re-executed) $\to 0.071$ (covert
-	work restricted to useful data), with the measured marginal useful edge
-	pricing what covert work is worth doing
-	(\cref{sec:decreasing-beta}).
-	\item \textbf{A structural asymmetry.} Declarations and re-execution
-	narrow only the \emph{declared} band; no channel reaches the covert
-	band's floor, which closes only by assumption on the adversary. And the
-	rungs interlock: re-execution pays only at an observed operating
-	point, so a verifier with power and paperwork but no on-site sensing
-	stalls at $\beta_{\mathrm{phys}}^{*} \approx 1$
-	(\cref{sec:decreasing-beta}).
-\end{itemize}
-
-This paper is organised as follows. \Cref{sec:related} positions the
-contribution against prior work; \cref{sec:setup} sets up the problem mathematically.
+This paper is organised as follows. \Cref{sec:setup} sets up the problem mathematically.
 We then derive a floor on the covert compute a power trace admits, in closed
 form from a handful of named physical bands (\cref{sec:floor}).
 \Cref{sec:howbig} then asks how large that floor is: first from the
@@ -219,56 +220,6 @@ clock, re-execution of the declared work, an assumption about the adversary's
 operands --- moves one edge of the closed form, and the same measured bands
 price every rung the verifier can honestly price today. \Cref{sec:discussion} sets out what transfers from device to
 facility scale, and what does not.
-
-\section{Related work}
-\label{sec:related}
-
-\paragraph{Physical emissions leak workload information.}
-In non-adversarial settings, physical emissions let an observer recover
-model architectures and hyperparameters
-\citep{hu2020deepsniffer,maia2022magnetic,gao2023deeptheft,chaudhuri2025energon},
-and software-visible counters and timing let a co-resident process do the
-same \citep{naghibijouybari2018rendered,wei2020leaky}. On-node telemetry
-and on-chip counters classify workloads
-\citep{tang2022supercloud,xu2026wave,gangwal2019cryptomining}, and power
-draw betrays anomalous computation \citep{clark2013wattsupdoc} and
-running GPU activity \citep{arefin2024hdmi}; a
-related body of work characterises power draw for GPUs and data centres
-\citep{patel2023polca,choukse2025power,latif2025power}. These are forward
-models fitted largely in cooperative conditions---known workload to measured
-emission---and they establish the physical premise this paper builds on:
-analogue signals carry workload information.
-
-\paragraph{Adversarial detection.}
-Closest to our setting, \citet{rahman2026telemetry} evaluate the
-\emph{detection} of hidden ML training from zero-overhead telemetry
-against an explicitly adversarial operator, across nine GPU models.
-Detection asks whether hidden work of a known kind trips a particular
-detector; we ask the complementary identification question---how much
-compute \emph{any} power-only verifier can bound, whatever detector it
-runs---and answer it with a closed-form floor rather than a classifier
-benchmark. A detector can raise alarms above the floor; it cannot narrow
-the identified set below the physics.
-
-\paragraph{Verification mechanisms and governance.}
-Hardware mechanisms for compute verification---utilisation counters,
-on-chip clocks, memory telemetry---read silicon the operator controls,
-and so are conditional on tamper-resistant read paths and attested
-firmware that do not yet exist \citep{ogara2025hardware,ansari2026hardware}.
-Cryptographic
-proof-of-training protocols \citep{jia2021proofoflearning,garg2023zkpot}
-need the prover's cooperation, and active challenge--response schemes
-\citep{monfared2026timing} must run their probes on hardware the
-operator controls; an operator can also attempt to restructure its
-computation to evade compute-based oversight, though
-\citet{seferis2025structuring} argue such structuring is itself
-detectable. Off-chip
-analogue sensing is proposed precisely to escape this trust dependence
-\citep{baker2025verifying}; the governance layer it
-would serve sets thresholds and reporting duties in operation counts
-\citep{sastry2024computing,shavit2023chinchilla,heim2024thresholds,reuel2025openproblems}.
-Our contribution to that programme is the exchange rate between what the
-sensor reads and what the threshold counts.
 
 \section{Setup and threat model}
 \label{sec:setup}
