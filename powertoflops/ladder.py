@@ -15,7 +15,8 @@ Semantics fixed by the second-round review (user decisions 2026-07-23):
   * **Conditional chain.** The *unconditional* bare rung is the genuine
     power-only floor of subsec:poweronly (referee B4, third round): a bare meter
     cannot separate declared from covert work or one format from another, so
-    both band edges are the full hardware envelope — the honest ceiling is the
+    both band edges are the full measured envelope (five tested formats) — the
+    honest ceiling is the
     dearest measured rate (the pooled r_hi, fp32) and the covert/declared floor
     is the cheapest incremental covert op (the int8 marginal edge). No precision
     is assumed on either side (the earlier fp16-ceiling / int8-floor hybrid was
@@ -124,12 +125,14 @@ def _priced(
     r_hi_dec: float,
     r_lo_dec: float,
     r_lo_cov: float,
+    kappa_dec: float = 1.0,
 ) -> Rung:
     kappa = A100_DENSE_PEAK_OPS[COVERT_FORMAT] / A100_DENSE_PEAK_OPS[DECLARED_FORMAT]
     args = dict(r_hi_dec=r_hi_dec, r_lo_dec=r_lo_dec, r_lo_cov=r_lo_cov,
                 dE0=mb.P0_hi - mb.P0_lo,
                 C_max=A100_DENSE_PEAK_OPS[DECLARED_FORMAT])
-    h_star, beta_star = beta_phys_worst_case(**args, kappa=kappa)
+    h_star, beta_star = beta_phys_worst_case(**args, kappa=kappa,
+                                             kappa_dec=kappa_dec)
     return Rung(
         name=name, rung_type=rung_type, conditions=conditions, priced=True,
         r_hi_dec=r_hi_dec, r_lo_dec=r_lo_dec, r_lo_cov=r_lo_cov,
@@ -149,15 +152,22 @@ def build_ladder(mb: MeasuredBands, *, gap: float = HW_GAP) -> list[Rung]:
 
     # Rung 0 — bare meter, unconditional: the genuine power-only floor of
     # subsec:poweronly. A bare meter cannot separate declared from covert work,
-    # nor one format from another, so both edges are the full hardware envelope
-    # (referee B4, third round): the honest ceiling is the dearest measured rate
+    # nor one format from another, so both edges are the full measured envelope
+    # (five tested formats; referee B4, third round): the honest ceiling is the
+    # dearest measured rate
     # (the pooled r_hi, fp32) and the covert/declared floor is the cheapest
     # incremental covert op (the int8 marginal edge). No precision is assumed on
     # either side. r_hi enters only as a numerator-widening honest ceiling (a
     # total quotient there is conservative); the covert edge stays the Exp-7
-    # marginal LCB (B2).
+    # marginal LCB (B2). Because the declared side is not pinned to a format
+    # either, the cheating schedule executes the declared ops in the cheap
+    # covert format, occupying h/kappa of resource-time rather than h: the
+    # format-consistent capacity clip is kappa - h, not (1 - h) kappa
+    # (kappa_dec = kappa; numerical-audit finding 2).
+    kappa = A100_DENSE_PEAK_OPS[COVERT_FORMAT] / A100_DENSE_PEAK_OPS[DECLARED_FORMAT]
     bare = _priced(mb, "bare meter", None, (),
-                   r_hi_dec=mb.r_hi, r_lo_dec=edge, r_lo_cov=edge)
+                   r_hi_dec=mb.r_hi, r_lo_dec=edge, r_lo_cov=edge,
+                   kappa_dec=kappa)
 
     # Rung 1 — precision declared & checked. CONDITIONAL: the fp16-band
     # arithmetic assumes declared-format execution, which the off-site check

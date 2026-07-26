@@ -204,6 +204,35 @@ def test_beta_phys_kappa():
         beta_phys_worst_case(**_old_band_args(kappa=-1.0))
 
 
+def test_beta_phys_cross_format_clip():
+    """kappa_dec = kappa relaxes the clip to kappa - h (the bare rung's case).
+
+    When the cheating schedule executes the declared ops in the covert format
+    (numerical-audit finding 2), they occupy h/kappa of resource-time, so the
+    clip is kappa - h rather than (1 - h) kappa; the crossing therefore sits
+    at h* = (kappa - b)/(s + 1) with beta* = kappa - h*, and the closed form
+    must agree with a dense grid max.
+    """
+    kappa = 2.0
+    kwargs = _old_band_args(kappa=kappa)
+    kwargs["kappa_dec"] = kappa
+    # Clip regime: (1 - h/kappa) kappa = kappa - h.
+    assert beta_phys(0.9, **kwargs) == pytest.approx(kappa - 0.9, rel=1e-12)
+    # Closed form matches the grid max, and relaxing the clip cannot shrink
+    # the worst case relative to the single-format clip.
+    h = np.linspace(0.0, 1.0, 20001)
+    curve = beta_phys(h, **kwargs)
+    h_star, beta_star = beta_phys_worst_case(**kwargs)
+    i = int(np.argmax(curve))
+    assert beta_star >= float(curve[i]) - 1e-12
+    assert beta_star == pytest.approx(float(curve[i]), abs=1e-3)
+    assert h_star == pytest.approx(float(h[i]), abs=1e-4)
+    _, beta_single = beta_phys_worst_case(**_old_band_args(kappa=kappa))
+    assert beta_star >= beta_single
+    with pytest.raises(ValueError):
+        beta_phys_worst_case(**_old_band_args(kappa=kappa), kappa_dec=0.0)
+
+
 def test_beta_phys_new_headline_regression():
     """Guards the paper's printed numbers from the joint-model recompute.
 

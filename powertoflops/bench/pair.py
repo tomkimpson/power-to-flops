@@ -294,7 +294,7 @@ def acceptance_verdicts(e_b_repeats, threshold_j: float) -> list:
     return [float(e) <= threshold_j for e in e_b_repeats]
 
 
-DEFAULT_DEGENERACY_MAX = 0.05   # NVML stated accuracy: indistinguishable below
+DEFAULT_DEGENERACY_MAX = 0.05   # adopted meter tolerance (Fermi/Kepler-era figure; no GA100 spec)
 
 
 def validate_pair_payload(payload: dict, *, wall_tol_frac: float = 0.02,
@@ -308,7 +308,8 @@ def validate_pair_payload(payload: dict, *, wall_tol_frac: float = 0.02,
     dose inside the capacity clip, converged tuning, and the one-sided sensor
     rule — recomputed from the repeats, not trusted from the file — accepting
     every cheating repeat. The mean energies must agree within
-    ``degeneracy_max`` (NVML's stated ±5% accuracy: below it the two runs are
+    ``degeneracy_max`` (the adopted ±5% meter tolerance, a Fermi/Kepler-era
+    figure since NVML publishes no GA100 spec: below it the two runs are
     indistinguishable to the meter, which is the operational meaning of the
     energy degeneracy; a cheating run drawing *less* than honest is the safe
     direction and is caught only if the gap is gross).

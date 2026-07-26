@@ -67,12 +67,12 @@ def _mb(**over) -> MeasuredBands:
     return MeasuredBands(**base)
 
 
-def _expected(mb: MeasuredBands, r_hi_dec, r_lo_dec, r_lo_cov):
+def _expected(mb: MeasuredBands, r_hi_dec, r_lo_dec, r_lo_cov, kappa_dec=1.0):
     """Independent composition: what a priced rung must evaluate to."""
     kappa = A100_DENSE_PEAK_OPS["int8"] / A100_DENSE_PEAK_OPS["fp16"]
     args = dict(r_hi_dec=r_hi_dec, r_lo_dec=r_lo_dec, r_lo_cov=r_lo_cov,
                 dE0=mb.P0_hi - mb.P0_lo, C_max=A100_DENSE_PEAK_OPS["fp16"])
-    h, b = beta_phys_worst_case(**args, kappa=kappa)
+    h, b = beta_phys_worst_case(**args, kappa=kappa, kappa_dec=kappa_dec)
     return h, b, float(energy_slack(1.0, **args))
 
 
@@ -128,10 +128,19 @@ def test_bare_rung_is_full_envelope_power_only():
     assert bare.r_hi_dec != mb.format_bands["fp16"]["r_hi"]   # not the old hybrid
     assert bare.r_lo_dec == covert_edge(mb, "int8")
     assert bare.r_lo_cov == covert_edge(mb, "int8")
-    h, b, s1 = _expected(mb, bare.r_hi_dec, bare.r_lo_dec, bare.r_lo_cov)
+    # Cross-format clip (numerical-audit finding 2): the bare rung pins no
+    # declared format, so its declared ops execute in the covert format and
+    # occupy h/kappa of resource-time — the clip is kappa - h (kappa_dec =
+    # kappa), not the single-format (1 - h) kappa.
+    kappa = A100_DENSE_PEAK_OPS["int8"] / A100_DENSE_PEAK_OPS["fp16"]
+    h, b, s1 = _expected(mb, bare.r_hi_dec, bare.r_lo_dec, bare.r_lo_cov,
+                         kappa_dec=kappa)
     assert bare.beta_star == pytest.approx(b)
     assert bare.h_star == pytest.approx(h)
     assert bare.S1 == pytest.approx(s1)
+    h1, b1, _ = _expected(mb, bare.r_hi_dec, bare.r_lo_dec, bare.r_lo_cov)
+    assert bare.beta_star > b1                                # relaxed clip widens
+    assert bare.h_star > h1
 
 
 def test_precision_rung_equals_headline():
@@ -267,9 +276,10 @@ def test_committed_artifact_rung_values():
     betas = {r.name: r.beta_star for r in rungs if r.priced}
     # Bare rung is the full-envelope power-only floor (B4, third round): pooled
     # r_hi ceiling (fp32, 19.5 pJ/op) + int8 marginal floor, up from the retired
-    # fp16-ceiling hybrid's 1.34. Its maximiser h*~0.045 now sits inside the
-    # feasible window (below h_max~0.24).
-    assert betas["bare meter"] == pytest.approx(1.910, abs=5e-3)
+    # fp16-ceiling hybrid's 1.34, under the format-consistent cross-format clip
+    # kappa - h (numerical-audit finding 2; the single-format clip gave 1.910).
+    # Its maximiser h*~0.046 sits inside the feasible window (below h_max~0.24).
+    assert betas["bare meter"] == pytest.approx(1.954, abs=5e-3)
     assert betas["precision declared & checked"] == pytest.approx(1.156, abs=5e-3)
     assert betas["declared work re-executed"] == pytest.approx(0.337, abs=5e-3)
     # Rungs 4-5 price off the qblock-marginal MARGINAL useful edge (B5, third round):
