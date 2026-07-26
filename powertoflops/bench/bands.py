@@ -689,9 +689,10 @@ def useful_marginal_band(
 
 
 # Widening applied to the observed idle range to form the overhead band
-# [P0_lo, P0_hi]: NVIDIA documents the NVML board-power readout as accurate to
-# within +/-5% of the reading (NVML API reference, nvmlDeviceGetPowerUsage), so
-# the band is the observed idle extrema stretched by that stated meter tolerance.
+# [P0_lo, P0_hi]: NVML documents +/-5% power-reading accuracy only for the
+# Fermi/Kepler generations and publishes no GA100 spec for the total-energy
+# counter, so we adopt that figure as a working meter tolerance and stretch
+# the observed idle extrema by it (widening only widens the bound).
 IDLE_TOL_FRAC = 0.05
 
 

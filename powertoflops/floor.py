@@ -101,22 +101,34 @@ def beta_phys(
     dE0: float,
     C_max: float,
     kappa: float = 1.0,
+    kappa_dec: float = 1.0,
 ):
-    """Capacity-clipped identified-set width beta_phys(h) = min[S(h), (1-h) kappa].
+    """Capacity-clipped identified-set width beta_phys(h) = min[S(h), clip(h)].
 
     kappa = F_max^cov / F_max^dec is the format capacity ratio (int8 vs fp16 on
     A100: kappa = 2); beta is in units of the declared-format capacity C_max, so
     values above 1 are legitimate when kappa > 1. Callers derive kappa from
     config.A100_DENSE_PEAK_OPS; this module stays hardware-agnostic.
+
+    kappa_dec is the capacity ratio of the format the declared operations
+    EXECUTE in (relative to the declared-format yardstick) inside the cheating
+    schedule. In every single-declared-format scenario kappa_dec = 1 and the
+    clip is the familiar (1 - h) kappa. The bare cross-format rung is the
+    exception: a bare meter pins no format on the declared side either, so the
+    cheating schedule executes the declared ops in the cheap covert format
+    (kappa_dec = kappa); they then occupy only h/kappa of resource-time and the
+    clip relaxes to kappa - h. General clip: (1 - h/kappa_dec) kappa.
     Array-friendly in h.
     """
     if kappa <= 0.0:
         raise ValueError(f"kappa must be positive, got {kappa}")
+    if kappa_dec <= 0.0:
+        raise ValueError(f"kappa_dec must be positive, got {kappa_dec}")
     slack = energy_slack(
         h, r_hi_dec=r_hi_dec, r_lo_dec=r_lo_dec, r_lo_cov=r_lo_cov,
         dE0=dE0, C_max=C_max,
     )
-    return np.minimum(slack, (1.0 - np.asarray(h)) * kappa)[()]
+    return np.minimum(slack, (1.0 - np.asarray(h) / kappa_dec) * kappa)[()]
 
 
 def beta_phys_worst_case(
@@ -126,23 +138,36 @@ def beta_phys_worst_case(
     dE0: float,
     C_max: float,
     kappa: float = 1.0,
+    kappa_dec: float = 1.0,
 ) -> tuple[float, float]:
     """(h*, beta*) maximising beta_phys over h in [0, 1].
 
-    With S(h) = s h + b (s = (r_hi_dec - r_lo_dec)/r_lo_cov rising, clip
-    (1-h) kappa falling), the max sits at the crossing: h* = (kappa - b)/(s + kappa),
-    beta* = kappa (s + b)/(s + kappa). If the overhead slack alone already
-    exceeds the clip (b >= kappa) the clip binds everywhere and (h*, beta*) =
-    (0, kappa).
+    With S(h) = s h + b (s = (r_hi_dec - r_lo_dec)/r_lo_cov rising) and the
+    clip (1 - h/kappa_dec) kappa = kappa - c h falling (c = kappa/kappa_dec;
+    see :func:`beta_phys` for kappa_dec), the max sits at the crossing:
+    h* = (kappa - b)/(s + c), beta* = (kappa s + c b)/(s + c). At
+    kappa_dec = 1 this is the single-format form h* = (kappa - b)/(s + kappa),
+    beta* = kappa (s + b)/(s + kappa); at kappa_dec = kappa (the bare
+    cross-format rung) the clip is kappa - h. If the overhead slack alone
+    already exceeds the clip (b >= kappa) the clip binds everywhere and
+    (h*, beta*) = (0, kappa). The opposite corner exists only for
+    kappa_dec > 1 (the clip no longer vanishes at h = 1): if the crossing
+    lands past h = 1 the slack binds on all of [0, 1] and
+    (h*, beta*) = (1, S(1)) = (1, s + b).
     """
     if kappa <= 0.0:
         raise ValueError(f"kappa must be positive, got {kappa}")
+    if kappa_dec <= 0.0:
+        raise ValueError(f"kappa_dec must be positive, got {kappa_dec}")
     s = (r_hi_dec - r_lo_dec) / r_lo_cov
     b = dE0 / (r_lo_cov * C_max)
     if b >= kappa:
         return 0.0, kappa
-    h_star = (kappa - b) / (s + kappa)
-    beta_star = kappa * (s + b) / (s + kappa)
+    c = kappa / kappa_dec
+    h_star = (kappa - b) / (s + c)
+    if h_star >= 1.0:
+        return 1.0, s + b
+    beta_star = (kappa * s + c * b) / (s + c)
     return h_star, beta_star
 
 
