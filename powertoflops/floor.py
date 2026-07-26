@@ -150,7 +150,10 @@ def beta_phys_worst_case(
     beta* = kappa (s + b)/(s + kappa); at kappa_dec = kappa (the bare
     cross-format rung) the clip is kappa - h. If the overhead slack alone
     already exceeds the clip (b >= kappa) the clip binds everywhere and
-    (h*, beta*) = (0, kappa).
+    (h*, beta*) = (0, kappa). The opposite corner exists only for
+    kappa_dec > 1 (the clip no longer vanishes at h = 1): if the crossing
+    lands past h = 1 the slack binds on all of [0, 1] and
+    (h*, beta*) = (1, S(1)) = (1, s + b).
     """
     if kappa <= 0.0:
         raise ValueError(f"kappa must be positive, got {kappa}")
@@ -162,6 +165,8 @@ def beta_phys_worst_case(
         return 0.0, kappa
     c = kappa / kappa_dec
     h_star = (kappa - b) / (s + c)
+    if h_star >= 1.0:
+        return 1.0, s + b
     beta_star = (kappa * s + c * b) / (s + c)
     return h_star, beta_star
 

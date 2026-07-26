@@ -233,6 +233,32 @@ def test_beta_phys_cross_format_clip():
         beta_phys_worst_case(**_old_band_args(kappa=kappa), kappa_dec=0.0)
 
 
+def test_beta_phys_worst_case_clamps_crossing_to_unit_interval():
+    """A crossing past h = 1 (possible only for kappa_dec > 1) yields S(1).
+
+    With kappa_dec > 1 the clip no longer vanishes at h = 1, so for a narrow
+    band (small s) the slack line can stay below the clip on all of [0, 1];
+    the unclamped crossing formula would then return an infeasible h* > 1 and
+    overstate beta*. The max over [0, 1] is S(1) = s + b, at h = 1.
+    """
+    r_lo = 1.0e-12                        # 1 pJ/op
+    kwargs = dict(
+        r_hi_dec=1.2 * r_lo,              # s = 0.2
+        r_lo_dec=r_lo,
+        r_lo_cov=r_lo,
+        dE0=0.1 * r_lo * _F_MAX_FP16,     # b = 0.1
+        C_max=_F_MAX_FP16,
+        kappa=2.0,
+        kappa_dec=2.0,                    # unclamped crossing: h* = 1.9/1.2 > 1
+    )
+    h_star, beta_star = beta_phys_worst_case(**kwargs)
+    assert h_star == 1.0
+    assert beta_star == pytest.approx(0.3, rel=1e-12)     # S(1) = s + b
+    h = np.linspace(0.0, 1.0, 20001)
+    assert beta_star == pytest.approx(float(np.max(beta_phys(h, **kwargs))),
+                                      abs=1e-3)
+
+
 def test_beta_phys_new_headline_regression():
     """Guards the paper's printed numbers from the joint-model recompute.
 

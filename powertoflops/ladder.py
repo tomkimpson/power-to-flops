@@ -8,7 +8,9 @@ joint model — fp16-declared case study (beta in machines of fp16 capacity,
 user decision 2026-07-22), int8 covert work at the Exp-7 marginal LCB
 (:func:`powertoflops.measured.covert_edge`), kappa = F_max^int8 / F_max^fp16. S(1) is
 carried alongside only as the explicitly labelled energy-only diagnostic
-(beta_phys(1) = 0, so S(1) is not the physical floor).
+(beta_phys(1) = 0 for every single-format rung; the bare rung's cross-format
+clip leaves beta_phys(1) = kappa - 1, still far below its S(1), so S(1) is
+nowhere the physical floor).
 
 Semantics fixed by the second-round review (user decisions 2026-07-23):
 
