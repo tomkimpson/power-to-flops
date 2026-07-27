@@ -683,54 +683,6 @@ $\beta_{\mathrm{en}} > 1$ says the energy budget alone cannot rule out a
 machine's worth of covert work---but only $\beta$ is the width of the
 identified set.
 
-\paragraph{Format bookkeeping.}
-Format dependence makes joint feasibility a modelling obligation, not a
-detail. Every floor we evaluate for a verifier that has \emph{pinned the
-declared format}---the headline and every rung below it---is computed inside a
-single jointly feasible scenario: one declared format and one covert format
-sharing one observation window. The declared band, the capacity normaliser
-$C_{\max}$, and the utilisation $h$ all refer to the same declared format;
-the covert cost and the covert peak to the same covert format; and the two
-streams time-multiplex the machine, so covert work holds at most the
-$(1-h)$ share of resource-time the declared work leaves free. We allow the
-prover to switch formats between the two streams at zero cost---the
-adversary-favorable direction, since any real switching overhead only
-shrinks the covert share. What the model forbids is combining extrema that
-no single schedule attains: an honest interpretation priced at one format's
-dearest cells is only admissible if that format can execute the declared
-work at rate $h\,F_{\max}^{\mathrm{dec}}$ at all, and the headline path in
-our analysis code rejects any cross-format combination of extrema by
-construction (\cref{sec:empirical-measurements}).
-
-Within one such scenario the bands enter as a rectangle---each edge attainable
-independently of the others---and \cref{eq:betafloor} prices the cheating
-corner of that rectangle. Whether any single schedule sits at that corner is
-the one substantive assumption behind the floor.
-
-\begin{assumption}[Joint feasibility of band corners]
-\label{ass:corners}
-There exist admissible workloads that attain the cheating corner
-$(\bar r^{\mathrm{dec}}, E_0, \bar r^{\mathrm{cov}}) =
-(r_{\mathrm{lo}}^{\mathrm{dec}}, E_{0,\mathrm{lo}}, r_{\mathrm{lo}}^{\mathrm{cov}})$
-jointly, and under shared constraints: the \emph{same} observation window
-$T$, the \emph{same} trusted declared work $C_{\mathrm{dec}}$, one device in
-a \emph{common thermal and clock state} whose resource-time the declared and
-covert streams multiplex at their \emph{achieved} (not nominal-peak)
-throughputs, and the per-format capacities of \cref{eq:capclip}.
-\end{assumption}
-
-Without \cref{ass:corners} the rectangle is an \emph{outer relaxation} of the
-true feasible set, and every width in this section is an upper bound rather
-than an exact width. Our measurements probe the assumption from below rather
-than establish it: the matched-energy witnesses of
-\cref{sec:empirical-measurements} exhibit workloads meeting these shared
-constraints whose sensor-accepted cheating points reach $h \approx 0.22$, but
-their achieved rates do not jointly reproduce the rectangle's extreme edges, so
-they attain \emph{lower witnesses} for the width ($0.41$ machines at
-$h = 0.216$, against the model's $0.72$), not the corner itself. The corner
-remains an assumption at every $h$, so every width we quote is an upper bound,
-met from below by the witnesses.
-
 \subsection{The power-only floor}
 \label{subsec:poweronly}
 A power meter reports total energy and nothing more: to it an operation is an operation, declared or covert, so there is no way
@@ -749,12 +701,12 @@ single-band, power-only form
 \end{equation}
 where the subscript $\varnothing$ denotes the empty set of extra channels:
 the meter is all the verifier has. This rung is the deliberate exception to
-the single-scenario discipline of \cref{subsec:capclip}: a bare meter pins
+the single-scenario discipline of \cref{app:worstcase}: a bare meter pins
 no format at all, so both band edges open to the cross-format envelope
 while $C_{\max}$ and $h$ stay the declared-format yardstick, and we flag
 the rung as a cross-format envelope by intent wherever it is
 quoted.\footnote{The combination is still admissible under the
-single-schedule criterion of \cref{subsec:capclip}: the honest
+single-schedule criterion of \cref{app:worstcase}: the honest
 acceptance ceiling is the fp32 rate, and
 fp32 can sustain the declared rate it implies ($h^{*}C_{\max} =
 14.3$\,Top/s against a measured $17.7$\,Top/s fp32 peak).} The capacity
@@ -811,9 +763,13 @@ no-alarm rule accepts: a design-time statement about what \emph{any} accepted
 window could hide, not the ambiguity of the window in front of you. Quoting the
 second as though it were the first overstates a typical audit, and quoting the
 energy-only width $\beta_{\mathrm{en}}$ without its capacity clip overstates
-what the silicon admits. \Cref{app:worstcase} separates the two readings,
-together with the one-sidedness of the acceptance rule, as four formally
-distinct estimands.
+what the silicon admits. Both readings also inherit one assumption: the bands
+are treated as independent, so $\beta$ prices a combination of band edges that
+we do not prove any single schedule attains, and it is therefore an upper bound
+on the width rather than the width itself (\cref{ass:corners}).
+\Cref{app:worstcase} states the assumption, draws the geometry, and separates
+the two readings, together with the one-sidedness of the acceptance rule, as
+four formally distinct estimands.
 
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
@@ -1116,7 +1072,7 @@ $(1.1/0.9)^2 \approx 1.5$.} Multiplied, the full hardware ratio
 $r_{\mathrm{hi}}/r_{\mathrm{lo}}$ sits conservatively in the tens---but
 that span crosses numeric formats, and no single declared workload can be
 honestly explained at one format's dearest cells while its capacity is
-priced at another's (\cref{subsec:capclip}). Within one declared format the
+priced at another's (\cref{app:worstcase}). Within one declared format the
 precision factor drops out, leaving operands and DVFS: a jointly feasible
 declared band of a factor $2$--$3$, so the slack slope $s$ is of order one
 and the ambiguity term reaches, not dwarfs, one machine. The overhead term,
@@ -1421,7 +1377,7 @@ bands at the few-per-cent level.
 
 \paragraph{Assembling the floor.}
 The floor is evaluated inside the jointly feasible fp16-declared scenario
-of \cref{subsec:capclip}: the declared band is the fp16 cells' own
+of \cref{app:worstcase}: the declared band is the fp16 cells' own
 $[r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}] =
 [1.10,\,2.19]$\,pJ/op (Experiment~1), the covert cost is Experiment~4's
 marginal lower limit, the overhead width is $\Delta P_0 = 41.2$\,W
@@ -1509,7 +1465,7 @@ rung is recomputed as the same quantity the headline uses --- the
 capacity-clipped physical worst case
 $\beta^{*} = \max_h \beta(h)$ of
 \cref{eq:betaworst}, under the joint model of
-\cref{subsec:capclip}: fp16-declared case study, covert work priced at
+\cref{app:worstcase}: fp16-declared case study, covert work priced at
 the int8 marginal lower confidence limit $0.51$\,pJ/op
 (\cref{sec:empirical-measurements}), $\gamma = 2$. The bare rung alone,
 which pins no declared format, carries the cross-format clip $\gamma - h$
@@ -2051,20 +2007,157 @@ intercept and is operating-point dependent; we keep the marginal definition
 \cref{eq:marginal}, consistent with \cref{eq:forward}, and so carry no
 separate leakage term in $r$.
 
-\section{What \texorpdfstring{$\beta$}{beta} is a worst case over}
+\section{The band rectangle and what \texorpdfstring{$\beta$}{beta} bounds}
 \label{app:worstcase}
 
-The derivation of \cref{sec:floor} moves through four quantities that are easy
-to conflate, so we separate them formally here. Throughout, the verifier
-observes the total energy $E$, knows the declaration $C_{\mathrm{dec}}$ (hence
-$h$), and carries the band knowledge
+The floor of \cref{sec:floor} treats its bands as independent: any edge of one
+may be attained whatever the others do. Two pieces of bookkeeping keep that
+treatment honest. The first asks which combinations of extrema a single
+schedule can reach at all, given that both energy per operation and capacity
+are format-dependent. The second asks what exactly the resulting width is a
+worst case over.
+
+\paragraph{Format bookkeeping.}
+Format dependence makes joint feasibility a modelling obligation, not a
+detail. Every floor we evaluate for a verifier that has \emph{pinned the
+declared format}---the headline and every rung below it---is computed inside a
+single jointly feasible scenario: one declared format and one covert format
+sharing one observation window. The declared band, the capacity normaliser
+$C_{\max}$, and the utilisation $h$ all refer to the same declared format;
+the covert cost and the covert peak to the same covert format; and the two
+streams time-multiplex the machine, so covert work holds at most the
+$(1-h)$ share of resource-time the declared work leaves free. We allow the
+prover to switch formats between the two streams at zero cost---the
+adversary-favorable direction, since any real switching overhead only
+shrinks the covert share. What the model forbids is combining extrema that
+no single schedule attains: an honest interpretation priced at one format's
+dearest cells is only admissible if that format can execute the declared
+work at rate $h\,F_{\max}^{\mathrm{dec}}$ at all, and the headline path in
+our analysis code rejects any cross-format combination of extrema by
+construction (\cref{sec:empirical-measurements}).
+
+\paragraph{The rectangle and its cheating corner.}
+Within one such scenario the verifier's knowledge is three bands---
 $\bar r^{\mathrm{dec}} \in [r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}]$,
-$\bar r^{\mathrm{cov}} \ge r_{\mathrm{lo}}^{\mathrm{cov}}$,
-$E_0 \in [E_{0,\mathrm{lo}}, E_{0,\mathrm{hi}}]$ of
-\cref{subsec:derivation}, together with the capacity constraint
-\cref{eq:capclip}. The bands are treated as a rectangle---each edge attainable
-independently of the others---and that the cheating corner of the rectangle is
-itself attainable is \cref{ass:corners}.
+$E_0 \in [E_{0,\mathrm{lo}}, E_{0,\mathrm{hi}}]$, and
+$\bar r^{\mathrm{cov}} \ge r_{\mathrm{lo}}^{\mathrm{cov}}$ of
+\cref{subsec:derivation}---and the derivation treats them as a
+\emph{rectangle}: each edge attainable whatever the other two do. The prover's
+best play is then the rectangle's \emph{cheating corner}, the one vertex where
+all three are simultaneously most favourable to hiding: declared work run as
+cheaply as its band allows, overhead idled to the bottom of its band, and
+covert operations priced at their own floor. \Cref{eq:betafloor} is the width
+that corner buys. Nothing in the derivation guarantees that a single schedule
+can sit there.
+
+\begin{assumption}[Joint feasibility of band corners]
+\label{ass:corners}
+There exist admissible workloads that attain the cheating corner
+$(\bar r^{\mathrm{dec}}, E_0, \bar r^{\mathrm{cov}}) =
+(r_{\mathrm{lo}}^{\mathrm{dec}}, E_{0,\mathrm{lo}}, r_{\mathrm{lo}}^{\mathrm{cov}})$
+jointly, and under shared constraints: the \emph{same} observation window
+$T$, the \emph{same} trusted declared work $C_{\mathrm{dec}}$, one device in
+a \emph{common thermal and clock state} whose resource-time the declared and
+covert streams multiplex at their \emph{achieved} (not nominal-peak)
+throughputs, and the per-format capacities of \cref{eq:capclip}.
+\end{assumption}
+
+Without \cref{ass:corners} the rectangle is an \emph{outer relaxation} of the
+true feasible set, and every width we quote is an upper bound rather than an
+exact width (\cref{fig:rectangle}). Our measurements probe the assumption from
+below rather than establish it: the matched-energy witnesses of
+\cref{sec:empirical-measurements} exhibit workloads meeting these shared
+constraints whose sensor-accepted cheating points reach $h \approx 0.22$, but
+their achieved rates do not jointly reproduce the rectangle's extreme edges, so
+they attain \emph{lower witnesses} for the width ($0.41$ machines at
+$h = 0.216$, against the model's $0.72$), not the corner itself. The corner
+remains an assumption at every $h$, met from below by the witnesses.
+
+\begin{figure}[t]
+	\centering
+	\begin{tikzpicture}[>=Stealth, line join=round, line cap=round, scale=1.25]
+
+		% ---- the third band runs into the page: faint back face at dearer
+		%      covert cost, hidden edges covered by the front face below ----
+		\draw[gray!35, dashed, thin] (0.75,0.6) rectangle (5.75,3.6);
+		\draw[gray!35, thin] (0,0) -- (0.75,0.6);
+		\draw[gray!35, thin] (0,3.0) -- (0.75,3.6);
+		\draw[gray!35, thin] (5.0,3.0) -- (5.75,3.6);
+
+		% ---- the band rectangle: what the verifier knows ----
+		\fill[gray!7] (0,0) rectangle (5.0,3.0);
+		\draw[gray!75!black] (0,0) rectangle (5.0,3.0);
+		\node[gray!55!black, anchor=north east, inner sep=3pt] at (4.98,2.98)
+			{\scriptsize band rectangle};
+
+		% ---- axes ----
+		\draw[->] (0,-0.6) -- (5.5,-0.6) node[right, inner sep=2pt]
+			{\scriptsize $\bar r^{\mathrm{dec}}$};
+		\draw[->] (-0.6,0) -- (-0.6,3.85) node[above, inner sep=2pt]
+			{\scriptsize $E_0$};
+		\draw[gray!55] (0,0) -- (0,-0.6);
+		\draw[gray!55] (5.0,0) -- (5.0,-0.6);
+		\draw[gray!55] (0,0) -- (-0.6,0);
+		\draw[gray!55] (0,3.0) -- (-0.6,3.0);
+		\node[anchor=north, inner sep=3pt] at (0,-0.62)
+			{\scriptsize $r_{\mathrm{lo}}^{\mathrm{dec}}$};
+		\node[anchor=north, inner sep=3pt] at (5.0,-0.62)
+			{\scriptsize $r_{\mathrm{hi}}^{\mathrm{dec}}$};
+		\node[anchor=east, inner sep=3pt] at (-0.62,0)
+			{\scriptsize $E_{0,\mathrm{lo}}$};
+		\node[anchor=east, inner sep=3pt] at (-0.62,3.0)
+			{\scriptsize $E_{0,\mathrm{hi}}$};
+
+		% ---- the depth axis, along the bottom-right cuboid edge ----
+		\draw[->, gray!55!black, thin] (5.0,0) -- (6.0,0.8)
+			node[anchor=north west, inner sep=1pt]
+			{\scriptsize $\bar r^{\mathrm{cov}}$};
+		\node[gray!55!black, anchor=north west, inner sep=4pt, align=left] at (0.02,2.98)
+			{\scriptsize plane shown:\\[-1.5pt] \scriptsize $\bar r^{\mathrm{cov}} \!=\! r_{\mathrm{lo}}^{\mathrm{cov}}$};
+
+		% ---- the true jointly feasible set ----
+		\fill[teal!12] plot[smooth cycle, tension=0.75] coordinates
+			{(1.50,0.95) (2.65,0.78) (3.95,1.15) (4.30,2.05) (3.45,2.62) (2.30,2.50) (1.55,1.85)};
+		\draw[teal!60!black, thick] plot[smooth cycle, tension=0.75] coordinates
+			{(1.50,0.95) (2.65,0.78) (3.95,1.15) (4.30,2.05) (3.45,2.62) (2.30,2.50) (1.55,1.85)};
+		\node[teal!55!black, align=center, inner sep=1pt] at (2.95,1.72)
+			{\scriptsize jointly feasible\\[-1.5pt] \scriptsize schedules};
+
+		% ---- the cheating corner ----
+		\fill (0,0) circle (2.2pt);
+		\node[anchor=north west, inner sep=3pt] at (0.02,-0.02)
+			{\scriptsize cheating corner};
+
+		% ---- the witness and the gap to the corner ----
+		\draw[<->, orange!85!black, dashed, thin] (0.14,0.10) -- (1.44,0.87)
+			node[midway, sloped, above, inner sep=1.5pt, orange!85!black]
+			{\scriptsize gap};
+		\fill[orange!85!black] (1.52,0.94) circle (2.0pt);
+		\node[orange!85!black, anchor=west, inner sep=3pt] at (1.55,0.90)
+			{\scriptsize witness};
+
+	\end{tikzpicture}
+	\caption{The band rectangle and its cheating corner, shown in the plane
+		where covert work is priced at its floor $r_{\mathrm{lo}}^{\mathrm{cov}}$
+		(the third band runs into the page). The verifier's knowledge is the
+		rectangle: every edge of every band attainable whatever the others do.
+		$\beta$ prices its cheating corner (bottom left: cheap declared work,
+		idled overhead, cheap covert operations). The schedules a single device
+		can actually run in one window are some subset of the rectangle, and if
+		that subset excludes the corner---as \cref{ass:corners} concedes it
+		may---then $\beta$ is an upper bound on the identified-set width rather
+		than the width itself. The matched-energy witnesses of
+		\cref{sec:empirical-measurements} exhibit an attained point inside the
+		set, so they bound the width from below; the gap between witness and
+		corner is what the assumption spans.}
+	\label{fig:rectangle}
+\end{figure}
+
+\paragraph{Four estimands.}
+The derivation moves through four quantities that are easy to conflate, so we
+separate them formally. Throughout, the verifier observes the total energy $E$,
+knows the declaration $C_{\mathrm{dec}}$ (hence $h$), carries the band
+knowledge above, and is subject to the capacity constraint \cref{eq:capclip}.
 
 \begin{proposition}[Four estimands]
 \label{prop:estimands}
