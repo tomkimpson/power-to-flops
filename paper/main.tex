@@ -248,25 +248,32 @@ forward model
 \end{equation}
 where $P_0$ collects $P_{\mathrm{stat}}$ and the remaining non-compute
 overhead (idle draw, cooling, I/O). We call $r$ the \emph{exchange rate}
-[J/op]. The clock has dropped out: what an operation costs does not depend on
+[J/op]. Both equations hold instantaneously: $\alpha$, $C/N_{\mathrm{op}}$
+and $V$ are set by whatever the datapath is executing at time $t$, and $r$
+inherits their time dependence. We carry the argument in $r(t)$, where that
+variation is the whole point, and suppress it in the definition. The clock
+has dropped out: what an operation costs does not depend on
 how fast the operations run, only on what each switching event costs and how
 many operations it delivers. \Cref{app:cmos} gives this derivation in full
 and locates the short-circuit and leakage terms.
 
-The three factors of $r$ are the paper's whole difficulty in miniature. The
-activity factor $\alpha$ depends on the operand values being multiplied
-\citep{chandrakasan1992lowpower}. The capacitance switched per operation,
+The exchange rate $r(t)$ is not a constant of the device but a property of the
+execution, and it moves as the execution moves. Take its three factors in
+turn. The activity factor $\alpha$ depends on the operand values being
+multiplied \citep{chandrakasan1992lowpower}. The capacitance switched per operation,
 $C/N_{\mathrm{op}}$, depends on the numeric format---which sets both the
 datapath width and the packing $N_{\mathrm{op}}$---and on where the operands
 live \citep{horowitz2014computing}. The supply voltage $V$ tracks the
 voltage--frequency operating point \citep{pallipadi2006ondemand}. Every one
 of them is under the prover's control, and none is visible to an off-chip
-meter. So $r$ is not a device constant but a \emph{band}: component-level
-analyses of a 45\,nm process put arithmetic and on-chip memory access at
-$0.1$--$20$\,pJ per operation depending on format and operand locality
-\citep{horowitz2014computing}, and our device-level measurements on a modern
-accelerator span $0.8$--$20$\,pJ/op (\cref{sec:empirical-measurements}). That
-band is what the rest of this paper is about.
+meter. Empirically the spread is wide: component-level analyses of a 45\,nm
+process put arithmetic and on-chip memory access at $0.1$--$20$\,pJ per
+operation depending on format and operand locality
+\citep{horowitz2014computing}, and our device-level
+measurements on a modern accelerator span $0.8$--$20$\,pJ/op
+(\cref{sec:empirical-measurements}). More than an order of magnitude
+separates the cheapest operation a chip can retire from the dearest, and the
+prover chooses where in that range to sit.
 
 The meter reports only a noisy version of this power,
 \begin{equation}
@@ -279,20 +286,6 @@ structure (stationary, finitely correlated) averages away over
 the window and shrinks the longer the verifier watches. Throughout this paper
 we therefore assume a perfect meter and work with the clean power $P(t)$; every
 floor we derive is a floor on what even a noiseless meter can establish.
-
-Two caveats on \cref{eq:forward}. The derivative that gives $r$ holds
-$\alpha$, $C$ and $V$ fixed, so the affine form describes a fixed operating
-point; moving between operating points moves $r$ within its band, which is
-why we carry bands rather than values throughout. And the affine form is in
-the end a modelling choice: in general power is some device-dependent
-function $P(t) = g_x\bigl(F(t)\bigr)$ of what the silicon executes, with the
-subscript $x$ standing for the execution details the verifier never sees. The
-security bound does not rest on it. That needs only a band on honest energy
-and a one-sided lower bound on the \emph{incremental} cost of covert work:
-both are weaker than \cref{eq:forward}, both are stated in
-\cref{app:estimands}, and it is those our measurements target. We test the
-affine form itself against a rate ladder (\cref{fig:overhead-affine}) and
-report where it degrades.
 
 We count
 \emph{hardware} operations---what the silicon actually executes---rather than
@@ -2137,7 +2130,10 @@ separately, as $\Delta E_0$). The covert cost enters as the
 \emph{denominator} $r_{\mathrm{lo}}^{\mathrm{cov}}$, where nothing cancels:
 the bound is a valid security guarantee only if $r_{\mathrm{lo}}^{\mathrm{cov}}$
 is a genuine one-sided \emph{lower} bound on the \emph{incremental} covert
-energy,
+energy. Write the true draw as $P = g_x(F_{\mathrm{dec}},
+F_{\mathrm{cov}})$, some device-dependent function of what the silicon
+executes, with the subscript $x$ standing for the execution details the
+verifier never sees. The condition is then
 \begin{equation}
 	g_x(F_{\mathrm{dec}}, F_{\mathrm{cov}}) - g_x(F_{\mathrm{dec}}, 0)
 	\;\ge\; r_{\mathrm{lo}}^{\mathrm{cov}}\,F_{\mathrm{cov}},
