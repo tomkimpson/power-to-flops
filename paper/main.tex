@@ -607,13 +607,11 @@ Declarations and re-execution can narrow the declared band width
 $r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}$ in the
 numerator, but no declaration reaches the covert floor
 $r_{\mathrm{lo}}^{\mathrm{cov}}$ in the denominator; only hardware-wide
-observables (clock, voltage) can raise $r_{\mathrm{lo}}^{\mathrm{cov}}$.
-
-The two edges therefore play different roles, and must be measured
-differently: the declared band width tolerates a total-quotient estimate,
-while the covert denominator admits only a marginal one.
-\Cref{app:estimands} states the condition precisely, and it is weaker than
-the affine map of \cref{eq:forward}.
+observables (clock, voltage) can raise $r_{\mathrm{lo}}^{\mathrm{cov}}$. The
+two edges therefore also have to be \emph{measured} differently: the declared
+width tolerates a total-quotient estimate, the covert floor admits only a
+marginal one. \Cref{app:estimands} states that condition precisely, and it asks
+less of the hardware than the affine map of \cref{eq:forward} does.
 
 \subsection{The capacity clip}
 \label{subsec:capclip}
@@ -742,8 +740,8 @@ $C_{\mathrm{hi}} = 90$, so $\beta = 40/100 = 0.4$. \Cref{eq:betaenbare}
 assembles the same number term by term:
 $\beta_{\mathrm{en}}^{\varnothing}(0.5) = 0.5\,(2.5/1.5 - 1) + 10/(1.5 \times 100) = 1/3 + 1/15 = 0.4$.
 The cheat is also capacity-feasible---the $40$ covert units fit inside the
-$(1-h)\,\gamma\,C_{\max} = 50$ units the declared work leaves free (taking
-$\gamma = 1$)---so here the clip of \cref{eq:capclip} is slack and
+$(\gamma - h)\,C_{\max} = 50$ units the declared work leaves free (taking
+$\gamma = 1$)---so here the clip of \cref{eq:betafloorbare} is slack and
 $\beta(0.5) = 0.4$. Had the slack exceeded $50$ units, the
 identified set would have ended at the capacity edge instead: at full
 declared utilisation $\beta$ vanishes no matter how wide
@@ -762,8 +760,10 @@ are treated as independent, so $\beta$ prices a combination of band edges that
 we do not prove any single schedule attains, and it is therefore an upper bound
 on the width rather than the width itself (\cref{ass:corners}).
 \Cref{app:worstcase} states the assumption, draws the geometry, and separates
-the two readings, together with the one-sidedness of the acceptance rule, as
-four formally distinct estimands.
+the readings formally, together with the one-sidedness of the acceptance rule.
+Read with those caveats, $\beta$ is a design-time budget: whatever the audited
+window turns out to be, no accepted window can hide more than this. What
+remains is to find out how much that is.
 
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
@@ -2036,7 +2036,8 @@ $\bar r^{\mathrm{dec}} \in [r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\ma
 $E_0 \in [E_{0,\mathrm{lo}}, E_{0,\mathrm{hi}}]$, and
 $\bar r^{\mathrm{cov}} \ge r_{\mathrm{lo}}^{\mathrm{cov}}$ of
 \cref{subsec:derivation}---and the derivation treats them as a
-\emph{rectangle}: each edge attainable whatever the other two do. The prover's
+\emph{rectangle} (a box, once all three are counted): each edge attainable
+whatever the other two do. The prover's
 best play is then the rectangle's \emph{cheating corner}, the one vertex where
 all three are simultaneously most favourable to hiding: declared work run as
 cheaply as its band allows, overhead idled to the bottom of its band, and
@@ -2133,12 +2134,14 @@ remains an assumption at every $h$, met from below by the witnesses.
 	\end{tikzpicture}
 	\caption{The band rectangle and its cheating corner, shown in the plane
 		where covert work is priced at its floor $r_{\mathrm{lo}}^{\mathrm{cov}}$
-		(the third band runs into the page). The verifier's knowledge is the
-		rectangle: every edge of every band attainable whatever the others do.
-		$\beta$ prices its cheating corner (bottom left: cheap declared work,
-		idled overhead, cheap covert operations). The schedules a single device
-		can actually run in one window are some subset of the rectangle, and if
-		that subset excludes the corner---as \cref{ass:corners} concedes it
+		(the third band runs into the page; it is bounded only below, so the
+		depth of the box is arbitrary and only this front face binds). The
+		verifier's knowledge is the rectangle: every edge of every band
+		attainable whatever the others do. $\beta$ prices its cheating corner
+		(bottom left: cheap declared work, idled overhead, cheap covert
+		operations). The schedules a single device can actually run in one
+		window are some subset of the rectangle (drawn schematically here, not
+		measured), and if that subset excludes the corner---as \cref{ass:corners} concedes it
 		may---then $\beta$ is an upper bound on the identified-set width rather
 		than the width itself. The matched-energy witnesses of
 		\cref{sec:empirical-measurements} exhibit an attained point inside the
