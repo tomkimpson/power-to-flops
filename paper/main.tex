@@ -1119,19 +1119,13 @@ tolerance, and the provenance manifest, including which card measured
 which band.
 
 \paragraph{Estimands.}
-The experiments estimate the two quantities of \cref{app:estimands},
-each where it is valid. Experiments~1 and~2 report per-window \emph{total
-quotients} $E/C$ at sustained, fully busy rates: the right estimand for
-the declared band, which enters the floor only through the difference of
-its edges, where the amortised baseline cancels
-(\cref{app:bench}). The covert denominator needs the opposite, one-sided
-guarantee---a lower bound on the \emph{incremental} cost of an added
-covert operation, for which a total quotient is anti-conservative---so it
-is identified by Experiment~4's dose--response intervention and used at
-its one-sided lower confidence limit. Experiment~3's between-shape
-regression of power on rate is a consistency diagnostic for the affine
-model, never a theorem input; its idle cells pin the intercept band
-$\Delta E_0$.
+The floor's two band edges need different estimands, and each experiment
+reports the one that is valid for it (\cref{app:estimands}). The declared band
+takes a per-window \emph{total quotient} $E/C$ at sustained, fully busy rates,
+because it enters the floor only through the difference of its edges. The
+covert denominator takes the opposite, one-sided guarantee: a lower bound on
+the \emph{incremental} cost of an added covert operation, for which a total
+quotient is anti-conservative.
 
 \begin{figure}[t]
 	\centering
@@ -1258,15 +1252,9 @@ compute-bound cubes---like compared with like---the fit gives $1.65$\,pJ/op
 at $R^2 = 0.99$. Opened to all ten shapes it gives $1.60$\,pJ/op at
 $R^2 = 0.852$ (\cref{fig:overhead-affine}): the slope moves by $4\%$ while
 the scatter grows sharply, so the launch- and bandwidth-bound shapes account
-for the residual and not for the rate. This is the expected behaviour rather
-than a failure of the model. Those shapes move $C_{\mathrm{eff}}$ and
-$\alpha$ along with $F$, and the resulting spread in $r$ is the same physical
-variation Experiment~1 maps deliberately as the exchange-rate band---swept on
-purpose there, drifting as a side effect here. The
-between-shape slope is a diagnostic of the affine forward model, not the
-floor's covert denominator: it averages over shapes whose non-covert
-factors vary together, where the theorem needs the derivative at fixed
-declared work. That derivative is what Experiment~4 identifies.
+for the residual and not for the rate---the expected behaviour rather than a
+failure of the model (\cref{app:estimands}). The derivative the floor actually
+needs is what Experiment~4 identifies.
 
 \begin{figure}[t]
 	\centering
@@ -1453,28 +1441,14 @@ the energy budget and the silicon, not by either alone.
 The bare meter is the worst case: the verifier sees nothing but the power,
 and the prover has maximum wiggle room. Each capability the verifier gains
 moves one band edge and shrinks the identified set by a measurable factor.
-\Cref{tab:ladder,fig:ladder} walk down that ladder \emph{cumulatively}:
-each rung adds one capability to all the rungs above it, and every priced
-rung is recomputed as the same quantity the headline uses --- the
-capacity-clipped physical worst case
-$\beta^{*} = \max_h \beta(h)$ of
-\cref{eq:betaworst}, under the joint model of
-\cref{app:worstcase}: fp16-declared case study, covert work priced at
-the int8 marginal lower confidence limit $0.51$\,pJ/op
-(\cref{sec:empirical-measurements}), $\gamma = 2$. The bare rung alone,
-which pins no declared format, carries the cross-format clip $\gamma - h$
-of \cref{eq:betafloorbare} in place of $(1-h)\,\gamma$. The energy-only
-diagnostic $\beta_{\mathrm{en}}(1)$ is reported alongside for orientation only: it is the
-unclipped no-alarm budget at full utilisation, not a physical floor
-($\beta(1) = 0$ --- a fully busy machine has no residual
-capacity to hide work in). Because a verifier that gains a capability can
-only shrink the set, the priced chain is monotone by construction, and a
-regression test in the released code enforces it. Two disclosed
-conditions thread the chain, marked $\dagger$ in \cref{fig:ladder} and
-listed per rung in \cref{tab:ladder}: \emph{declared-format execution}
-(from the precision rung down) and an \emph{observed operating point}
-(from the re-execution rung down). The rest of this section takes the
-rungs in turn.
+\Cref{tab:ladder,fig:ladder} walk down that ladder \emph{cumulatively} ---
+each rung adds one capability to all the rungs above it --- and their
+captions fix the accounting every priced rung shares: the quantity re-computed
+at each step, the joint model it is computed in, and the two disclosed
+conditions that thread the chain. Because a verifier that gains a capability
+can only shrink the set, the priced chain is monotone by construction, and a
+regression test in the released code enforces it. The rest of this section
+takes the rungs in turn.
 
 \begin{table}[t]
 	\centering
@@ -1496,8 +1470,9 @@ rungs in turn.
 	capability (cumulative, top to bottom) and is re-priced as the clipped
 	physical worst case
 	$\beta^{*} = \max_h \beta(h)$
-	(\cref{eq:betaworst}) under the joint model (fp16-declared case
-	study, int8 covert edge at the Exp.~4 marginal LCB, $\gamma = 2$; the
+	(\cref{eq:betaworst}) under the joint model of \cref{app:worstcase}
+	(fp16-declared case study, int8 covert edge at the Exp.~4 marginal LCB,
+	$\gamma = 2$; the
 	format-unpinned bare rung carries the cross-format clip $\gamma - h$ of
 	\cref{eq:betafloorbare});
 	$\beta_{\mathrm{en}}(1)$ is the energy-only diagnostic, not a floor. Numeric band edges
@@ -1601,24 +1576,16 @@ Voltage/clock (DVFS, of order $1.5$) and locality (weak for a compute-bound
 kernel) are hardware-wide observables the power meter does not measure;
 pinning them via other channels would narrow what remains of the declared
 band down to its operand core. We deliberately quote no number for this
-rung, for two reasons. First, the capability is prospective on every
-candidate route: attested clock telemetry (NVML reports the clocks, but
-firmware-reported numbers count only over the tamper-resistant read path
-that \cref{sec:intro} notes does not yet exist), locked clocks by policy,
-or, in principle, the EM side channel---switching at $f$ radiates at $f$
-and its harmonics, and magnetic emanations from a GPU's power delivery are
-measurable in practice \citep{maia2022magnetic}, though clock-line
-radiation itself has not been demonstrated---with the voltage then
-following from the hardware's $V$--$f$ table. Second, the only number we
-could put on the rung, the operand core $w_0 = 1.83$, is descriptive
-within-device evidence: Experiment~2's workload families ran at different
-achieved clocks (the confound is disclosed in
+rung, for two reasons. First, every route to the capability is prospective
+rather than available---attested clock telemetry, locked clocks by policy, or
+the EM side channel (\cref{sec:discussion})---so there is no channel here to
+price. Second, the only number we could put on the rung, the operand core
+$w_0 = 1.83$, is descriptive within-device evidence: Experiment~2's workload
+families ran at different achieved clocks (the confound is disclosed in
 \cref{sec:empirical-measurements}), so $w_0$ is not a certified population
 edge and does not price a guarantee. The rung stays in the ladder as the
 slot a trusted on-site observable would fill --- and the next rung depends
-on it. The locality half is speculative: per-rail metering (core vs.\ HBM
-regulators) or interconnect telemetry might resolve it; fortunately
-Experiment~1 found locality moves $r$ little for compute-bound work.
+on it.
 
 \paragraph{Re-execute the declared work ($1.16 \to 0.34$, conditional).}
 Re-executing to \emph{measure} the declared work's actual energy per operation,
@@ -1793,28 +1760,11 @@ with five repeats per cell the $20\%$ trim always removes one repeat,
 excursion or not. The sensitivity is small: restoring every positive
 flagged record moves the fp16 band to $[1.10, 2.20]$\,pJ/op, the int8
 marginal lower limit to $0.510$, and the headline to
-$\beta^{*} = 1.162$. The quantities that actually enter the bound are of three
-kinds, and we state the status of each rather than claim one statistical
-coverage guarantee over all of them. (a) The covert denominator---the one
-quantity a lower bound is genuinely sensitive to---is a one-sided $95\%$ lower
-confidence limit on a regression slope (Experiments~3 and~4, and the
-useful-band dose slope), coverage-controlled by construction. (b) The declared
-band $[r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}]$ enters
-only as a \emph{difference} of per-cell-median edges at a common saturated rate
-(\cref{app:estimands}), so the amortised baseline cancels and it acts as a
-band \emph{width}, not a point estimate needing its own coverage; its target
-population is the achievable per-shape operating points of the declared format
-on the audited A100 SKU, and the edges are that observed operating
-envelope; used as design-time security edges they remain sampled operating
-points, not certified physical extrema.
-(c) The overhead width $\Delta P_0$ and the capacity/$\gamma$ inputs are
-conservative worst-case \emph{design} parameters, not sampled estimates:
-$\Delta P_0$ is the observed idle envelope stretched by the adopted
-$\pm 5\%$ meter tolerance (widening it only widens $\beta$), and $C_{\max}$ and
-$\gamma$ are published hardware peaks. We therefore do not claim simultaneous
-statistical coverage over the rectangle these edges span; the rectangle is a
-deliberately conservative over-approximation, as no single schedule attains its
-combined extrema (\cref{ass:corners}). (vii) The locality contrast is
+$\beta^{*} = 1.162$. We claim no single statistical coverage guarantee over
+all the quantities that enter the bound: they are of three different kinds ---
+a coverage-controlled confidence limit, a band width, and conservative design
+parameters --- and \cref{app:estimands} states the status of each.
+(vii) The locality contrast is
 attenuated in the fp32/tf32 cache-resident cells, whose operands
 marginally spill L2.
 
@@ -1847,6 +1797,20 @@ does not, and any of them may narrow the identified set below the widths
 reported here. The impossibility we state is for total-energy sensing
 under the free-variation threat model, not for analogue sensing in
 general.
+
+That none of these channels is available yet is what leaves the
+clock-and-locality rung of \cref{sec:decreasing-beta} unpriced. Every route to
+it is prospective: firmware-reported clocks count only over a tamper-resistant
+read path that does not yet exist, locked clocks are a policy the prover must
+accept, and the EM side channel is unproven for this purpose---switching at $f$
+radiates at $f$ and its harmonics, and magnetic emanations from a GPU's power
+delivery are measurable in practice \citep{maia2022magnetic}, but clock-line
+radiation itself has not been demonstrated, and the voltage would then have to
+follow from the hardware's $V$--$f$ table. The locality half is more
+speculative still---per-rail metering (core vs.\ HBM regulators) or
+interconnect telemetry might resolve it---though Experiment~1 found locality
+moves $r$ little for compute-bound work. Pricing that rung is the
+instrumentation question the ladder leaves open.
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -2271,6 +2235,43 @@ $r_{\mathrm{lo}}^{\mathrm{cov}}$ by a dose--response intervention
 edge), not by fitting a power--rate curve; a total-quotient covert edge is
 inadmissible here, and every covert edge the bound uses is a marginal dose
 slope.
+
+\paragraph{Why the between-shape slope is not that estimand.}
+Experiment~3's regression of power on rate across kernel shapes is a
+consistency diagnostic for the affine map, never an input to the bound, and the
+two roles above say why. Those shapes move $C_{\mathrm{eff}}$ and $\alpha$
+along with $F$, so the resulting spread in $r$ is the same physical variation
+Experiment~1 maps deliberately as the exchange-rate band---swept on purpose
+there, drifting as a side effect here. A slope fitted through them therefore
+averages over shapes whose non-covert factors vary together, where
+\cref{eq:incremental} needs the derivative at \emph{fixed} declared work. That
+is why the covert edge is identified by a dose--response intervention at a
+fixed declared burst rather than read off a power--rate curve, and why the fit
+loosening across kernel classes ($R^2 = 0.99$ within the compute-bound cubes,
+$0.852$ across all ten shapes) is expected rather than a failure of the model.
+
+\paragraph{Three kinds of quantity, three kinds of status.}
+The inputs to the bound do not share one statistical status, and we state each
+rather than claim a single coverage guarantee over all of them. The covert
+denominator---the one quantity a lower bound is genuinely sensitive to---is a
+one-sided $95\%$ lower confidence limit on a regression slope (Experiments~3
+and~4, and the useful-band dose slope), coverage-controlled by construction.
+The declared band $[r_{\mathrm{lo}}^{\mathrm{dec}},
+r_{\mathrm{hi}}^{\mathrm{dec}}]$ enters only as a \emph{difference} of
+per-cell-median edges at a common saturated rate, so the amortised baseline
+cancels and it acts as a band \emph{width} rather than a point estimate needing
+its own coverage; its target population is the achievable per-shape operating
+points of the declared format on the audited A100 SKU, and the edges are that
+observed operating envelope. Used as design-time security edges they remain
+sampled operating points, not certified physical extrema. The overhead width
+$\Delta P_0$ and the capacity and $\gamma$ inputs are conservative worst-case
+\emph{design} parameters, not sampled estimates at all: $\Delta P_0$ is the
+observed idle envelope stretched by the adopted $\pm 5\%$ meter tolerance
+(widening it only widens $\beta$), and $C_{\max}$ and $\gamma$ are published
+hardware peaks. Nothing here claims simultaneous coverage over the rectangle
+these edges span; that rectangle is a deliberately conservative
+over-approximation, since no single schedule attains its combined extrema
+(\cref{ass:corners}).
 
 \section{Two conservative accounting choices, quantified}
 \label{app:sensitivity}
