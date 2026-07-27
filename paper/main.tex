@@ -700,27 +700,21 @@ single-band, power-only form
 	\label{eq:betaenbare}
 \end{equation}
 where the subscript $\varnothing$ denotes the empty set of extra channels:
-the meter is all the verifier has. This rung is the deliberate exception to
-the single-scenario discipline of \cref{app:worstcase}: a bare meter pins
-no format at all, so both band edges open to the cross-format envelope
-while $C_{\max}$ and $h$ stay the declared-format yardstick, and we flag
-the rung as a cross-format envelope by intent wherever it is
-quoted.\footnote{The combination is still admissible under the
-single-schedule criterion of \cref{app:worstcase}: the honest
-acceptance ceiling is the fp32 rate, and
-fp32 can sustain the declared rate it implies ($h^{*}C_{\max} =
-14.3$\,Top/s against a measured $17.7$\,Top/s fp32 peak).} The capacity
-clip must be re-derived here too, because with no format pinned on the
-\emph{declared} side either, the cheating schedule executes the declared
-operations themselves in the cheap covert format: they occupy only
-$h/\gamma$ of the machine's resource-time rather than $h$, declared plus
-covert work together obey $C_{\mathrm{cov}} \le (\gamma - h)\,C_{\max}$,
-and the power-only floor is
-$\beta(h) = \min[\,\beta_{\mathrm{en}}^{\varnothing}(h),\,\gamma-h\,]$.\footnote{A
-slightly laxer clip than the single-declared-format $(1-h)\,\gamma$ of
-\cref{eq:capclip}, which would charge the declared work the covert format's
-energy but the declared format's time share; the two coincide at
-$\gamma = 1$.}
+the meter is all the verifier has. The capacity clip is laxer here than the
+$(1-h)\,\gamma$ of \cref{eq:capclip}, because a bare meter pins no format on
+the \emph{declared} side either: the cheating schedule may run the declared
+operations themselves in the cheap covert format, where they occupy only
+$h/\gamma$ of the machine's resource-time rather than $h$. The power-only
+floor is therefore
+\begin{equation}
+	\beta(h) \;=\;
+	\min\bigl[\,\beta_{\mathrm{en}}^{\varnothing}(h),\; \gamma-h\,\bigr],
+	\label{eq:betafloorbare}
+\end{equation}
+and this rung is the deliberate exception to the single-scenario discipline of
+\cref{app:worstcase}, which derives the clip and records what pinning no
+format costs in band width.
+
 Two limits bracket the first term of \cref{eq:betaenbare}. First
 is \emph{ambiguity}: if the rate is known exactly
 ($r_{\mathrm{hi}} = r_{\mathrm{lo}}$) the term vanishes, since a pinned
@@ -1469,7 +1463,7 @@ $\beta^{*} = \max_h \beta(h)$ of
 the int8 marginal lower confidence limit $0.51$\,pJ/op
 (\cref{sec:empirical-measurements}), $\gamma = 2$. The bare rung alone,
 which pins no declared format, carries the cross-format clip $\gamma - h$
-of \cref{subsec:poweronly} in place of $(1-h)\,\gamma$. The energy-only
+of \cref{eq:betafloorbare} in place of $(1-h)\,\gamma$. The energy-only
 diagnostic $\beta_{\mathrm{en}}(1)$ is reported alongside for orientation only: it is the
 unclipped no-alarm budget at full utilisation, not a physical floor
 ($\beta(1) = 0$ --- a fully busy machine has no residual
@@ -1505,7 +1499,7 @@ rungs in turn.
 	(\cref{eq:betaworst}) under the joint model (fp16-declared case
 	study, int8 covert edge at the Exp.~4 marginal LCB, $\gamma = 2$; the
 	format-unpinned bare rung carries the cross-format clip $\gamma - h$ of
-	\cref{subsec:poweronly});
+	\cref{eq:betafloorbare});
 	$\beta_{\mathrm{en}}(1)$ is the energy-only diagnostic, not a floor. Numeric band edges
 	in pJ/op. Disclosed conditions: $\dagger$ --- assumes the declared work
 	is executed in its declared format (an off-site check cannot enforce
@@ -1565,7 +1559,7 @@ meter cannot do. The resulting exchange span is $37.9\times$ --- wider than the
 $24.8\times$ measured envelope, because the covert floor here is the int8
 \emph{marginal} edge rather than the dearest-to-cheapest ratio of total
 quotients --- wide enough that the capacity clip binds even at low utilisation.
-The clip is the cross-format $\gamma - h$ of \cref{subsec:poweronly}: with no
+The clip is the cross-format $\gamma - h$ of \cref{eq:betafloorbare}: with no
 format pinned, the declared operations themselves execute in the cheap covert
 format and occupy $h/\gamma$ of resource-time, not $h$. The clipped
 worst case peaks at $\beta^{*} = 1.95$ near
@@ -2152,6 +2146,25 @@ remains an assumption at every $h$, met from below by the witnesses.
 		corner is what the assumption spans.}
 	\label{fig:rectangle}
 \end{figure}
+
+\paragraph{The bare-meter exception.}
+One rung breaks the single-scenario discipline by design: the power-only floor
+of \cref{subsec:poweronly}. A bare meter pins no format at all, so both band
+edges open to the cross-format envelope while $C_{\max}$ and $h$ stay the
+declared-format yardstick, and we flag that rung as a cross-format envelope by
+intent wherever it is quoted. The combination is still admissible under the
+single-schedule criterion above: the honest acceptance ceiling is the fp32
+rate, and fp32 can sustain the declared rate it implies
+($h^{*}C_{\max} = 14.3$\,Top/s against a measured $17.7$\,Top/s fp32 peak).
+The capacity clip has to be re-derived for that rung too. With no format
+pinned on the \emph{declared} side either, the cheating schedule executes the
+declared operations themselves in the cheap covert format: they occupy only
+$h/\gamma$ of the machine's resource-time rather than $h$, declared and covert
+work together obey $C_{\mathrm{cov}} \le (\gamma - h)\,C_{\max}$, and the
+floor is \cref{eq:betafloorbare}---a slightly laxer clip than the
+single-declared-format $(1-h)\,\gamma$ of \cref{eq:capclip}, which would
+charge the declared work the covert format's energy but the declared format's
+time share. The two coincide at $\gamma = 1$.
 
 \paragraph{Four estimands.}
 The derivation moves through four quantities that are easy to conflate, so we
