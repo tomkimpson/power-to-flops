@@ -122,7 +122,11 @@ $\beta$ to $0.34$. However no capability reaches the covert side, which
 closes only by assumption on the adversary.
 
 A power-based verification regime can then be designed or
-rejected... etc. 
+rejected... etc.
+
+\todo[inline,color=yellow!40]{\textbf{Dev note:} abstract is a
+placeholder --- TBC once the main text is locked in. Deliberately left to
+last.}
 \end{abstract}
 
 \section{Introduction}
@@ -180,20 +184,9 @@ power draw for GPUs and data centres
 \citep{patel2023polca,choukse2025power,latif2025power}. But these are
 forward models, fitted largely in cooperative conditions: they map known
 workloads to their emissions. Verification poses the inverse
-problem---emissions to workload---against an operator actively trying to
+problem (i.e.emissions to workload) against an operator actively trying to
 evade the sensor, and the question is how tightly analogue-sensor
 measurements can constrain compute in that setting.
-
-% detection vs identification
-That question is one of identification, not detection. Closest to our
-setting, \citet{rahman2026telemetry} evaluate the \emph{detection} of
-hidden ML training from zero-overhead telemetry against an explicitly
-adversarial operator, across nine GPU models. Detection asks whether hidden
-work of a known kind trips a particular detector; we ask the complementary
-question---how much compute \emph{any} verifier reading the sensor can
-bound, whatever detector it runs---and answer it with a closed-form floor
-rather than a classifier benchmark. A detector can raise alarms above the
-floor; it cannot narrow the identified set below the physics.
 
 % why power
 Of the physical side channels an off-chip sensor could read, we take power
