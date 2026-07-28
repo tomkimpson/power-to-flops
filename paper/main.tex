@@ -361,7 +361,9 @@ machine's peak declared-format capacity $C_{\max} = F_{\max}^{\mathrm{dec}}T$,
 \end{equation}
 Under \cref{ass:declaration} the lower edge is the declaration itself,
 $C_{\mathrm{lo}} = C_{\mathrm{dec}}$, and the normaliser $C_{\max} = F_{\max}^{\mathrm{dec}}T$
-is the machine's capacity. The interval runs from that honest baseline up to
+is the machine's capacity priced in declared-format operations---a yardstick,
+not a ceiling on the operations that can run (\cref{subsec:capclip}).
+The interval runs from that honest baseline up to
 the most compute the meter cannot rule out, so the upper edge is the declared
 work plus the largest covert load a cheater could slip past the meter,
 \begin{equation}
@@ -615,11 +617,67 @@ less of the hardware than the affine map of \cref{eq:forward} does.
 \subsection{The capacity clip}
 \label{subsec:capclip}
 
+\begin{figure}[t]
+	\centering
+	\begin{tikzpicture}[line join=round, line cap=round]
+
+		% ---------- the window: one device, one observation window T ----------
+		\fill[teal!15] (0,1.9) rectangle (3.0,2.45);
+		\draw[teal!60!black] (0,1.9) rectangle (3.0,2.45);
+		\node[teal!45!black, inner sep=1pt] at (1.5,2.175) {\scriptsize declared};
+		\fill[gray!8] (3.0,1.9) rectangle (6.0,2.45);
+		\draw[gray!60] (3.0,1.9) rectangle (6.0,2.45);
+		\node[gray!50!black, inner sep=1pt] at (4.5,2.175) {\scriptsize free};
+		\node[anchor=east, inner sep=4pt] at (0,2.175) {\scriptsize window};
+
+		% ---------- the shares of machine-time ----------
+		\draw[decorate, decoration={brace, amplitude=4pt, mirror}]
+			(0,1.78) -- (3.0,1.78) node[midway, below=5pt] {\scriptsize $h\,T$};
+		\draw[decorate, decoration={brace, amplitude=4pt, mirror}]
+			(3.0,1.78) -- (6.0,1.78) node[midway, below=5pt]
+			{\scriptsize $(1-h)\,T$};
+
+		% ---------- operations retired in each share ----------
+		% declared format: one tick per 0.5 of the window
+		\foreach \x in {0.25,0.75,...,2.75}
+			\draw[teal!60!black] (\x,0.72) -- (\x,1.12);
+		% covert format: gamma = 2, so twice as many ticks in the same time
+		\foreach \x in {3.125,3.375,...,5.875}
+			\draw[orange!85!black] (\x,0.72) -- (\x,1.12);
+		\draw[gray!55, dashed] (3.0,0.60) -- (3.0,1.9);
+
+		\node[teal!45!black, anchor=north, inner sep=4pt] at (1.5,0.66)
+			{\scriptsize $h\,C_{\max} = 6$};
+		\node[orange!75!black, anchor=north, inner sep=4pt] at (4.5,0.66)
+			{\scriptsize $(1-h)\,\gamma\,C_{\max} = 12$};
+		\node[anchor=east, inner sep=4pt] at (0,0.92) {\scriptsize operations};
+
+	\end{tikzpicture}
+	\caption{Why the clip carries a $\gamma$. The binding resource is the
+		window, not a count of operations: declared work takes $h\,T$ of the
+		device's time and the covert block gets the remaining $(1-h)\,T$
+		(top). Operations are then whatever each block's format retires in its
+		own share (bottom), drawn here at $h = 1/2$ and $\gamma = 2$ (int8
+		covert work against declared fp16), so the covert ticks fall twice as
+		densely as the declared ones. Counting them, the declared block retires
+		$6$ operation-units and the covert block $12$: the free \emph{half}
+		window hides a full $C_{\max} = 12$ worth of covert work, not the $6$
+		that segmenting the compute axis would suggest. This is why $C_{\max}$
+		is a declared-format yardstick rather than a ceiling, and what leaves
+		room for $\beta$ to exceed one.}
+	\label{fig:timeclip}
+\end{figure}
+
 The energy budget is not the only physical constraint: covert work must also
-\emph{fit on the machine}. The setup already bounds the
-operation rate by the hardware capacity (\cref{subsec:forward}), and that
-capacity is format-dependent. The peak rate $F_{\max}$ is not one number but
-a property of the executing format: an A100's dense peaks run from
+\emph{fit on the machine}. What binds here is not joules but machine-time.
+The declared and covert streams multiplex one device across a single window of
+length $T$, so the covert block runs only in the time the declared block
+leaves free. Turning that free time into a count of operations means
+multiplying by a rate, and the rate on offer is the peak of whichever format
+the covert stream executes in---which makes this constraint format-dependent
+from the outset. The setup already bounds the operation rate by the hardware
+capacity (\cref{subsec:forward}), but that peak $F_{\max}$ is not one number:
+it is a property of the executing format. An A100's dense peaks run from
 $19.5$\,Top/s at fp32 on the CUDA cores through $156$ at tf32 and $312$ at
 fp16/bf16 to $624$\,Top/s at int8 on the tensor cores \citep{nvidia2020a100}. We write $F_{\max}^{\mathrm{dec}}$
 for the peak of the declared format, which fixes the capacity normaliser
@@ -632,14 +690,34 @@ for the capacity ratio of a covert format against the declared one
 ($\gamma = 2$ for int8 covert work against fp16 declared work on an A100).
 
 However much energy slack the trace leaves, then, the covert block can never
-retire more than the capacity the declared work leaves free. Declared work
-occupies a fraction $h$ of the declared-format capacity; the remainder,
-executed at the covert format's peak, leaves a second width, in the same
-units as $\beta_{\mathrm{en}}$:
+retire more than the free window admits. Three steps fix how much that is.
+Declared work of $C_{\mathrm{dec}} = h\,C_{\max}$ operations cannot be retired
+in less than $C_{\mathrm{dec}}/F_{\max}^{\mathrm{dec}} = h\,T$ of the window,
+so at most $(1-h)\,T$ is left free. Run at the covert format's peak, that free
+time retires $F_{\max}^{\mathrm{cov}}\,(1-h)\,T$ covert operations. Dividing by
+$C_{\max} = F_{\max}^{\mathrm{dec}}\,T$ turns the count into a second width, in
+the same units as $\beta_{\mathrm{en}}$:
 \begin{equation}
 	C_{\mathrm{cov}}/C_{\max} \;\le\; (1-h)\,\gamma .
 	\label{eq:capclip}
 \end{equation}
+The factor $\gamma$ is the whole content of that clip, and it is why the budget
+has to be drawn on the time axis rather than the compute axis. It is tempting
+to segment $[0, C_{\max}]$ directly---declared work takes $h$ of it, covert work
+the remaining $(1-h)$---but that treats an operation as a format-independent
+unit, and it is not: an int8 operation and an fp16 operation consume different
+shares of the same machine. $C_{\max}$ is a normaliser, the machine's capacity
+priced in \emph{declared-format} operations, not a ceiling on how many
+operations can run. When $\gamma > 1$ the covert stream retires more work per
+unit of machine-time than the declared format can, so
+$C_{\mathrm{dec}} + C_{\mathrm{cov}}$ may exceed $C_{\max}$ and the clip is
+$(1-h)\,\gamma$ rather than $(1-h)$ (\cref{fig:timeclip}). It is also what
+leaves room for $\beta > 1$: with int8 covert work against declared fp16
+($\gamma = 2$), the free half-window at $h = 1/2$ already retires a full
+$C_{\max}$ worth of covert operations, and at lower utilisation the clip sits
+above one, so the width is capped by the energy budget rather than by the
+silicon.
+
 We evaluate \cref{eq:capclip} at the \emph{published peak} capacities rather
 than the rates our kernels achieve: peaks give the covert stream more room
 than it can really use, so this is the adversary-favorable---and for an
@@ -653,8 +731,67 @@ the smaller of them,
 	\min\bigl[\,\beta_{\mathrm{en}}(h),\; (1-h)\,\gamma\,\bigr].\;
 	\label{eq:betafloor}
 \end{equation}
-The two pull in opposite directions. Energy \emph{rises} with $h$---more
-declared work offers more cover---while capacity \emph{falls}---more
+
+\begin{figure}[t]
+	\centering
+	\begin{tikzpicture}[>=Stealth, line join=round, line cap=round]
+
+		% ---------- axes: no numeric scale, this is a shape not a measurement ----------
+		\draw[->] (0,0) -- (5.6,0) node[right, inner sep=2pt] {\scriptsize $h$};
+		\draw[->] (0,0) -- (0,2.6) node[above, inner sep=2pt] {\scriptsize $\beta$};
+		\node[anchor=north east, inner sep=3pt] at (0,0) {\scriptsize $0$};
+		\draw (5.0,0) -- (5.0,-0.08)
+			node[anchor=north, inner sep=3pt] {\scriptsize $1$};
+
+		% ---------- constraint 1: the energy-only width, rising in h ----------
+		\draw[orange!85!black, dashed] (0,0.15) -- (5.0,2.25);
+		\node[orange!75!black, anchor=south east, inner sep=2pt] at (5.0,2.25)
+			{\scriptsize $\beta_{\mathrm{en}}(h) = s\,h + b$};
+
+		% ---------- constraint 2: the capacity clip, falling in h ----------
+		\draw[gray!60!black, dotted, thick] (0,1.5) -- (5.0,0);
+		\node[gray!55!black, anchor=south west, inner sep=1pt] at (0.80,1.28)
+			{\scriptsize $(1-h)\,\gamma$};
+
+		% ---------- the floor: the lower of the two ----------
+		\draw[blue!55!black, line width=1.1pt]
+			(0,0.15) -- (1.875,0.9375) -- (5.0,0);
+		\fill[blue!55!black] (1.875,0.9375) circle (1.6pt);
+
+		% ---------- the crossing ----------
+		\draw[gray!55, dashed, thin] (1.875,0.9375) -- (1.875,0);
+		\draw[gray!55, dashed, thin] (1.875,0.9375) -- (0,0.9375);
+		\node[anchor=north, inner sep=3pt] at (1.875,0) {\scriptsize $h^{*}$};
+		\node[anchor=east, inner sep=3pt] at (0,0.9375) {\scriptsize $\beta^{*}$};
+
+		% ---------- the two intercepts the algebra needs ----------
+		\node[anchor=east, inner sep=3pt] at (0,1.5) {\scriptsize $\gamma$};
+		\node[anchor=east, inner sep=3pt] at (0,0.15) {\scriptsize $b$};
+
+		% ---------- which constraint binds where ----------
+		\node[gray!55!black, anchor=north, inner sep=2pt] at (0.95,-0.34)
+			{\scriptsize energy binds};
+		\node[gray!55!black, anchor=north, inner sep=2pt] at (3.55,-0.34)
+			{\scriptsize capacity binds};
+
+	\end{tikzpicture}
+	\caption{The shape of the floor. The energy-only width
+		$\beta_{\mathrm{en}}(h) = s\,h + b$ rises with declared utilisation---more
+		honest work offers more cover (dashed)---while the capacity clip
+		$(1-h)\,\gamma$ falls, since more honest work leaves less machine free
+		(dotted). The floor \cref{eq:betafloor} is the lower of the two (solid):
+		a tent peaking at the crossing $(h^{*}, \beta^{*})$ of
+		\cref{eq:betaworst}, with energy binding to its left, capacity to its
+		right, and $\beta(1) = 0$ because a fully occupied machine leaves
+		nowhere to hide. No numeric scale is intended---the $s$, $b$ and
+		$\gamma$ drawn here are illustrative, and \cref{fig:betafloor} plots the
+		same construction on measured bands.}
+	\label{fig:betashape}
+\end{figure}
+
+The two pull in opposite directions (\cref{fig:betashape}). Energy
+\emph{rises} with $h$---more declared work offers more cover---while capacity
+\emph{falls}---more
 declared work leaves less machine to hide on. At full declared utilisation
 the machine is spoken for and $\beta(1) = 0$; at idle there
 is capacity but almost no cover. The worst case sits at the crossing,
@@ -674,7 +811,16 @@ empirical question about $s$. On jointly consistent bands---one declared
 format's own band over the covert format's marginal cost---the measured
 slope is of order one (\cref{sec:empirical-measurements}), so the crossing
 falls at intermediate utilisation and the worst case is a fraction of
-$\gamma$. We still quote $\beta_{\mathrm{en}}$ on its own as a diagnostic---
+$\gamma$.
+
+The two are not symmetric, though, despite entering \cref{eq:betafloor} as a
+bare minimum. Only the energy width \emph{creates} ambiguity: pin the exchange
+rate and the overhead ($r_{\mathrm{hi}} = r_{\mathrm{lo}}$, $\Delta E_0 = 0$)
+and $\beta_{\mathrm{en}}$ vanishes while the clip still stands at
+$(1-h)\,\gamma$, yet $\beta = 0$---free capacity hides nothing once the meter
+converts joules straight back into operations. The clip never adds width; it
+only caps the width that blindness has already opened. That asymmetry is why
+we quote $\beta_{\mathrm{en}}$ on its own as a diagnostic---
 $\beta_{\mathrm{en}} > 1$ says the energy budget alone cannot rule out a
 machine's worth of covert work---but only $\beta$ is the width of the
 identified set.
@@ -700,8 +846,10 @@ the meter is all the verifier has. The capacity clip is laxer here than the
 $(1-h)\,\gamma$ of \cref{eq:capclip}, because a bare meter pins no format on
 the \emph{declared} side either: the cheating schedule may run the declared
 operations themselves in the cheap covert format, where they occupy only
-$h/\gamma$ of the machine's resource-time rather than $h$. The power-only
-floor is therefore
+$h/\gamma$ of the machine's resource-time rather than $h$. Redoing the two-step
+count of \cref{subsec:capclip} with that smaller declared share leaves
+$(1 - h/\gamma)\,T$ free, worth $\gamma\,(1 - h/\gamma) = \gamma - h$ machines
+of covert work. The power-only floor is therefore
 \begin{equation}
 	\beta(h) \;=\;
 	\min\bigl[\,\beta_{\mathrm{en}}^{\varnothing}(h),\; \gamma-h\,\bigr],
