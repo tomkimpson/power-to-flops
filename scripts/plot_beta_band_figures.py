@@ -38,7 +38,9 @@ from powertoflops.bench.bands import (  # noqa: E402
     clean_overhead_records,
     clean_records,
     exchange_band,
+    is_affine_cell,
     marginal_covert_cost,
+    marginal_rate_compute_bound,
     operand_core,
     overhead_band,
 )
@@ -71,6 +73,16 @@ DIST_LABEL = {
     "declared_typical": "declared",
     "dense_random": "dense random",
     "adversarial_toggle": "adversarial",
+}
+
+# Exp-3 rate-ladder shape classes -> (colour, marker, label). The affine map is
+# expected to hold on the idle anchors and the compute-bound cubes and to bend on
+# the launch-/bandwidth-bound shapes, so colour carries that split and the two
+# overlaid fits become readable against it.
+LADDER_STYLE = {
+    "idle": (C["black"], "s", "idle ($F = 0$)"),
+    "cube": (C["blue"], "o", "compute-bound cubes"),
+    "off": (C["vermillion"], "^", "launch-/bw-bound"),
 }
 
 
@@ -219,12 +231,15 @@ def fig_operand_envelope(bench_dir: pathlib.Path) -> None:
 def fig_overhead_affine(bench_dir: pathlib.Path) -> None:
     recs = clean_overhead_records(read_jsonl(record_for(3, bench_dir)))
     ob = overhead_band(recs)
-    P0_lo, P0_hi, slope_r, affine_r2 = ob.P0_lo, ob.P0_hi, ob.r_marginal, ob.affine_r2
+    P0_lo, P0_hi, affine_r2 = ob.P0_lo, ob.P0_hi, ob.affine_r2
+    # The like-for-like subfit the text quotes beside the pooled slope: idle
+    # anchors + compute-bound cubes, i.e. bands.is_affine_cell.
+    cb = marginal_rate_compute_bound(recs)
 
     # Aggregate the raw windows to sweep cells and plot the per-cell median with
     # std error bars over its repeats. The cells are exactly what marginal_rate
     # (hence the quoted r and R^2) regresses over, so the plotted points, the
-    # fitted line, and the caption numbers all refer to the same estimand.
+    # fitted lines, and the caption numbers all refer to the same estimands.
     by_cell: dict[tuple, list] = defaultdict(list)
     for r in recs:
         by_cell[_cell_key(r)].append(r)
@@ -234,41 +249,70 @@ def fig_overhead_affine(bench_dir: pathlib.Path) -> None:
                   for rows in by_cell.values()])
     Perr = np.array([float(np.std([r.mean_power_w for r in rows]))
                      for rows in by_cell.values()])
+    # Shape class per cell: the idle anchors and the compute-bound cubes are the
+    # subfit's cells; everything else is a launch- or bandwidth-bound shape. The
+    # split is read from bands.is_affine_cell, not re-derived here.
+    klass = np.array([
+        "idle" if rows[0].util_frac == 0.0
+        else ("cube" if is_affine_cell(rows[0]) else "off")
+        for rows in by_cell.values()])
 
-    # Line from the cell-median fit (marginal_rate): slope in W per Top/s, and the
-    # intercept in W. Extended to F = 0 to expose the P_0 intercept.
-    slope = slope_r * 1e12
-    intercept = ob.fit_intercept_w
+    # Both fits extended to F = 0 to expose the intercept. Slopes are W per Top/s.
     xs = np.linspace(0, F.max() * 1.02, 100)
+    pooled_y = ob.r_marginal * 1e12 * xs + ob.fit_intercept_w
+    cbound_y = cb.r_marginal * 1e12 * xs + cb.intercept_w
 
     fig, (ax, axr) = plt.subplots(
-        2, 1, figsize=(WIDTH_ICML_COL, 3.0), sharex=True,
+        2, 1, figsize=(WIDTH_ICML_COL, 3.4), sharex=True,
         layout="constrained", gridspec_kw={"height_ratios": [3, 1]})
-    ax.axhspan(P0_lo, P0_hi, color=C["grey"], alpha=0.35, zorder=0,
-               label=fr"$P_0$ band [{P0_lo:.0f}, {P0_hi:.0f}] W")
-    ax.plot(xs, slope * xs + intercept, color=C["vermillion"], lw=1.2, zorder=2,
-            label="affine fit")
-    ax.errorbar(F, P, yerr=Perr, fmt="o", ms=3, color=C["blue"], ecolor=C["blue"],
-                elinewidth=0.8, capsize=1.5, zorder=3, label="cell median $\\pm$ SD")
+    ax.axhspan(P0_lo, P0_hi, color=C["grey"], alpha=0.35, zorder=0)
+    ax.plot(xs, cbound_y, color=C["blue"], lw=1.2, zorder=2)
+    ax.plot(xs, pooled_y, color=C["black"], lw=1.0, ls="--", zorder=2)
+    for k, (col, mk, lab) in LADDER_STYLE.items():
+        m = klass == k
+        if not m.any():
+            continue
+        ax.errorbar(F[m], P[m], yerr=Perr[m], fmt=mk, ms=3.2, color=col,
+                    ecolor=col, elinewidth=0.8, capsize=1.5, zorder=3, label=lab)
     ax.set_ylabel(r"Mean power, $P$ (W)")
-    # Headline fit numbers in an unframed in-panel box rather than a title.
-    ax.text(0.04, 0.96,
-            fr"$R^2 = {affine_r2:.3f}$" "\n" fr"$r = {slope_r*1e12:.2f}$ pJ/op",
-            transform=ax.transAxes, ha="left", va="top", fontsize=7)
-    ax.legend(frameon=False, loc="lower right")
+    # Both fits' headline numbers, each in its line's colour, unframed.
+    ax.text(0.035, 0.97,
+            fr"cubes + idle: $r = {cb.r_marginal*1e12:.2f}$, $R^2 = {cb.r2:.2f}$",
+            transform=ax.transAxes, ha="left", va="top", fontsize=6.5,
+            color=C["blue"])
+    ax.text(0.035, 0.885,
+            fr"all shapes: $r = {ob.r_marginal*1e12:.2f}$, $R^2 = {affine_r2:.2f}$",
+            transform=ax.transAxes, ha="left", va="top", fontsize=6.5,
+            color=C["black"])
+    # Label the band inside it and well left of the legend, so the two never
+    # read as one block; the legend then carries markers only.
+    ax.text(0.33, 0.5 * (P0_lo + P0_hi),
+            fr"$P_0$ band [{P0_lo:.0f}, {P0_hi:.0f}] W",
+            transform=ax.get_yaxis_transform(), ha="left", va="center",
+            fontsize=6.5, color="#4a4a4a")
+    ax.legend(frameon=False, loc="lower right", bbox_to_anchor=(1.0, 0.13),
+              fontsize=6.5, handletextpad=0.4, labelspacing=0.25, borderpad=0.2)
 
-    resid = P - (slope * F + intercept)
+    # Residuals are taken against the POOLED fit, so the panel explains that
+    # fit's R^2: the off-class shapes carry the scatter the cubes do not.
+    resid = P - (ob.r_marginal * 1e12 * F + ob.fit_intercept_w)
     rmax = float(np.abs(resid).max()) * 1.25
-    axr.axhline(0, color=C["black"], lw=0.8, zorder=1)
-    axr.errorbar(F, resid, yerr=Perr, fmt="o", ms=3, color=C["blue"], ecolor=C["blue"],
-                 elinewidth=0.8, capsize=1.5, zorder=3)
+    axr.axhline(0, color=C["black"], lw=0.8, ls="--", zorder=1)
+    for k, (col, mk, _) in LADDER_STYLE.items():
+        m = klass == k
+        if not m.any():
+            continue
+        axr.errorbar(F[m], resid[m], yerr=Perr[m], fmt=mk, ms=3.2, color=col,
+                     ecolor=col, elinewidth=0.8, capsize=1.5, zorder=3)
     axr.set_ylim(-rmax, rmax)
     axr.set_ylabel("Residual (W)")
     axr.set_xlabel(r"nominal-op rate, $F$ (Top/s)")
     save(fig, "overhead_affine")
     plt.close(fig)
-    print(f"[3] P0 band [{P0_lo:.1f}, {P0_hi:.1f}] W, affine R^2 {affine_r2:.4f} "
-          f"({len(by_cell)} cells) -> figures/overhead_affine.*")
+    print(f"[3] P0 band [{P0_lo:.1f}, {P0_hi:.1f}] W, pooled R^2 {affine_r2:.4f} "
+          f"r {ob.r_marginal*1e12:.2f} ({len(by_cell)} cells); compute-bound "
+          f"R^2 {cb.r2:.4f} r {cb.r_marginal*1e12:.2f} ({cb.n_cells} cells) "
+          f"-> figures/overhead_affine.*")
 
 
 # Covert format -> (colour, label) for the dose-response figure.

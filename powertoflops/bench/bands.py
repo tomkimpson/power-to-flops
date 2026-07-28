@@ -464,27 +464,37 @@ def marginal_rate(records: Sequence[RunRecord]) -> MarginalRate:
     )
 
 
+# Smallest cube dimension counted as compute-bound on the Exp-3 rate ladder.
+CUBE_MIN_DIM = 2048
+
+
+def is_affine_cell(r: RunRecord, cube_min_dim: int = CUBE_MIN_DIM) -> bool:
+    """True for the ladder cells the affine map is expected to hold on.
+
+    Those are the idle anchors (F = 0, shared by every fit) and the large cubes
+    (M == N == K >= ``cube_min_dim``); the launch-bound small cubes and the
+    bandwidth-bound skinny-K shapes are excluded. Kept as one predicate so the
+    subfit below and the figure that plots it cannot drift apart.
+    """
+    return r.util_frac == 0.0 or (r.M == r.N == r.K and r.M >= cube_min_dim)
+
+
 def marginal_rate_compute_bound(
     exp3: Iterable[RunRecord],
-    cube_min_dim: int = 2048,
+    cube_min_dim: int = CUBE_MIN_DIM,
 ) -> MarginalRate:
     """Sensitivity subfit of :func:`marginal_rate`: idle anchors + big cubes only.
 
     The full-ladder fit honestly includes launch- and bandwidth-bound shapes,
     which bend the affine map and depress its R^2 (review C2). This variant
-    keeps the idle cells (F = 0 anchors) and the compute-bound cubes
-    (M == N == K >= ``cube_min_dim``) — the cells where the affine model is
-    expected to hold — so the paper can quote it as a one-line sensitivity
-    check next to the pooled slope. Cubes alone (without the idle anchors) are
-    degenerate on the R2 ladder: they all sit at the board power cap with
-    little F spread.
+    keeps the cells :func:`is_affine_cell` selects — the ones where the affine
+    model is expected to hold — so the paper can quote it as a one-line
+    sensitivity check next to the pooled slope. Cubes alone (without the idle
+    anchors) are degenerate on the R2 ladder: they all sit at the board power
+    cap with little F spread.
     """
     clean = clean_overhead_records(exp3)
-    sub = [
-        r for r in clean
-        if r.util_frac == 0.0
-        or (r.M == r.N == r.K and r.M >= cube_min_dim)
-    ]
+    sub = [r for r in clean if is_affine_cell(r, cube_min_dim)]
     return marginal_rate(sub)
 
 
