@@ -1079,21 +1079,30 @@ numbers on this next by direct measurement.
 \subsection{Measurement on an NVIDIA A100}
 \label{sec:empirical-measurements}
 We now turn the CMOS factorisation of \cref{eq:cmos} into a measurement
-plan. Its factors do not enter \cref{eq:betaenbare} separately. Dividing
+plan. Its factors do not enter the floor separately. Dividing
 dynamic switching power by operation rate cancels the clock frequency and leaves
 $\kappa$, $\alpha$, $C_{\mathrm{eff}}$, and $V^2$ to determine the dynamic
-energy per operation $r$; the range they allow is summarised by the exchange-rate
-edges $r_{\mathrm{hi}}$ and $r_{\mathrm{lo}}$. Experiment~1 sweeps precision
-($\kappa$) and locality ($C_{\mathrm{eff}}$) to find the observed ceiling;
-Experiment~2 sweeps operand activity ($\alpha$) and takes its cheapest point
-as the observed floor. The platform did not expose voltage control, so we
-could not sweep $V^2$; we record the governor-selected clock as
-operating-point metadata instead. The static component of the power omitted by \cref{eq:cmos} returns as the intercept $P_0$ of the affine power law;
-Experiment~3 measures the width of that intercept band and hence
-$\Delta E_0$ over the observation window. The three experiments therefore collapse the
-transistor-level picture into exactly the three macroscopic inputs required
-by \cref{eq:betaenbare}:
-$r_{\mathrm{hi}}$, $r_{\mathrm{lo}}$, and $\Delta E_0$.
+energy per operation $r$; what the floor reads is not those four factors but a
+handful of macroscopic edges built from them. Experiment~1 sweeps precision
+($\kappa$) and locality ($C_{\mathrm{eff}}$) to place the exchange-rate
+ceiling, and---with the declared format pinned---both edges of the declared
+band; Experiment~2 sweeps operand activity ($\alpha$) across the same kernel.
+The platform did not expose voltage control, so we could not sweep $V^2$; we
+record the governor-selected clock as operating-point metadata instead. The
+static component of the power omitted by \cref{eq:cmos} returns as the
+intercept $P_0$ of the affine power law; Experiment~3 measures the width of
+that intercept band and hence $\Delta E_0$ over the observation window.
+
+Those three experiments map how wide the exchange rate's range is, but mapping
+a range is not the same as pricing its floor. The covert denominator of
+\cref{eq:betaen} is a \emph{marginal} quantity that no sweep of whole busy
+windows estimates, for the reason the next paragraph gives, so two further
+experiments measure it by intervening on the covert dose directly:
+Experiment~4 for generic covert work and Experiment~5 for covert work that
+does something useful. The cheapest cells of Experiments~1 and~2 are reported
+below as descriptive edges of the measured envelope, and no rung of the floor
+divides by either. \Cref{tab:inputs} records which experiment supplies which
+symbol, and on which estimand.
 
 \paragraph{Setup and provenance.}
 Experiments~1--4 ran sequentially on one NVIDIA A100-SXM4-80GB in a single
@@ -1122,8 +1131,52 @@ reports the one that is valid for it (\cref{app:estimands}). The declared band
 takes a per-window \emph{total quotient} $E/C$ at sustained, fully busy rates,
 because it enters the floor only through the difference of its edges. The
 covert denominator takes the opposite, one-sided guarantee: a lower bound on
-the \emph{incremental} cost of an added covert operation, for which a total
-quotient is anti-conservative.
+the \emph{incremental} cost of an added covert operation. A total quotient
+cannot supply it, because it amortises the baseline power---leakage, cooling,
+idle draw---across every operation in the window, and a cheater adding covert
+work to a machine already running does not pay that baseline twice. The
+quotient therefore overstates what a marginal covert operation costs; since
+that cost is a denominator, overstating it \emph{understates} $\beta$, which
+is the one direction a security floor cannot afford to be wrong in.
+
+\begin{table}[t]
+	\centering
+	\small
+	\setlength{\tabcolsep}{3pt}
+	\begin{tabular}{@{}llcr@{}}
+		\toprule
+		symbol & source & estimand & value \\
+		\midrule
+		\multicolumn{4}{@{}l}{\emph{inputs to the floor}} \\
+		$r_{\mathrm{hi}}$ & Exp.~1, fp32 & TQ & $19.5$ \\
+		$r_{\mathrm{hi}}^{\mathrm{dec}}$ & Exp.~1, fp16 & TQ & $2.19$ \\
+		$r_{\mathrm{lo}}^{\mathrm{dec}}$ & Exp.~1, fp16 & TQ & $1.10$ \\
+		$r_{\mathrm{lo}}^{\mathrm{cov}}$ & Exp.~4, int8 zeros & marginal & $0.51$ \\
+		$r_{\mathrm{lo}}^{\mathrm{cov}}$ & Exp.~5, useful int8 & marginal & $2.53$ \\
+		$\Delta P_0$ & Exp.~3, five idle cells & --- & $41.2$\,W \\
+		\midrule
+		\multicolumn{4}{@{}l}{\emph{descriptive; no rung divides by these}} \\
+		envelope floor & Exp.~1, int8 zeros & TQ & $0.786$ \\
+		$w_0$ & Exp.~2, fp16 operands & TQ & $1.83\times$ \\
+		\bottomrule
+	\end{tabular}
+	\caption{Which experiment supplies which symbol. Values in pJ/op unless
+	marked otherwise. TQ is a per-window \emph{total quotient} $E/C$ over a
+	sustained busy window; \emph{marginal} is the incremental cost
+	$\partial E/\partial C_{\mathrm{cov}}$ of an added covert operation, quoted
+	at its one-sided $95\%$ lower confidence limit. The two are not
+	interchangeable, and the covert denominator admits only the second.
+	Experiment~5's edge replaces Experiment~4's at the useful-work rungs of
+	\cref{tab:ladder}; $C_{\max}$ and $\gamma$ are read from published peaks
+	rather than measured here. One caution on notation: the single floor
+	$r_{\mathrm{lo}}$ of the power-only form \cref{eq:betaenbare} is
+	Experiment~4's marginal edge, \emph{not} the envelope floor in the lower
+	block. The bare-meter rung accordingly prices its collapsed band at
+	$19.5/0.51 = 37.9\times$, wider than the $24.8\times$ envelope
+	Experiment~1 measures as total quotients; \cref{app:sensitivity}
+	quantifies that deliberate mixture of estimands.}
+	\label{tab:inputs}
+\end{table}
 
 \begin{figure}[t]
 	\centering
@@ -1138,8 +1191,8 @@ quotient is anti-conservative.
 	little under $2\times$ inside every format, against locality's couple of
 	percent---is read off the figure rather than pooled into it. Dashed lines
 	mark the band edges, both of them operand extremes: the ceiling
-	$r_{\mathrm{hi}}$ is fp32 at its dearest operands, the floor
-	$r_{\mathrm{lo}}$ int8 with zeros.}
+	$r_{\mathrm{hi}}$ is fp32 at its dearest operands, the envelope floor
+	int8 with zeros.}
 	\label{fig:exchange-band}
 \end{figure}
 
@@ -1151,8 +1204,8 @@ swept factorially over precision ($\kappa$, fp32 down to int8), operand
 locality ($C_{\mathrm{eff}}$, operands resident in vs.\ streamed through
 the L2 at a byte-identical shape), and operand
 distribution ($\alpha$, zeros through adversarial-toggle), stratified by the
-governor-selected clock. The pooled envelope spans
-$r_{\mathrm{lo}} = 0.786$\,pJ/op (int8, zero operands) to
+governor-selected clock. As total quotients the pooled envelope spans
+$0.786$\,pJ/op (int8, zero operands) to
 $r_{\mathrm{hi}} = 19.5$\,pJ/op (fp32), a span of $24.8\times$
 (\cref{fig:exchange-band}), with precision following the textbook ordering
 int8 $<$ bf16 $\approx$ fp16 $<$ tf32 $<$ fp32. Precision drives most of
@@ -1160,7 +1213,9 @@ the spread; operand values contribute a further factor ${\approx}2$ within
 each format, and locality moves $r$ little for this compute-bound kernel.
 The pooled span is descriptive of the range the five tested formats span
 (the hardware's unmeasured int4 and binary paths sit outside it); the floor
-never reads it, because its two edges live in different formats. The
+never reads it, because its two edges live in different formats; and the
+$r_{\mathrm{lo}}$ that the power-only form \cref{eq:betaenbare} does read is
+Experiment~4's marginal edge, not this quotient (\cref{tab:inputs}). The
 jointly feasible declared band for the fp16 case study is the fp16 cells'
 own band, $[1.10,\,2.19]$\,pJ/op---a span of $2.0\times$, set by operands
 and DVFS with the precision factor held fixed.
@@ -1212,14 +1267,22 @@ this quotient amortises in.
 	\caption{The overhead band and the affine forward map (Experiment~3,
 	$n=65$ windows across a $15$-cell rate ladder). \emph{Top:} mean power
 	$P$ vs.\ nominal-op rate $F$, plotted as per-cell medians with
-	$\pm1$\,SD error bars over each cell's repeats, against the affine fit
-	$P = rF + P_0$ ($R^2 = 0.852$; slope $r = 1.60$\,pJ/op); the shaded band
-	is the observed idle range across five idle variants,
-	$P_0 \in [59.8, 101.0]$\,W. \emph{Bottom:} residuals; the
-	launch- and bandwidth-bound mid-ladder shapes carry the scatter. This is a
-	\emph{between-shape} diagnostic of the affine map; the covert denominator
-	the floor actually uses is the \emph{within-cell} marginal cost of
-	\cref{fig:marginal-dose} (Experiment~4), not this fit.}
+	$\pm1$\,SD error bars over each cell's repeats. Markers give each cell's
+	shape class: idle anchors (black, $F = 0$), compute-bound cubes
+	($M = N = K \ge 2048$, blue), and the launch- and bandwidth-bound
+	mid-ladder shapes (orange). Two affine fits $P = rF + P_0$ are overlaid:
+	the like-for-like fit over the idle anchors and the cubes alone (blue,
+	$r = 1.65$\,pJ/op, $R^2 = 0.99$), and the pooled fit over all fifteen
+	cells (black dashed, $r = 1.60$\,pJ/op, $R^2 = 0.852$). The slope moves by
+	$4\%$ between them while the scatter grows sharply, so the off-class shapes
+	account for the residual and not for the rate. The shaded band is the
+	observed idle range across five idle variants,
+	$P_0 \in [59.8, 101.0]$\,W, read directly off those cells rather than from
+	either fitted intercept. \emph{Bottom:} residuals about the pooled fit,
+	which is what its $R^2$ measures; the orange shapes carry the scatter.
+	This is a \emph{between-shape} diagnostic of the affine map; the covert
+	denominator the floor actually uses is the \emph{within-cell} marginal cost
+	of \cref{fig:marginal-dose} (Experiment~4), not either fit here.}
 	\label{fig:overhead-affine}
 \end{figure}
 
@@ -1251,8 +1314,9 @@ only as a diagnostic of the forward model.
 As that diagnostic, the affine map holds tightly within a kernel class and
 loosens across classes. Restricted to the idle anchors and the five
 compute-bound cubes---like compared with like---the fit gives $1.65$\,pJ/op
-at $R^2 = 0.99$. Opened to all ten shapes it gives $1.60$\,pJ/op at
-$R^2 = 0.852$ (\cref{fig:overhead-affine}): the slope moves by $4\%$ while
+at $R^2 = 0.99$ (blue in \cref{fig:overhead-affine}). Opened to all ten
+shapes it gives $1.60$\,pJ/op at
+$R^2 = 0.852$ (black dashed): the slope moves by $4\%$ while
 the scatter grows sharply, so the launch- and bandwidth-bound shapes account
 for the residual and not for the rate---the expected behaviour rather than a
 failure of the model (\cref{app:estimands}). The derivative the floor actually
@@ -2552,9 +2616,9 @@ Every entry is zero, so no bits ever change and $\alpha$ is at its minimum:
 This is the cheapest run at fixed fp16 and sets the descriptive fp16
 operand floor, $1.16$\,pJ/op as a total quotient; combined with the int8
 format in Experiment~1's factorial it reaches the measured envelope floor
-$r_{\mathrm{lo}} = 0.786$\,pJ/op. (The floor's covert denominator is
+of $0.786$\,pJ/op. (The floor's covert denominator is
 Experiment~4's marginal cost, not these quotients;
-\cref{sec:empirical-measurements}.)
+\cref{sec:empirical-measurements,tab:inputs}.)
 
 \paragraph{2. Low-entropy---a few distinct levels.}
 Entries are drawn from only four values $\{0,1,2,3\}$. With so few distinct
