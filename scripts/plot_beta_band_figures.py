@@ -32,6 +32,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from powertoflops.bench.bands import (  # noqa: E402
     _cell_key,
+    _exchange_cell,
+    _median_per_cell,
     clean_marginal_records,
     clean_overhead_records,
     clean_records,
@@ -75,10 +77,22 @@ DIST_LABEL = {
 
 def fig_exchange_band(bench_dir: pathlib.Path) -> None:
     recs = clean_records(read_jsonl(record_for(1, bench_dir)))
+    # Group the factorial's cell medians by (precision, locality): the bar is
+    # their median, the whisker their min-max range. Because a cell includes the
+    # operand distribution (bands._exchange_cell), that range IS the operand
+    # (alpha) axis at fixed precision and locality — the factor the bars
+    # otherwise average away — and the extreme whisker ends coincide with
+    # exchange_band()'s r_lo and r_hi by construction.
     cell: dict[tuple[str, str], list[float]] = defaultdict(list)
-    for r in recs:
-        cell[(r.dtype, r.locality)].append(r.r_j_per_op)
+    for key, r_cell in _median_per_cell(recs, key=_exchange_cell).items():
+        cell[(key[0], key[1])].append(r_cell)
     med = {k: float(np.median(v)) for k, v in cell.items()}
+    op_lo = {k: min(v) for k, v in cell.items()}
+    op_hi = {k: max(v) for k, v in cell.items()}
+    # Raw windows stay as the scatter overlay (repeat spread within a cell).
+    runs: dict[tuple[str, str], list[float]] = defaultdict(list)
+    for r in recs:
+        runs[(r.dtype, r.locality)].append(r.r_j_per_op)
 
     dtypes = [d for d in DTYPE_ORDER if any(k[0] == d for k in med)] + \
              sorted({k[0] for k in med} - set(DTYPE_ORDER))
@@ -96,12 +110,21 @@ def fig_exchange_band(bench_dir: pathlib.Path) -> None:
         ax.bar(xs, ys, width=width, label=label, color=color, zorder=3)
         # Overlay the individual runs (n~4 per cell) so the per-bar spread is visible.
         for xi, d in zip(xs, dtypes):
-            pts = np.array(cell.get((d, loc), [])) * 1e12
+            pts = np.array(runs.get((d, loc), [])) * 1e12
             if pts.size == 0:
                 continue
             jit = rng.uniform(-0.18, 0.18, size=pts.shape) * width
-            ax.scatter(xi + jit, pts, s=6, facecolors="white",
-                       edgecolors=C["black"], linewidths=0.35, zorder=4)
+            ax.scatter(xi + jit, pts, s=5, facecolors="white",
+                       edgecolors=C["black"], linewidths=0.3, zorder=4,
+                       alpha=0.75)
+        # Operand (alpha) range within each cell: the third swept factor, which
+        # the bar median hides. Drawn over the scatter so the span reads as the
+        # deliberate axis rather than run noise.
+        errs = np.array([[ys[i] - op_lo.get((d, loc), np.nan) * 1e12,
+                          op_hi.get((d, loc), np.nan) * 1e12 - ys[i]]
+                         for i, d in enumerate(dtypes)]).T
+        ax.errorbar(xs, ys, yerr=errs, fmt="none", ecolor=C["black"],
+                    elinewidth=0.9, capsize=2.0, capthick=0.9, zorder=5)
 
     # Band edges as thin dashed reference lines (a full axhspan would shade
     # nearly the whole axis and read as background), bracketed by a
@@ -123,8 +146,15 @@ def fig_exchange_band(bench_dir: pathlib.Path) -> None:
     ax.set_xlabel(r"Numeric precision $\kappa$")
     ax.set_ylim(0, hi * 1.08)
     # Anchor the legend below the r_hi reference line so the two don't collide.
-    ax.legend(frameon=False, loc="upper right", bbox_to_anchor=(1.0, 0.88),
-              title=r"Operand locality $C_{\mathrm{eff}}$")
+    # The whisker gets its own proxy handle: all three swept factors are then
+    # named in the figure rather than only the two carried by bar position.
+    handles, labels = ax.get_legend_handles_labels()
+    handles.append(matplotlib.lines.Line2D(
+        [0], [0], color=C["black"], lw=0.9, marker="_", markersize=4))
+    labels.append(r"operand range $\alpha$")
+    ax.legend(handles, labels, frameon=False, loc="upper right",
+              bbox_to_anchor=(1.0, 0.88),
+              title=r"Locality $C_{\mathrm{eff}}$ (bars)")
     save(fig, "exchange_band")
     plt.close(fig)
     print(f"[1] r_hi/r_lo = {r_hi/r_lo:.2f}x -> figures/exchange_band.*")

@@ -1003,8 +1003,8 @@ conceded at once.
 		\draw[black!20] (0,-0.88) -- (15.79,-0.88);
 		\node[font=\normalsize] at (7.895,-1.47)
 			{\(r \;=\;
-			{\color{blue!55!black}\kappa}\,\cdot\,
 			{\color{orange!85!black}\alpha}\,\cdot\,
+			{\color{blue!55!black}\kappa}\,\cdot\,
 			{\color{teal!60!black}C_{\mathrm{eff}}}\,\cdot\,
 			{\color{violet!70!black}V^2}\)};
 		\node[font=\scriptsize, text=gray!60!black] at (7.895,-1.96)
@@ -1130,12 +1130,16 @@ quotient is anti-conservative.
 	\includegraphics[width=\columnwidth]{exchange_band}
 	\caption{The exchange-rate band of \cref{eq:betaenbare} (Experiment~1).
 	Total energy quotient $E/C$ for a fixed matmul kernel on an NVIDIA
-	A100, swept factorially over precision $\kappa$, operand locality
-	$C_{\mathrm{eff}}$ (paired bars), and operand distribution $\alpha$;
-	white points are the individual measured windows ($n=240$ across $60$
-	cells). Dashed lines mark the band edges: the dearest cell is the band
-	ceiling $r_{\mathrm{hi}}$, the cheapest (int8, zero operands) the
-	envelope floor $r_{\mathrm{lo}}$.}
+	A100, swept factorially over precision $\kappa$ (bar groups), operand
+	locality $C_{\mathrm{eff}}$ (paired bars), and operand distribution
+	$\alpha$ (whiskers); white points are the individual measured windows
+	($n=240$ across $60$ cells). Each bar is the median over the operand
+	axis and its whisker that axis's full range, so the operand factor---a
+	little under $2\times$ inside every format, against locality's couple of
+	percent---is read off the figure rather than pooled into it. Dashed lines
+	mark the band edges, both of them operand extremes: the ceiling
+	$r_{\mathrm{hi}}$ is fp32 at its dearest operands, the floor
+	$r_{\mathrm{lo}}$ int8 with zeros.}
 	\label{fig:exchange-band}
 \end{figure}
 
@@ -2461,6 +2465,13 @@ inherits the meter's accuracy directly; and because $r$ is intensive
 compare directly.
 
 \paragraph{Setting the swept drivers.}
+The floor reads only the edges $r_{\mathrm{hi}}$ and $r_{\mathrm{lo}}$, so what
+the sweep needs from each factor of \cref{eq:cmos} is its \emph{range}, not a
+typical value: every axis below is built to drive its factor to both extremes.
+Each must also move without disturbing the operation count
+\cref{eq:flopcount}, or the quotient $r = E/C$ would change for two reasons at
+once---a constraint that dictates the design of the locality and operand axes
+in particular.
 \begin{itemize}
 	\item \textbf{Precision $\kappa$} is the tensor \texttt{dtype}:
 	\texttt{fp32}, \texttt{tf32} (fp32 operands routed through the tf32
