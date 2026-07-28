@@ -92,36 +92,37 @@
 \printAffiliationsAndNotice{}
 
 \begin{abstract}
-Compute governance rests on counting operations: past a threshold, a
-training run triggers registration, reporting, and audit obligations.
-One channel a verifier can read without trusting the operator's
-hardware is an off-chip power meter; the hope is that an energy budget
-bounds an operation count. We show exactly when it does. The energy cost
-of an operation is unknown and data-dependent, so inverting a power
-trace returns a set, not a number; the set's width is a floor on the
-covert compute the trace admits.
-We derive the floor in closed form from named physical bands and measure
-those bands on NVIDIA A100s, evaluating every term inside a single jointly
-feasible scenario: one declared format, one covert format, and one
-observation window sharing the machine. We construct explicit
-same-declaration, same-window cheating witnesses that the meter accepts,
-hiding up to four-tenths of a machine of covert work; above these attained
-points the model bounds the worst case at one to two machines of the
-declared-format capacity ($\beta_{\mathrm{phys}}^{*} = 1.16$ once the
-declared precision is checked --- a peak that lies above the utilisation any
-single window can hold, and so an upper bound rather than an attained width
---- rising to $1.95$ against a bare meter that cannot even pin the declared
-format, a figure scoped to the five numeric formats we measure, which
-unmeasured cheaper datapaths on the same card can only widen). The closed form
-then prices what each added verifier capability buys and states the
-condition each rung rests on: re-execution of the declared work at an
-observed operating point brings the floor to a few tenths, under a
-stated hardware-transfer assumption. The rungs interlock
---- re-execution pays only at an observed operating point --- and no
-capability reaches the covert side, which closes only by assumption on
-the adversary. A power-based verification regime can then be designed --- or
-rejected --- on numbers rather than on the intuition that joules imply
-operations.
+Managing the risks of frontier AI will require international agreements.
+
+Agreements require verification: an outside party must be able to check what a compute operator actually ran, for example constraining the total number of floating-point operations (FLOP).
+
+Verification must be robust to an adversarial operator who hides
+computation, yet the hardware mechanisms proposed to catch one typically read silicon the operator controls.
+
+Analogue side-channel measurements have been identified as a path forwards: sensors for power, electromagnetic, acoustic, or thermal emissions sit off the chip, beyond the operator's reach.
+
+We quantify how tightly an off-chip power meter can constrain compute. 
+
+
+We derive a closed form for this tightness: the floor $\beta$, the
+largest covert computation a power trace cannot rule out, in units of
+one machine's declared capacity.
+
+We measure every quantity entering the closed form on NVIDIA A100 GPUs.
+
+We find the floor is large: we construct explicit cheating strategies
+that attain $\beta = 0.4$ behind a trace the meter accepts, and the
+closed form bounds the worst case at $\beta = 1.16$ when the declared
+number format can be checked, rising to $\beta = 1.95$ against a bare
+meter.
+
+Additional verifier capabilities each buy a stated reduction ---
+re-executing the declared work at an observed operating point brings
+$\beta$ to $0.34$. However no capability reaches the covert side, which
+closes only by assumption on the adversary.
+
+A power-based verification regime can then be designed or
+rejected... etc. 
 \end{abstract}
 
 \section{Introduction}
@@ -140,69 +141,70 @@ trained using more than $10^{26}$ integer or floating-point operations
 
 
 %But the prover is not honest
-Compute verification policies need to be robust to adversarial operators who do not declare honestly, but instead subvert the threshold by hiding computation. The hardware mechanisms proposed to catch such an operator \citep[e.g. utilisation counters, on-chip clocks, memory telemetry;][]{ogara2025hardware} all read silicon controlled by the operator. Verification methods built on these mechanisms are therefore
-conditional on tamper-resistant read paths and attested monitoring firmware
-that do not yet exist \citep{ogara2025hardware,rahman2026telemetry}. 
-
+A threshold in operation counts is only as good as the count it is applied
+to, so compute verification policies need to be robust to adversarial
+operators who do not declare honestly, but instead subvert the threshold by
+hiding computation. The mechanisms proposed to catch such an operator share
+a common weakness: they trust hardware or software that the operator
+controls. Utilisation counters, on-chip clocks, and memory telemetry all
+read silicon in the operator's hands, and so are conditional on
+tamper-resistant read paths and attested monitoring firmware that do not
+yet exist \citep{ogara2025hardware,ansari2026hardware,rahman2026telemetry}.
+Cryptographic proof-of-training protocols
+\citep{jia2021proofoflearning,garg2023zkpot} need the prover's cooperation,
+and active challenge--response schemes \citep{monfared2026timing} must run
+their probes on the same untrusted hardware. An operator can even attempt
+to restructure its computation to evade compute-based oversight, though
+\citet{seferis2025structuring} argue such structuring is itself detectable.
 
 % off-chip analogue sensors
-In order to circumvent the reach of the adversarial operator, ``off-chip'' analogue sensors have been suggested as a path forward \citep{baker2025verifying}. These sensors could be retrofitted to existing data centres and physically secured against tampering by the adversary, returning measurements of physical side channels such as power, electromagnetic, acoustic, or thermal emissions.
+``Off-chip'' analogue sensors have been suggested precisely to escape this
+trust dependence \citep{baker2025verifying}. Such sensors could be
+retrofitted to existing data centres and physically secured against
+tampering by the adversary, returning measurements of physical side
+channels---power, electromagnetic, acoustic, or thermal emissions---that
+the operator cannot edit in software.
 
 % prior work: emissions leak workload information
 There are reasons for optimism: in non-adversarial settings, physical
-emissions are known to leak workload information, from architectures and
-hyperparameters down to operand values (\cref{sec:related} surveys this corpus).
-But that work fits forward models under cooperative conditions, mapping
-known workloads to their emissions. Verification poses the inverse
+emissions leak workload information. Emissions let an observer recover
+model architectures and hyperparameters
+\citep{hu2020deepsniffer,maia2022magnetic,gao2023deeptheft,chaudhuri2025energon},
+and software-visible counters and timing let a co-resident process do the
+same \citep{naghibijouybari2018rendered,wei2020leaky}. On-node telemetry
+and on-chip counters classify workloads
+\citep{tang2022supercloud,xu2026wave,gangwal2019cryptomining}, and power
+draw betrays anomalous computation \citep{clark2013wattsupdoc} and running
+GPU activity \citep{arefin2024hdmi}; a related body of work characterises
+power draw for GPUs and data centres
+\citep{patel2023polca,choukse2025power,latif2025power}. But these are
+forward models, fitted largely in cooperative conditions: they map known
+workloads to their emissions. Verification poses the inverse
 problem---emissions to workload---against an operator actively trying to
 evade the sensor, and the question is how tightly analogue-sensor
-measurements can constrain compute in that setting. Of the physical side channels an off-chip sensor could read, we take power
+measurements can constrain compute in that setting.
+
+% detection vs identification
+That question is one of identification, not detection. Closest to our
+setting, \citet{rahman2026telemetry} evaluate the \emph{detection} of
+hidden ML training from zero-overhead telemetry against an explicitly
+adversarial operator, across nine GPU models. Detection asks whether hidden
+work of a known kind trips a particular detector; we ask the complementary
+question---how much compute \emph{any} verifier reading the sensor can
+bound, whatever detector it runs---and answer it with a closed-form floor
+rather than a classifier benchmark. A detector can raise alarms above the
+floor; it cannot narrow the identified set below the physics.
+
+% why power
+Of the physical side channels an off-chip sensor could read, we take power
 first: it already serves in the governance literature as a coarse proxy for
 compute, and it bears the most direct link to computation, since every
-operation costs energy and total energy therefore budgets total work. Whether the framework carries to the other channels is open, and we
-leave that to future work.
+operation costs energy and total energy therefore budgets total work.
+Whether the framework carries to the other channels is open, and we leave
+that to future work. Our contribution to the verification programme is the
+exchange rate between what the sensor reads and what the threshold counts.
 
-Our contributions:
-\begin{itemize}
-	\item \textbf{A closed-form identifiability floor.} The covert compute a
-	power trace admits is the capacity-clipped
-	$\beta_{\mathrm{phys}}(h) = \min[\,S(h),\,(1-h)\,\gamma\,]$, with
-	$S(h) = h\,(r_{\mathrm{hi}}^{\mathrm{dec}} -
-	r_{\mathrm{lo}}^{\mathrm{dec}})/r_{\mathrm{lo}}^{\mathrm{cov}} + \Delta
-	E_0/(r_{\mathrm{lo}}^{\mathrm{cov}} C_{\max})$ the energy-slack index---a
-	structural bound that
-	precedes statistics: it is what the meter cannot rule out even noiseless
-	(\cref{sec:floor}).
-	\item \textbf{The bands measured on real silicon.} Factorial,
-	single-variable, and dose--response experiments on an A100 ground every
-	term: per-format exchange-rate bands (the pooled envelope spans
-	$24.8\times$, precision-dominated; the fp16 band alone spans
-	$2.0\times$), the descriptive within-device operand
-	spread ($w_0 = 1.83$, clock-confounded and priced into no bound), the
-	overhead band, and the marginal cost of an added covert
-	operation, identified by intervening on the covert dose alone
-	($0.51$--$0.76$\,pJ/op one-sided lower limits;
-	\cref{sec:empirical-measurements}).
-	\item \textbf{The capability ladder, priced.} From the same bands,
-	each rung the capacity-clipped worst case
-	$\max_h \beta_{\mathrm{phys}}(h)$: $1.95$ (bare meter, scoped to the
-	measured five-format envelope) $\to 1.16$
-	(precision declared and checked, conditional on declared-format
-	execution) $\to 0.34$ (declared work re-executed) $\to 0.071$ (covert
-	work restricted to useful data), with the measured marginal useful edge
-	pricing what covert work is worth doing
-	(\cref{sec:decreasing-beta}).
-	\item \textbf{A structural asymmetry.} Declarations and re-execution
-	narrow only the \emph{declared} band; no channel reaches the covert
-	band's floor, which closes only by assumption on the adversary. And the
-	rungs interlock: re-execution pays only at an observed operating
-	point, so a verifier with power and paperwork but no on-site sensing
-	stalls at $\beta_{\mathrm{phys}}^{*} \approx 1$
-	(\cref{sec:decreasing-beta}).
-\end{itemize}
-
-This paper is organised as follows. \Cref{sec:related} positions the
-contribution against prior work; \cref{sec:setup} sets up the problem mathematically.
+This paper is organised as follows. \Cref{sec:setup} sets up the problem mathematically.
 We then derive a floor on the covert compute a power trace admits, in closed
 form from a handful of named physical bands (\cref{sec:floor}).
 \Cref{sec:howbig} then asks how large that floor is: first from the
@@ -218,73 +220,61 @@ operands --- moves one edge of the closed form, and the same measured bands
 price every rung the verifier can honestly price today. \Cref{sec:discussion} sets out what transfers from device to
 facility scale, and what does not.
 
-\section{Related work}
-\label{sec:related}
-
-\paragraph{Physical emissions leak workload information.}
-In non-adversarial settings, physical emissions let an observer recover
-model architectures and hyperparameters
-\citep{hu2020deepsniffer,maia2022magnetic,gao2023deeptheft,chaudhuri2025energon},
-and software-visible counters and timing let a co-resident process do the
-same \citep{naghibijouybari2018rendered,wei2020leaky}. On-node telemetry
-and on-chip counters classify workloads
-\citep{tang2022supercloud,xu2026wave,gangwal2019cryptomining}, and power
-draw betrays anomalous computation \citep{clark2013wattsupdoc} and
-running GPU activity \citep{arefin2024hdmi}; a
-related body of work characterises power draw for GPUs and data centres
-\citep{patel2023polca,choukse2025power,latif2025power}. These are forward
-models fitted largely in cooperative conditions---known workload to measured
-emission---and they establish the physical premise this paper builds on:
-analogue signals carry workload information.
-
-\paragraph{Adversarial detection.}
-Closest to our setting, \citet{rahman2026telemetry} evaluate the
-\emph{detection} of hidden ML training from zero-overhead telemetry
-against an explicitly adversarial operator, across nine GPU models.
-Detection asks whether hidden work of a known kind trips a particular
-detector; we ask the complementary identification question---how much
-compute \emph{any} power-only verifier can bound, whatever detector it
-runs---and answer it with a closed-form floor rather than a classifier
-benchmark. A detector can raise alarms above the floor; it cannot narrow
-the identified set below the physics.
-
-\paragraph{Verification mechanisms and governance.}
-Hardware mechanisms for compute verification---utilisation counters,
-on-chip clocks, memory telemetry---read silicon the operator controls,
-and so are conditional on tamper-resistant read paths and attested
-firmware that do not yet exist \citep{ogara2025hardware,ansari2026hardware}.
-Cryptographic
-proof-of-training protocols \citep{jia2021proofoflearning,garg2023zkpot}
-need the prover's cooperation, and active challenge--response schemes
-\citep{monfared2026timing} must run their probes on hardware the
-operator controls; an operator can also attempt to restructure its
-computation to evade compute-based oversight, though
-\citet{seferis2025structuring} argue such structuring is itself
-detectable. Off-chip
-analogue sensing is proposed precisely to escape this trust dependence
-\citep{baker2025verifying}; the governance layer it
-would serve sets thresholds and reporting duties in operation counts
-\citep{sastry2024computing,shavit2023chinchilla,heim2024thresholds,reuel2025openproblems}.
-Our contribution to that programme is the exchange rate between what the
-sensor reads and what the threshold counts.
-
 \section{Setup and threat model}
 \label{sec:setup}
 
 \subsection{The forward model}
 \label{subsec:forward}
 
-Fix an observation window $t \in [0,T]$. Let $F(t)$ be the instantaneous rate
-of arithmetic operations [op/s], bounded by the hardware capacity
-$F_{\max}$. Each operation costs $r(t)$ joules---the \emph{exchange rate}
-[J/op]---and the machine draws an additional non-compute overhead $P_0(t)$
-(idle draw, cooling, leakage, I/O). The true instantaneous power is then
-affine in the operation rate,
+Fix an observation window $t \in [0,T]$ and let $F(t)$ be the instantaneous
+rate of arithmetic operations [op/s], bounded by the hardware capacity
+$F_{\max}$. The forward model follows from the CMOS power law
+\citep{chandrakasan1992lowpower}: chip power splits into a switching term and
+a static term,
 \begin{equation}
-	P(t) = r(t)\,F(t) + P_0(t),
+	P \;=\; \underbrace{\alpha\,C\,V^2 f}_{\text{dynamic}} \;+\; P_{\mathrm{stat}},
+	\label{eq:cmoslaw}
+\end{equation}
+with $\alpha$ the activity factor, $C$ the switched capacitance, $V$ the
+supply voltage and $f$ the clock. A datapath that retires $N_{\mathrm{op}}$
+nominal operations per cycle runs at operation rate $F = N_{\mathrm{op}}f$.
+Substituting $f = F/N_{\mathrm{op}}$ and collecting constants gives the
+forward model
+\begin{equation}
+	P(t) \;=\; r(t)\,F(t) \;+\; P_0(t), \qquad
+	r \;\equiv\; \alpha\,\Bigl(\frac{C}{N_{\mathrm{op}}}\Bigr) V^2 ,
 	\label{eq:forward}
 \end{equation}
-and a meter reports only a noisy version of it,
+where $P_0$ collects $P_{\mathrm{stat}}$ and the remaining non-compute
+overhead (idle draw, cooling, I/O). We call $r$ the \emph{exchange rate}
+[J/op]. Both equations hold instantaneously: $\alpha$, $C/N_{\mathrm{op}}$
+and $V$ are set by whatever the datapath is executing at time $t$, and $r$
+inherits their time dependence. We carry the argument in $r(t)$, where that
+variation is the whole point, and suppress it in the definition. The clock
+has dropped out: what an operation costs does not depend on
+how fast the operations run, only on what each switching event costs and how
+many operations it delivers. \Cref{app:cmos} gives this derivation in full
+and locates the short-circuit and leakage terms.
+
+The exchange rate $r(t)$ is not a constant of the device but a property of the
+execution, and it moves as the execution moves. Take its three factors in
+turn. The activity factor $\alpha$ depends on the operand values being
+multiplied \citep{chandrakasan1992lowpower}. The capacitance switched per operation,
+$C/N_{\mathrm{op}}$, depends on the numeric format---which sets both the
+datapath width and the packing $N_{\mathrm{op}}$---and on where the operands
+live \citep{horowitz2014computing}. The supply voltage $V$ tracks the
+voltage--frequency operating point \citep{pallipadi2006ondemand}. Every one
+of them is under the prover's control, and none is visible to an off-chip
+meter. Empirically the spread is wide: component-level analyses of a 45\,nm
+process put arithmetic and on-chip memory access at $0.1$--$20$\,pJ per
+operation depending on format and operand locality
+\citep{horowitz2014computing}, and our device-level
+measurements on a modern accelerator span $0.8$--$20$\,pJ/op
+(\cref{sec:empirical-measurements}). More than an order of magnitude
+separates the cheapest operation a chip can retire from the dearest, and the
+prover chooses where in that range to sit.
+
+The meter reports only a noisy version of this power,
 \begin{equation}
 	P_{\mathrm{obs}}(t) = P(t) + \eta(t),
 	\label{eq:obs}
@@ -296,82 +286,13 @@ the window and shrinks the longer the verifier watches. Throughout this paper
 we therefore assume a perfect meter and work with the clean power $P(t)$; every
 floor we derive is a floor on what even a noiseless meter can establish.
 
-The exchange rate $r(t)$ is neither constant nor observed.
-Component-level analyses of a 45\,nm process put arithmetic and on-chip
-memory access at $0.1$--$20$\,pJ per operation depending on format and
-operand locality \citep{horowitz2014computing}, and our device-level measurements on a
-modern accelerator span $0.8$--$20$\,pJ/op
-(\cref{sec:empirical-measurements}). The energy cost of an operation
-depends on the operand values being multiplied
-\citep{chandrakasan1992lowpower}, on memory traffic \citep{horowitz2014computing},
-and on clock speed and voltage \citep{pallipadi2006ondemand}. We count
+We count
 \emph{hardware} operations---what the silicon actually executes---rather than
 model FLOPs, the algorithmically required operations, and we count them as
 \emph{nominal operations} of whichever numeric format runs: a multiply--add
 retires two nominal ops whether it executes at fp32 or int8, and integer
 multiply--adds are ops, not FLOPs. Every executed operation costs joules, so
 the meter sees hardware operations.
-
-Two readings of ``energy per operation'' must not be conflated, and the
-floor uses each only where it is valid. The \emph{total quotient} $E/C$ of
-a measured window folds the overhead into the rate: at mean rate
-$\bar F$, $E/C = \bar r + P_0/\bar F$, with $\bar r$ the compute-only cost
-and $P_0/\bar F$ the amortised baseline. The declared side enters the
-floor only through the \emph{difference} of its band edges at a common
-saturated rate (\cref{eq:cov}); the amortised baseline is then common to
-both edges and cancels, so a total quotient is the right estimand there
-and the overhead $E_0$ is carried once as its own term. The covert cost,
-by contrast, enters as a \emph{denominator}, where no such cancellation
-occurs: a defensible floor needs a genuine one-sided \emph{lower} bound on
-the \emph{incremental} energy an added covert operation must draw,
-$\partial E/\partial C_{\mathrm{cov}}$, with the baseline excluded by
-construction. That incremental lower bound---not the affine form of
-\cref{eq:forward}---is what the security claim rests on, and
-\cref{sec:empirical-measurements} identifies it directly by a
-dose--response intervention (Experiment~4) rather than by fitting a global
-power--rate curve.
-
-Capacity is format-dependent. The peak rate $F_{\max}$ is not one number but
-a property of the executing format: an A100's dense peaks run from
-$19.5$\,Top/s at fp32 on the CUDA cores through $156$ at tf32 and $312$ at
-fp16/bf16 to $624$\,Top/s at int8 on the tensor cores \citep{nvidia2020a100}. We write $F_{\max}^{\mathrm{dec}}$
-for the peak of the declared format, which fixes the capacity normaliser
-$C_{\max} = F_{\max}^{\mathrm{dec}}\,T$ used throughout, and
-\begin{equation}
-	\gamma \;=\; \frac{F_{\max}^{\mathrm{cov}}}{F_{\max}^{\mathrm{dec}}}
-	\label{eq:capratio}
-\end{equation}
-for the capacity ratio of a covert format against the declared one
-($\gamma = 2$ for int8 covert work against fp16 declared work on an A100).
-
-Format dependence makes joint feasibility a modelling obligation, not a
-detail. Every floor we evaluate for a verifier that has \emph{pinned the
-declared format}---the headline and every rung below it---is computed inside a
-single jointly feasible scenario: one declared format and one covert format
-sharing one observation window. The declared band, the capacity normaliser
-$C_{\max}$, and the utilisation $h$ all refer to the same declared format;
-the covert cost and the covert peak to the same covert format; and the two
-streams time-multiplex the machine, so covert work holds at most the
-$(1-h)$ share of resource-time the declared work leaves free. We allow the
-prover to switch formats between the two streams at zero cost---the
-adversary-favorable direction, since any real switching overhead only
-shrinks the covert share. What the model forbids is combining extrema that
-no single schedule attains: an honest interpretation priced at one format's
-dearest cells is only admissible if that format can execute the declared
-work at rate $h\,F_{\max}^{\mathrm{dec}}$ at all, and the headline path in
-our analysis code rejects any cross-format combination of extrema by
-construction (\cref{sec:empirical-measurements}).
-
-The unconditional bare-meter rung of \cref{subsec:poweronly} is the
-deliberate exception, because a bare meter pins no format at all: there both
-band edges open to the full measured envelope (the five tested formats;
-unmeasured datapaths such as int4 widen it, \cref{sec:decreasing-beta})
-while $C_{\max}$ and $h$ stay
-the fp16 yardstick. That combination is still admissible under the criterion
-above---the honest ceiling is the fp32 rate and fp32 can sustain the
-declared rate it implies ($h^{*}C_{\max} = 14.3$\,Top/s against a measured
-$17.7$\,Top/s fp32 peak)---but it is a cross-format envelope by intent, not a
-single-format scenario, and we flag it as such wherever it is quoted.
 
 \subsection{The threat model}
 \label{subsec:threat}
@@ -554,7 +475,7 @@ power, no reading of the trace can tell them apart because the data hold no info
 
 We now derive a closed form for $\beta$. The derivation is straightforward: integrate the forward model over the window, split the total energy into declared,
 covert, and overhead pieces, and ask how large the covert piece can grow
-before the total stops looking honest. We work with the integrated trace (i.e. the total energy) rather than the resolved time series. Treating power as affine in the operation rate (\cref{eq:forward}) lets its integral depend on the workload only through time-integrated quantities. This is a modelling assumption; \cref{rmk:incremental} shows that the security bound needs only a weaker one-sided condition on the \emph{incremental} covert cost---measured directly and found near-perfectly linear in \cref{fig:marginal-dose}---with the affine map recovered as the special case that also fixes the closed form.
+before the total stops looking honest. We work with the integrated trace (i.e. the total energy) rather than the resolved time series: treating power as affine in the operation rate (\cref{eq:forward}) lets its integral depend on the workload only through time-integrated quantities.
 
 \subsection{How much compute can hide?}
 \label{subsec:derivation}
@@ -650,116 +571,102 @@ A cheater now pushes every free choice on the right-hand side to its limit:
 	operation costs as little as the hardware allows.
 \end{itemize}
 At those values \cref{eq:cov} attains its maximum, the largest covert load
-the trace admits,
+the \emph{energy budget} admits,
 \begin{equation}
-	C_{\mathrm{cov}}^{\max} \;=\;
+	C_{\mathrm{cov}}^{\max,\,\mathrm{en}} \;=\;
 	\frac{\bigl(r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}\bigr)\,C_{\mathrm{dec}}
 	      \;+\; \Delta E_0}{r_{\mathrm{lo}}^{\mathrm{cov}}}.
 	\label{eq:covmax}
 \end{equation}
-Dividing by $C_{\max}$ and writing the declared
-\emph{hardware utilisation}
-$h = C_{\mathrm{dec}}/C_{\max}$ (the fraction of
-the machine's declared-format capacity the declared work occupies), the
-energy budget alone caps the covert load at what we call the
-\emph{energy-slack index},
+Divide by $C_{\max}$ and write the declared \emph{hardware utilisation}
+$h = C_{\mathrm{dec}}/C_{\max}$ for the fraction of the machine's
+declared-format capacity the declared work occupies. What results is the
+identified-set width of \cref{eq:betadef} with the admissible set cut by the
+energy constraint alone --- the same normalised width as $\beta$, computed as
+though the no-alarm condition \cref{eq:noalarm} were the only thing standing
+between the prover and unlimited covert work. We write it
+$\beta_{\mathrm{en}}$, the \emph{energy-only width},
 \begin{equation}
-\;S(h) \;=\; h\,
+\;\beta_{\mathrm{en}}(h) \;=\; h\,
 		\frac{r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}}{r_{\mathrm{lo}}^{\mathrm{cov}}}
 		\;+\; \frac{\Delta E_0}{r_{\mathrm{lo}}^{\mathrm{cov}}\,C_{\max}}\,.\;
-	\label{eq:beta}
+	\label{eq:betaen}
 \end{equation}
-Pedagogically, Equation \eqref{eq:beta} describes (how much honest work there is) $\times$ (how uncertain its
+It is a component of the floor, not yet the floor itself: energy is one
+constraint on covert work, and \cref{subsec:capclip} adds the other.
+Pedagogically, Equation \eqref{eq:betaen} describes (how much honest work there is) $\times$ (how uncertain its
 per-operation cost is), divided by (how cheaply covert work can run), plus a
 smaller slack from the overhead band. The first term grows with the
 declared-band width and with the declared utilisation: more legitimate work
 offers more cover. The second term is the overhead's contribution: joules
 the prover frees by idling overhead that the verifier must still allow for.
 
-Note the asymmetry between the numerator and denominator of \cref{eq:beta}.
+Note the asymmetry between the numerator and denominator of \cref{eq:betaen}.
 Declarations and re-execution can narrow the declared band width
 $r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}$ in the
 numerator, but no declaration reaches the covert floor
 $r_{\mathrm{lo}}^{\mathrm{cov}}$ in the denominator; only hardware-wide
-observables (clock, voltage) can raise $r_{\mathrm{lo}}^{\mathrm{cov}}$.
-
-\begin{remark}[What the bound actually requires of the measurements]
-\label{rmk:incremental}
-Two roles, two estimands. The declared edges enter \cref{eq:covmax} only
-through their \emph{difference} $r_{\mathrm{hi}}^{\mathrm{dec}} -
-r_{\mathrm{lo}}^{\mathrm{dec}}$ at a common saturated rate, so any baseline
-amortised equally into both edges cancels and a measured total quotient
-$E/C$ is the correct estimand for the numerator (the overhead enters once,
-separately, as $\Delta E_0$). The covert cost enters as the
-\emph{denominator} $r_{\mathrm{lo}}^{\mathrm{cov}}$, where nothing cancels:
-the bound is a valid security guarantee only if $r_{\mathrm{lo}}^{\mathrm{cov}}$
-is a genuine one-sided \emph{lower} bound on the \emph{incremental} covert
-energy, $g_x(F_{\mathrm{dec}}, F_{\mathrm{cov}}) - g_x(F_{\mathrm{dec}}, 0)
-\ge r_{\mathrm{lo}}^{\mathrm{cov}}\,F_{\mathrm{cov}}$ for every admissible
-execution $g_x$. Under only this incremental condition the honest energy
-slack of \cref{eq:covmax} still divides by $r_{\mathrm{lo}}^{\mathrm{cov}}$,
-so the floor holds without the global affine map of \cref{eq:forward}; the
-affine model is the special case
-$g_x = P_0 + r^{\mathrm{dec}}F_{\mathrm{dec}} + r^{\mathrm{cov}}F_{\mathrm{cov}}$,
-which additionally makes $S(h)$ linear in $h$. We therefore identify
-$r_{\mathrm{lo}}^{\mathrm{cov}}$ by a dose--response intervention
-(Experiment~4 for the generic int8 edge, Experiment~5 for the useful-operand
-edge), not by fitting a power--rate curve; a total-quotient covert edge is
-inadmissible here, and every covert edge the bound uses is a marginal dose
-slope.
-\end{remark}
+observables (clock, voltage) can raise $r_{\mathrm{lo}}^{\mathrm{cov}}$. The
+two edges therefore also have to be \emph{measured} differently: the declared
+width tolerates a total-quotient estimate, the covert floor admits only a
+marginal one. \Cref{app:estimands} states that condition precisely, and it asks
+less of the hardware than the affine map of \cref{eq:forward} does.
 
 \subsection{The capacity clip}
 \label{subsec:capclip}
 
-The energy budget is not the only physical constraint---and calling
-$S(h)$ itself the floor $\beta$ overstates the ambiguity, because covert
-work must also \emph{fit on the machine}. The setup already bounds the
-operation rate by the executing format's peak (\cref{subsec:forward}), so
-however much energy slack the trace leaves, the covert block can never
+The energy budget is not the only physical constraint: covert work must also
+\emph{fit on the machine}. The setup already bounds the
+operation rate by the hardware capacity (\cref{subsec:forward}), and that
+capacity is format-dependent. The peak rate $F_{\max}$ is not one number but
+a property of the executing format: an A100's dense peaks run from
+$19.5$\,Top/s at fp32 on the CUDA cores through $156$ at tf32 and $312$ at
+fp16/bf16 to $624$\,Top/s at int8 on the tensor cores \citep{nvidia2020a100}. We write $F_{\max}^{\mathrm{dec}}$
+for the peak of the declared format, which fixes the capacity normaliser
+$C_{\max} = F_{\max}^{\mathrm{dec}}\,T$ used throughout, and
+\begin{equation}
+	\gamma \;=\; \frac{F_{\max}^{\mathrm{cov}}}{F_{\max}^{\mathrm{dec}}}
+	\label{eq:capratio}
+\end{equation}
+for the capacity ratio of a covert format against the declared one
+($\gamma = 2$ for int8 covert work against fp16 declared work on an A100).
+
+However much energy slack the trace leaves, then, the covert block can never
 retire more than the capacity the declared work leaves free. Declared work
 occupies a fraction $h$ of the declared-format capacity; the remainder,
-executed at the covert format's peak, holds at most
+executed at the covert format's peak, leaves a second width, in the same
+units as $\beta_{\mathrm{en}}$:
 \begin{equation}
-	C_{\mathrm{cov}} \;\le\; (1-h)\,\gamma\,C_{\max},
+	C_{\mathrm{cov}}/C_{\max} \;\le\; (1-h)\,\gamma .
 	\label{eq:capclip}
 \end{equation}
-with $\gamma = F_{\max}^{\mathrm{cov}}/F_{\max}^{\mathrm{dec}}$ the capacity
-ratio of \cref{eq:capratio}. We evaluate \cref{eq:capclip} at the
-\emph{published peak} capacities rather than the rates our kernels achieve.
-This is the adversary-favorable direction and therefore the conservative one
-for an upper bound on the ambiguity: peaks give the covert stream more room
-than it can really use, so the conceded $\beta_{\mathrm{phys}}$ is larger
-than an achieved-rate evaluation would give. On our own measured peaks
-($246.9$\,Top/s fp16 and $307.7$\,Top/s int8, so $\gamma = 1.25$ rather than
-$2$) the bare-meter rung falls from $1.95$ to $1.22$ and the precision rung
-from $1.16$ to $0.91$. \Cref{ass:corners} asks for achieved throughputs when
-it certifies that a particular \emph{witness} is realisable in one window,
-and the witnesses of \cref{subsec:proposition} are checked that way; the
-model bound itself is deliberately evaluated at peaks. The identified-set
-width is the smaller of the two constraints,
+We evaluate \cref{eq:capclip} at the \emph{published peak} capacities rather
+than the rates our kernels achieve: peaks give the covert stream more room
+than it can really use, so this is the adversary-favorable---and for an
+upper bound on the ambiguity, conservative---direction
+(\cref{app:sensitivity} quantifies the difference on our measured peaks).
+Each width is what \cref{eq:betadef} returns when one constraint is imposed
+and the other ignored, so the floor---the width when both hold at once---is
+the smaller of them,
 \begin{equation}
-	\;\beta_{\mathrm{phys}}(h) \;=\;
-	\min\bigl[\,S(h),\; (1-h)\,\gamma\,\bigr],\;
-	\label{eq:betaphys}
+	\;\beta(h) \;=\;
+	\min\bigl[\,\beta_{\mathrm{en}}(h),\; (1-h)\,\gamma\,\bigr].\;
+	\label{eq:betafloor}
 \end{equation}
-and this, not $S(h)$, is the floor: $\beta = \beta_{\mathrm{phys}}(h)$ in
-the sense of \cref{eq:betadef}. The two constraints pull in opposite
-directions. The slack $S(h)$ \emph{rises} with $h$---more declared work
-offers more cover---while the clip $(1-h)\,\gamma$ \emph{falls}---more
+The two pull in opposite directions. Energy \emph{rises} with $h$---more
+declared work offers more cover---while capacity \emph{falls}---more
 declared work leaves less machine to hide on. At full declared utilisation
-the machine is spoken for and $\beta_{\mathrm{phys}}(1) = 0$; at idle there
+the machine is spoken for and $\beta(1) = 0$; at idle there
 is capacity but almost no cover. The worst case sits at the crossing,
 \begin{equation}
 	h^{*} = \frac{\gamma - b}{s + \gamma}, \qquad
-	\beta_{\mathrm{phys}}^{*} = \gamma\,\frac{s + b}{s + \gamma},
-	\label{eq:betaphysworst}
+	\beta^{*} = \gamma\,\frac{s + b}{s + \gamma},
+	\label{eq:betaworst}
 \end{equation}
-writing $S(h) = s\,h + b$ for its slope and intercept. The crossing form
+writing $\beta_{\mathrm{en}}(h) = s\,h + b$ for its slope and intercept. The crossing form
 holds when $b < \gamma$; if the overhead term alone exceeds the clip
 ($b \ge \gamma$) the clip binds everywhere and the maximum sits at the
-boundary, $(h^{*}, \beta_{\mathrm{phys}}^{*}) = (0, \gamma)$, as the
-released code implements. Each side of the
+boundary, $(h^{*}, \beta^{*}) = (0, \gamma)$. Each side of the
 minimum is the binding constraint in its own regime: energy binds for
 $h < h^{*}$ (the trace itself caps the covert load), capacity binds for
 $h > h^{*}$, and both bind at the crossing. Where the crossing sits is an
@@ -767,10 +674,10 @@ empirical question about $s$. On jointly consistent bands---one declared
 format's own band over the covert format's marginal cost---the measured
 slope is of order one (\cref{sec:empirical-measurements}), so the crossing
 falls at intermediate utilisation and the worst case is a fraction of
-$\gamma$. The index $S$ retains its meaning as an \emph{energy-only
-diagnostic}---$S > 1$ says the energy budget on its own cannot rule out a
-machine's worth of covert work---but it is never quoted as the width of
-the identified set.
+$\gamma$. We still quote $\beta_{\mathrm{en}}$ on its own as a diagnostic---
+$\beta_{\mathrm{en}} > 1$ says the energy budget alone cannot rule out a
+machine's worth of covert work---but only $\beta$ is the width of the
+identified set.
 
 \subsection{The power-only floor}
 \label{subsec:poweronly}
@@ -781,27 +688,30 @@ have no choice but to coincide, both equal to the full measured envelope
 int4 and binary paths, is wider still):
 $r_{\mathrm{hi}}^{\mathrm{dec}} = r_{\mathrm{hi}}$ and
 $r_{\mathrm{lo}}^{\mathrm{dec}} = r_{\mathrm{lo}}^{\mathrm{cov}} = r_{\mathrm{lo}}$.
-Setting these equal in \cref{eq:beta} collapses the energy-slack index to its
+Setting these equal in \cref{eq:betaen} collapses the energy-only width to its
 single-band, power-only form
 \begin{equation}
-	S_{\varnothing}(h) \;=\; h\!\left(\frac{r_{\mathrm{hi}}}{r_{\mathrm{lo}}} - 1\right)
+	\beta_{\mathrm{en}}^{\varnothing}(h) \;=\; h\!\left(\frac{r_{\mathrm{hi}}}{r_{\mathrm{lo}}} - 1\right)
 	\;+\; \frac{\Delta E_0}{r_{\mathrm{lo}}\,C_{\max}},
-	\label{eq:betabare}
+	\label{eq:betaenbare}
 \end{equation}
 where the subscript $\varnothing$ denotes the empty set of extra channels:
-the meter is all the verifier has. The capacity clip must be re-derived here
-too, because a bare meter pins no format on the \emph{declared} side either:
-in the cheating schedule the declared operations themselves execute in the
-cheap covert format, so the $h\,C_{\max}$ declared operations occupy only
-$h/\gamma$ of the machine's resource-time rather than $h$, and declared plus
-covert work together obey $C_{\mathrm{cov}} \le (\gamma - h)\,C_{\max}$. The
-power-only floor is therefore
-$\beta_{\mathrm{phys}}(h) = \min[\,S_{\varnothing}(h),\,\gamma-h\,]$---a
-slightly laxer clip than the single-declared-format $(1-h)\,\gamma$ of
-\cref{eq:capclip}, which would charge the declared work the covert format's
-energy but the declared format's time share; the two coincide at
-$\gamma = 1$.
-Two limits bracket the first term of \cref{eq:betabare}. First
+the meter is all the verifier has. The capacity clip is laxer here than the
+$(1-h)\,\gamma$ of \cref{eq:capclip}, because a bare meter pins no format on
+the \emph{declared} side either: the cheating schedule may run the declared
+operations themselves in the cheap covert format, where they occupy only
+$h/\gamma$ of the machine's resource-time rather than $h$. The power-only
+floor is therefore
+\begin{equation}
+	\beta(h) \;=\;
+	\min\bigl[\,\beta_{\mathrm{en}}^{\varnothing}(h),\; \gamma-h\,\bigr],
+	\label{eq:betafloorbare}
+\end{equation}
+and this rung is the deliberate exception to the single-scenario discipline of
+\cref{app:worstcase}, which derives the clip and records what pinning no
+format costs in band width.
+
+Two limits bracket the first term of \cref{eq:betaenbare}. First
 is \emph{ambiguity}: if the rate is known exactly
 ($r_{\mathrm{hi}} = r_{\mathrm{lo}}$) the term vanishes, since a pinned
 energy budget converts covert joules straight back into operations. Second is
@@ -822,175 +732,42 @@ honest $50$ from the true $90$---not for want of statistical power but
 structurally: the two hypotheses are energy-degenerate, and no test on the
 total can separate them. Of the $40$ covert units, ${\approx}33$ hid under
 the rate ambiguity of the declared work (the first term of
-\cref{eq:betabare}) and ${\approx}7$ under the overhead band (the second).
+\cref{eq:betaenbare}) and ${\approx}7$ under the overhead band (the second).
 In the language of \cref{eq:betadef}: $C_{\mathrm{lo}} = 50$,
-$C_{\mathrm{hi}} = 90$, so $\beta = 40/100 = 0.4$. \Cref{eq:betabare}
+$C_{\mathrm{hi}} = 90$, so $\beta = 40/100 = 0.4$. \Cref{eq:betaenbare}
 assembles the same number term by term:
-$S_{\varnothing}(0.5) = 0.5\,(2.5/1.5 - 1) + 10/(1.5 \times 100) = 1/3 + 1/15 = 0.4$.
+$\beta_{\mathrm{en}}^{\varnothing}(0.5) = 0.5\,(2.5/1.5 - 1) + 10/(1.5 \times 100) = 1/3 + 1/15 = 0.4$.
 The cheat is also capacity-feasible---the $40$ covert units fit inside the
-$(1-h)\,\gamma\,C_{\max} = 50$ units the declared work leaves free (taking
-$\gamma = 1$)---so here the clip of \cref{eq:betaphys} is slack and
-$\beta_{\mathrm{phys}}(0.5) = 0.4$. Had the slack exceeded $50$ units, the
+$(\gamma - h)\,C_{\max} = 50$ units the declared work leaves free (taking
+$\gamma = 1$)---so here the clip of \cref{eq:betafloorbare} is slack and
+$\beta(0.5) = 0.4$. Had the slack exceeded $50$ units, the
 identified set would have ended at the capacity edge instead: at full
-declared utilisation $\beta_{\mathrm{phys}}$ vanishes no matter how wide
+declared utilisation $\beta$ vanishes no matter how wide
 the rate band is.
 
-\subsection{What exactly does \texorpdfstring{$\beta$}{beta} bound?}
-\label{subsec:proposition}
-
-The derivation above moves through four quantities that are easy to
-conflate, so we separate them formally. Throughout, the verifier observes
-the total energy $E$, knows the declaration $C_{\mathrm{dec}}$ (hence
-$h$), and carries the band knowledge
-$\bar r^{\mathrm{dec}} \in [r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}]$,
-$\bar r^{\mathrm{cov}} \ge r_{\mathrm{lo}}^{\mathrm{cov}}$,
-$E_0 \in [E_{0,\mathrm{lo}}, E_{0,\mathrm{hi}}]$ of
-\cref{subsec:derivation}, together with the capacity constraint
-\cref{eq:capclip}. The bands are treated as a rectangle: each edge
-attainable independently of the others.
-
-\begin{assumption}[Joint feasibility of band corners]
-\label{ass:corners}
-There exist admissible workloads that attain the cheating corner
-$(\bar r^{\mathrm{dec}}, E_0, \bar r^{\mathrm{cov}}) =
-(r_{\mathrm{lo}}^{\mathrm{dec}}, E_{0,\mathrm{lo}}, r_{\mathrm{lo}}^{\mathrm{cov}})$
-jointly, and under shared constraints: the \emph{same} observation window
-$T$, the \emph{same} trusted declared work $C_{\mathrm{dec}}$, one device in
-a \emph{common thermal and clock state} whose resource-time the declared and
-covert streams multiplex at their \emph{achieved} (not nominal-peak)
-throughputs, and the per-format capacities of \cref{eq:capclip}. Without this
-the rectangle is an \emph{outer relaxation} of the true feasible set and every
-width below is an upper bound rather than an exact width. Our measurements
-probe the assumption from below rather than establish it: the \emph{Measured
-witnesses} below exhibit workloads meeting these shared constraints whose
-sensor-accepted cheating points reach $h \approx 0.22$, but their achieved
-rates do not jointly reproduce the rectangle's extreme edges, so they attain
-\emph{lower witnesses} for the width ($0.41$ machines at $h = 0.216$,
-against the model's $0.72$), not the corner itself. The corner remains an
-assumption at every $h$ and the widths below are upper bounds throughout,
-met from below by the witnesses; above the busy-time ceiling
-$h_{\max}$---including the headline $h^{*}$---not even the witness
-construction fits a single window.
-\end{assumption}
-
-\begin{proposition}[Four estimands]
-\label{prop:estimands}
-Fix $C_{\mathrm{dec}}$ and the no-alarm rule \cref{eq:noalarm}. Then:
-\begin{enumerate}
-	\item[(i)] \emph{Identified width, given the observation.} For an
-	observed total $E$, the $C$-projection \cref{eq:projection} of the
-	identified set has width
-	$W(E) = \min\!\bigl[\max\!\bigl(0,\,(E - r_{\mathrm{lo}}^{\mathrm{dec}} C_{\mathrm{dec}}
-	- E_{0,\mathrm{lo}})/r_{\mathrm{lo}}^{\mathrm{cov}}\bigr),\;
-	(1-h)\,\gamma\,C_{\max}\bigr]$: the covert load the trace cannot rule
-	out depends on how much energy was actually drawn. The outer clamp to $0$
-	covers observations below the honest lower edge
-	$r_{\mathrm{lo}}^{\mathrm{dec}} C_{\mathrm{dec}} + E_{0,\mathrm{lo}}$ (see
-	(ii)): there no honest-plus-covert schedule reproduces $E$, the identified
-	set is empty, and $W(E)$ is $0$ by convention rather than negative.
-	\item[(ii)] \emph{One-sided acceptance region (intentionally permissive).}
-	The no-alarm rule \cref{eq:noalarm} accepts exactly the totals
-	$E \le r_{\mathrm{hi}}^{\mathrm{dec}} C_{\mathrm{dec}} + E_{0,\mathrm{hi}}$.
-	The rule is deliberately permissive: covert work only \emph{adds} energy, so
-	the test guards only against draws that run \emph{high} and does not certify
-	that every accepted draw is honestly explainable. Accepted draws split in
-	two. Those at or above the honest lower edge
-	$r_{\mathrm{lo}}^{\mathrm{dec}} C_{\mathrm{dec}} + E_{0,\mathrm{lo}}$
-	\emph{are} explainable by honest declared work at some admissible rate and
-	overhead; those \emph{below} it are accepted too but are \emph{not}
-	honestly explainable---honest work cannot draw that little---so their honest
-	identified set is empty ($W(E) = 0$ in (i)). Such under-draws indicate
-	\emph{under}-delivery, which lies outside the covert-compute threat model, so
-	the rule tolerates them by design rather than imposing a lower alarm. The
-	worst-case widths (iii)--(iv) are set at the region's \emph{upper} boundary,
-	where the identified set is largest, so the empty lower regime never binds
-	them. The modelled decision rule, and the empirical $3\sigma$ rule of
-	\cref{sec:empirical-measurements}, are therefore one-sided.
-	\item[(iii)] \emph{Worst case over accepted observations.} Write
-	$W_{\mathrm{en}}(E)$ for the energy-only width in (i) before its
-	capacity clamp (the first argument of the $\min$). The largest such
-	width over the acceptance region, in units of $C_{\max}$, is attained
-	at the region's top edge and equals the energy-slack index:
-	$\sup_E W_{\mathrm{en}}(E)/C_{\max} = S(h)$ of \cref{eq:beta}.
-	\item[(iv)] \emph{Capacity-clipped minimax width.} Restoring
-	\cref{eq:capclip}, the worst case becomes
-	$\beta_{\mathrm{phys}}(h) = \min[\,S(h),\,(1-h)\,\gamma\,]$ of
-	\cref{eq:betaphys}, and the verifier-free headline is its maximum over
-	utilisation, $\beta_{\mathrm{phys}}^{*}$ at $h^{*}$
-	(\cref{eq:betaphysworst}).
-\end{enumerate}
-Under \cref{ass:corners} the suprema in (iii) and (iv) are attained;
-otherwise they are upper bounds.
-\end{proposition}
-
-The proof is the derivation already given: (i)--(ii) restate
-\cref{eq:cov,eq:noalarm}; (iii) is the corner argument of
-\cref{subsec:derivation} evaluated at the top of the acceptance region;
-(iv) intersects with \cref{eq:capclip}. The distinctions matter because
-only (i) is a statement about a particular audited window; (iii) and (iv)
-are design-time guarantees about what \emph{any} accepted window could
-hide. Quoting (iii) as if it were (i) overstates the ambiguity of a
-typical window; quoting it without (iv) overstates what physics admits.
-
-\paragraph{Measured witnesses.}
-Two measurements bear on the assumptions above
-(hardware and protocol in \cref{sec:empirical-measurements}). First, we
-probe \cref{ass:corners} with matched-pair lower witnesses. On one A100 we ran matched pairs
-that hold the trusted declaration and the observation window fixed by
-construction: run~A executes $N$ declared fp16 iterations on dear
-operands (the $r_{\mathrm{hi}}^{\mathrm{dec}}$ edge) and idles to a
-fixed $T = 10$\,s window; run~B executes the \emph{same} $N$ iterations
-on cheap operands (the $r_{\mathrm{lo}}^{\mathrm{dec}}$ edge) plus a
-covert int8 fill tuned to match A's energy, padded to the same window.
-Over eight interleaved repeats at $h = 0.10$, run~A drew
-$1291.3 \pm 4.4$\,J and run~B $1279.3 \pm 5.6$\,J, matching to
-$|\Delta E|/E = 0.9\%$ while B hid $3.5\times 10^{4}$ covert int8
-iterations; the one-sided no-alarm rule of \cref{prop:estimands}(ii), set
-three standard deviations above the honest mean, accepted \emph{every}
-cheating repeat. Clock locking is denied here as elsewhere, so the arms are
-matched by cadence rather than by a held clock: both reach the same
-$1410$\,MHz compute clock, and the per-window \emph{median} clock differs
-between them only through the idle-pad share, exactly as in Experiment~4.
-The asymmetry that remains is conservative. Run~A's dear burst draws
-${\approx}500$\,W against run~B's ${\approx}245$\,W and consequently sits at
-the card's software power cap, which truncates A's measured honest energy;
-since the acceptance threshold is set from A's mean, and the covert dose is
-tuned against it, the cap tightens the bar run~B must clear and understates
-the covert load the tuner can afford. The
-construction holds up to a busy-time ceiling: run~B multiplexes cheap
-declared work and roughly two covert operations per declared operation
-into one window, so above $h_{\max} \approx 0.24$ its work no longer
-fits $T$. The witnesses reach $h = 0.10$, $0.15$, and $0.216$,
-where the accepted covert load reaches $0.19$, $0.29$, and $0.41$
-machines of declared-format capacity respectively---a measured,
-capacity- and time-feasible lower bound on the ambiguity, rising toward
-the ceiling. They are lower witnesses, not corner attainment: the
-achieved incremental rates are $1.84$\,pJ/op for the dear declared arm
-(below the band ceiling $2.19$), $0.82$ for the cheap declared arm, and
-$0.54$ for the covert fill (above the marginal edge $0.51$), so at
-$h = 0.216$ the accepted load $0.41$ sits well below the model's
-$\beta_{\mathrm{phys}}(0.216) = 0.72$. The margin narrows as it rises, and the topmost witness is
-the thin one: at $h = 0.216$ the cheating arm's spread is $2.6\times$ the
-honest arm's and its dearest repeat ($1969.5$\,J) lands above the honest
-arm's dearest ($1964.6$\,J), clearing the $3\sigma$ threshold by $0.86\%$
-of the honest mean. The $0.41$ figure should be read as the largest load
-we could get accepted, not a comfortable one. Above $h_{\max}$---including the headline
-$h^{*} = 0.42$---not even this construction fits a single window, so
-there the model width loses even its lower witness: the wall-clock budget binds
-before the energy budget, and a verifier reading time as well as energy
-constrains more than \cref{prop:estimands}, which prices the energy
-channel alone. That joint energy--time inversion is future work. Second,
-the \emph{transfer gap} behind
-re-execution (\cref{sec:decreasing-beta}) is grounded by re-measuring the
-band edges on three A100s of the same SKU: every edge agrees to
-$2$--$3\%$ across devices, so same-SKU re-execution transfers bands at the
-few-per-cent level.
+\paragraph{What \texorpdfstring{$\beta$}{beta} is, and is not.}
+Two readings of the width must be kept apart. Given an \emph{observed} total
+$E$, the identified set has a width that depends on how much energy was
+actually drawn. $\beta$ is instead the largest such width over every total the
+no-alarm rule accepts: a design-time statement about what \emph{any} accepted
+window could hide, not the ambiguity of the window in front of you. Quoting the
+second as though it were the first overstates a typical audit, and quoting the
+energy-only width $\beta_{\mathrm{en}}$ without its capacity clip overstates
+what the silicon admits. Both readings also inherit one assumption: the bands
+are treated as independent, so $\beta$ prices a combination of band edges that
+we do not prove any single schedule attains, and it is therefore an upper bound
+on the width rather than the width itself (\cref{ass:corners}).
+\Cref{app:worstcase} states the assumption, draws the geometry, and separates
+the readings formally, together with the one-sidedness of the acceptance rule.
+Read with those caveats, $\beta$ is a design-time budget: whatever the audited
+window turns out to be, no accepted window can hide more than this. What
+remains is to find out how much that is.
 
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
 
-So far the floor is only a pair of formulas---the energy-slack index
-\cref{eq:betabare} and its capacity clip \cref{eq:betaphys}; this section asks
+So far the floor is only a pair of formulas---the energy-only width
+\cref{eq:betaenbare} and its capacity clip \cref{eq:capclip}; this section asks
 how large they actually are. We first analyse the slack's two terms and their
 physical drivers (\cref{subsec:factors}), then pin down the value two ways: an
 order-of-magnitude estimate from textbook physics (\cref{subsec:envelope}),
@@ -1000,7 +777,7 @@ and a direct measurement on an NVIDIA A100
 \subsection{The two terms}
 \label{subsec:factors}
 
-The energy-slack index \cref{eq:betabare} is a sum of two terms: an ambiguity term
+The energy-only width \cref{eq:betaenbare} is a sum of two terms: an ambiguity term
 $h\,(r_{\mathrm{hi}}/r_{\mathrm{lo}} - 1)$, set by the
 spread of the exchange rate, and an overhead term
 $\Delta E_0/(r_{\mathrm{lo}}\,C_{\max})$, set by the width of the overhead band.
@@ -1226,8 +1003,8 @@ conceded at once.
 		\draw[black!20] (0,-0.88) -- (15.79,-0.88);
 		\node[font=\normalsize] at (7.895,-1.47)
 			{\(r \;=\;
-			{\color{blue!55!black}\kappa}\,\cdot\,
 			{\color{orange!85!black}\alpha}\,\cdot\,
+			{\color{blue!55!black}\kappa}\,\cdot\,
 			{\color{teal!60!black}C_{\mathrm{eff}}}\,\cdot\,
 			{\color{violet!70!black}V^2}\)};
 		\node[font=\scriptsize, text=gray!60!black] at (7.895,-1.96)
@@ -1287,13 +1064,13 @@ $(1.1/0.9)^2 \approx 1.5$.} Multiplied, the full hardware ratio
 $r_{\mathrm{hi}}/r_{\mathrm{lo}}$ sits conservatively in the tens---but
 that span crosses numeric formats, and no single declared workload can be
 honestly explained at one format's dearest cells while its capacity is
-priced at another's (\cref{subsec:forward}). Within one declared format the
+priced at another's (\cref{app:worstcase}). Within one declared format the
 precision factor drops out, leaving operands and DVFS: a jointly feasible
 declared band of a factor $2$--$3$, so the slack slope $s$ is of order one
 and the ambiguity term reaches, not dwarfs, one machine. The overhead term,
 which we cannot fix from first principles (\cref{subsec:factors}), is
 additive and only raises the slack. On paper, then, energy binds at low
-utilisation, the capacity clip of \cref{eq:betaphys} takes over at high
+utilisation, the capacity clip of \cref{eq:capclip} takes over at high
 utilisation, and the worst-case floor sits at a substantial fraction of
 the machine---up to about its declared-format capacity as a model bound.
 A bare power meter certifies little about how many operations ran. We put
@@ -1302,7 +1079,7 @@ numbers on this next by direct measurement.
 \subsection{Measurement on an NVIDIA A100}
 \label{sec:empirical-measurements}
 We now turn the CMOS factorisation of \cref{eq:cmos} into a measurement
-plan. Its factors do not enter \cref{eq:betabare} separately. Dividing
+plan. Its factors do not enter \cref{eq:betaenbare} separately. Dividing
 dynamic switching power by operation rate cancels the clock frequency and leaves
 $\kappa$, $\alpha$, $C_{\mathrm{eff}}$, and $V^2$ to determine the dynamic
 energy per operation $r$; the range they allow is summarised by the exchange-rate
@@ -1315,108 +1092,54 @@ operating-point metadata instead. The static component of the power omitted by \
 Experiment~3 measures the width of that intercept band and hence
 $\Delta E_0$ over the observation window. The three experiments therefore collapse the
 transistor-level picture into exactly the three macroscopic inputs required
-by \cref{eq:betabare}:
+by \cref{eq:betaenbare}:
 $r_{\mathrm{hi}}$, $r_{\mathrm{lo}}$, and $\Delta E_0$.
 
 \paragraph{Setup and provenance.}
-Experiments~1--4 ran sequentially on one NVIDIA A100-SXM4-80GB
-(driver 595.84), in a single Slurm allocation on the OzSTAR facility on
-22~July 2026 ($340$, $135$, $85$, and $70$ recorded windows
-respectively).\footnote{The released records and capture scripts index
-experiments by their capture identifiers, which differ from the numbering
-used here---in particular, capture \texttt{exp4} is the cross-device sweep
-and \emph{not} Experiment~4, whose records are \texttt{exp7}. The
-repository's \texttt{README} maps the two schemes.}
-Every record carries the device UUID, sweep id, configuration snapshot,
-and git commit, and the band-extraction code refuses to mix devices
-silently; because Experiment~4's marginal cost and Experiment~1's declared
-band price the same floor, the guard requires them to share one
-device.\footnote{Device UUID prefixes, seven cards of one SKU in total:
-\texttt{GPU-ac1cbae9} (Experiments~1--4); \texttt{GPU-4bb93dfb},
-\texttt{GPU-617f2717}, \texttt{GPU-aa412071} (cross-device sweep);
-\texttt{GPU-757ff02a} (the trained-weight total quotient, reported only as
-a contrast to the marginal edge) and \texttt{GPU-747045fa} (Experiment~5, the incremental
-useful-work edge that prices the bottom two rungs of
-\cref{sec:decreasing-beta}); \texttt{GPU-108c1549} (the matched-energy
-witnesses of \cref{subsec:proposition}). Full manifests accompany the
-released records. The trained weight/activation tensors themselves are not
-committed; the manifests record their SHA-256 hashes and the GPU pre-flight
-validation metrics, so the extraction is checkable against the release but
-not replayable from the repository alone.} A compact cross-device
-sweep ran on three other cards of the same SKU; the resulting
-device-to-device spread ($2$--$3\%$ on every band edge) is reported
-alongside \cref{subsec:proposition}. The trained-weight useful-operand
-workloads ran on two further cards of that SKU and the matched-energy
-witnesses on a third, so each of those bands is single-device and is
-compared against declared edges measured on a different card; the same-SKU
-spread bounds the device variation they inherit. The platform denied clock
-locking and power capping, so DVFS is a recorded axis rather than a
-controlled one: each window logs the governor-selected SM clock (achieved
-$1335$--$1410$\,MHz on the band sweeps), the bands are stratified into
-$45$\,MHz clock strata, and no window was flagged with a \emph{harmful}
-throttle (thermal or hardware power brake); the densest operand bursts do
-sit at the card's software power cap by design, which truncates their
-measured power and is therefore conservative for a dearest-rate edge.
-Energy is read from the on-die NVML total-energy
-counter,\footnote{\texttt{nvmlDeviceGetTotalEnergyConsumption} exposes a
-cumulative millijoule register integrated in firmware. NVML publishes no
-accuracy specification for this counter on GA100; the documented $\pm 5\%$
-applies to the power readings of the earlier Fermi and Kepler generations,
-and we adopt that figure as a working meter tolerance wherever one is
-needed, always in the direction that widens the bound.} whose underlying
-power telemetry updates on a ${\sim}100$\,ms cadence and samples only part
-of the runtime \citep{yang2023parttime}; each measured cell therefore fills
-a ${\sim}1.5$\,s window
-(${\gg}100$\,ms) with back-to-back kernels on pre-allocated buffers,
-brackets the window with synchronisation fences, and keeps the per-cell
-median over repeated windows (\cref{app:bench} gives the full protocol).
-This is a non-adversarial, device-level calibration: one GPU and its on-die
-counter suffice to estimate the three bands and establish the order of
-magnitude of $\beta$. The telemetry is trusted here as a laboratory
-instrument, not as the verifier's sensor in the adversarial setting of
-\cref{sec:setup}. Extending the calibration to off-chip meters,
-multi-device systems, and data-centre scale (e.g. including power-delivery,
-cooling, and other overheads) is natural future work.
+Experiments~1--4 ran sequentially on one NVIDIA A100-SXM4-80GB in a single
+Slurm allocation; a compact cross-device sweep on three more cards of the
+same SKU gives the $2$--$3\%$ device-to-device spread reported with the
+matched-energy witnesses below, and the useful-operand workloads
+(Experiment~5) and matched-energy witnesses ran on further same-SKU
+cards. The platform denied clock locking and power capping, so DVFS is a
+recorded axis rather than a controlled one: each window logs the
+governor-selected SM clock and the bands are stratified into clock
+strata. Energy is read from the on-die NVML total-energy counter; each
+measured cell fills a ${\sim}1.5$\,s window with back-to-back kernels on
+pre-allocated buffers and keeps the per-cell median over repeated
+windows. This is a non-adversarial, device-level calibration: the
+telemetry is trusted as a laboratory instrument, not as the verifier's
+sensor in the adversarial setting of \cref{sec:setup}, and one GPU
+suffices to estimate the bands and the order of magnitude of $\beta$;
+extending the calibration to off-chip meters and multi-device systems is
+natural future work. \Cref{app:bench} gives the full protocol, the meter
+tolerance, and the provenance manifest, including which card measured
+which band.
 
 \paragraph{Estimands.}
-The experiments estimate two quantities that play different roles in the
-floor (\cref{rmk:incremental}). Experiments~1 and~2 report per-window
-\emph{total quotients} $E/C$ at sustained, fully busy rates. These set the
-declared band, which enters \cref{eq:covmax} only through the difference
-of its edges $r_{\mathrm{hi}}^{\mathrm{dec}} -
-r_{\mathrm{lo}}^{\mathrm{dec}}$: both edges are measured at the same
-saturated rate, so the baseline $P_0/\bar F$ each folds in is common and
-cancels in that difference (the residual, from the $\approx 5\%$ spread in
-achieved rate across cells, is small and widens the slack conservatively).
-A total quotient is therefore the right estimand for the numerator, and
-the overhead $\Delta E_0$ enters once, separately, never inside a rate.
-The floor's covert denominator needs the opposite one-sided guarantee and
-admits no such cancellation: a defensible \emph{lower} bound on the
-\emph{incremental} energy an extra covert operation must cost. A total
-quotient is anti-conservative there, because the baseline power it
-amortises over the operations ($0.26$--$0.39$\,pJ/op at these rates,
-quantified per format in Experiment~4) is
-spent whether or not the covert work runs. The denominator's estimand is
-therefore the incremental covert cost $\partial E/\partial C_{\mathrm{cov}}$,
-identified by Experiment~4's dose--response intervention below, and the
-floor uses its one-sided lower confidence limit. Experiment~3's regression
-of mean power on sustained rate across a shape ladder is a between-shape
-slope that does not identify a structural power--rate curve---the
-workloads vary clock, memory behaviour, and shape together---so we report
-it only as a consistency diagnostic for the affine model, never as a
-theorem input, while its idle cells pin the intercept band $\Delta E_0$.
+The floor's two band edges need different estimands, and each experiment
+reports the one that is valid for it (\cref{app:estimands}). The declared band
+takes a per-window \emph{total quotient} $E/C$ at sustained, fully busy rates,
+because it enters the floor only through the difference of its edges. The
+covert denominator takes the opposite, one-sided guarantee: a lower bound on
+the \emph{incremental} cost of an added covert operation, for which a total
+quotient is anti-conservative.
 
 \begin{figure}[t]
 	\centering
 	\includegraphics[width=\columnwidth]{exchange_band}
-	\caption{The exchange-rate band of \cref{eq:betabare} (Experiment~1).
+	\caption{The exchange-rate band of \cref{eq:betaenbare} (Experiment~1).
 	Total energy quotient $E/C$ for a fixed matmul kernel on an NVIDIA
-	A100, swept factorially over precision $\kappa$, operand locality
-	$C_{\mathrm{eff}}$ (paired bars), and operand distribution $\alpha$;
-	white points are the individual measured windows ($n=240$ across $60$
-	cells). Dashed lines mark the band edges: the dearest cell is the band
-	ceiling $r_{\mathrm{hi}}$, the cheapest (int8, zero operands) the
-	envelope floor $r_{\mathrm{lo}}$.}
+	A100, swept factorially over precision $\kappa$ (bar groups), operand
+	locality $C_{\mathrm{eff}}$ (paired bars), and operand distribution
+	$\alpha$ (whiskers); white points are the individual measured windows
+	($n=240$ across $60$ cells). Each bar is the median over the operand
+	axis and its whisker that axis's full range, so the operand factor---a
+	little under $2\times$ inside every format, against locality's couple of
+	percent---is read off the figure rather than pooled into it. Dashed lines
+	mark the band edges, both of them operand extremes: the ceiling
+	$r_{\mathrm{hi}}$ is fp32 at its dearest operands, the floor
+	$r_{\mathrm{lo}}$ int8 with zeros.}
 	\label{fig:exchange-band}
 \end{figure}
 
@@ -1447,19 +1170,12 @@ and DVFS with the precision factor held fixed.
 	\includegraphics[width=\columnwidth]{operand_envelope}
 	\caption{The operand envelope (Experiment~2, $n=96$ windows across six
 	operand distributions). Kernel, shape, and precision (fp16) are held
-	fixed and only the operand values vary; the SM clock was
-	governor-selected, not locked, so the families do not share a common
-	clock stratum (\cref{sec:empirical-measurements}). The figure is a
-	descriptive within-device map of how far operand activity alone
-	stretches $r$, not a clean isolation of the activity factor $\alpha$.
+	fixed and only the operand values vary; the clock was
+	governor-selected, not locked, so the map is descriptive (see text).
 	The shaded span is the observed operand spread $w_0 = 1.83$; the
 	minimum (zeros, dashed) is the descriptive fp16 operand floor
-	$r_{\mathrm{lo}}^{0} = 1.16$\,pJ/op as a total quotient. That floor is
-	\emph{not} the covert denominator: $r_{\mathrm{lo}}^{\mathrm{cov}}$ is
-	Experiment~4's marginal edge. Like for like, the fp16 marginal edge is
-	$0.76$\,pJ/op---cheaper than this quotient by the baseline power the
-	quotient amortises; the headline $0.51$ is cheaper again because it is
-	int8.}
+	$r_{\mathrm{lo}}^{0} = 1.16$\,pJ/op as a total quotient---\emph{not}
+	the covert denominator, which is Experiment~4's marginal edge.}
 	\label{fig:operand-envelope}
 \end{figure}
 
@@ -1508,24 +1224,39 @@ this quotient amortises in.
 \end{figure}
 
 \paragraph{Experiment 3---the overhead band $\Delta E_0$ and the marginal rate.}
-Sweeping the sustained operation rate from idle to saturation---five idle
-variants (with and without a CUDA context, cached, cooled, post-load) and a
-ten-shape matmul ladder---and fitting $P = rF + P_0$ of
-\cref{eq:forward}. The observed idle range, widened by the adopted
-$\pm 5\%$ meter tolerance, pins the overhead band to
-$P_0 \in [59.8, 101.0]$\,W (width $\Delta P_0 = 41.2$\,W). The affine fit
-across the full ladder gives a workload-averaged marginal rate of
-$1.60$\,pJ/op with $R^2 = 0.852$ (\cref{fig:overhead-affine}): the map is
-affine where the kernels are compute-bound, and the launch- and
-bandwidth-bound mid-ladder shapes carry the residual scatter---heterogeneity
-we report rather than prune away. As a sensitivity check, restricting the
-fit to the idle anchors and the five compute-bound cubes gives
-$1.65$\,pJ/op ($R^2 = 0.99$), within $4\%$ of the full-ladder slope; the
-mid-ladder shapes account for the scatter, not the slope. This
-between-shape slope is a diagnostic of the affine forward model, not the
-floor's covert denominator: it averages over shapes whose non-covert
-factors vary together, where the theorem needs the derivative at fixed
-declared work. That derivative is what Experiment~4 identifies.
+The \emph{rate ladder} is ten fp16 matmul shapes chosen to span the machine's
+sustained throughput: three small cubes ($256^3$ to $1024^3$) that are
+launch-bound, two skinny-$K$ shapes
+($8192\!\times\!8192\!\times\!64$ and $\times\,256$) that are
+bandwidth-bound, and five large cubes ($2048^3$ to $8192^3$) that are
+compute-bound---a $60$--$90\times$ spread in sustained operation rate at a
+single numeric format. Each window runs $100\%$ busy at its shape's own
+natural rate. We deliberately do \emph{not} vary $F$ by duty-cycling one
+kernel against idle: averaging a fixed busy power against a fixed idle power
+is linear in the duty fraction by construction, so that design would
+manufacture the affine form rather than test it. Operation counts are
+analytic ($C = 2MNK$ per matmul, \cref{subsec:forward}), so the abscissa is
+an exact op count divided by the measured wall time of the window and the
+ordinate is metered mean power. Five idle variants---before any CUDA
+context, context up, context plus operand pool resident, immediately after
+the hottest ladder cell, and after a $60$\,s cooldown---supply the $F = 0$
+anchors.
+
+The idle range, widened by the adopted $\pm 5\%$ meter tolerance, pins the
+overhead band to $P_0 \in [59.8, 101.0]$\,W (width $\Delta P_0 = 41.2$\,W).
+This band is read directly off those five idle cells, not from a fitted
+intercept; no input to the floor comes from the fitted slope, which serves
+only as a diagnostic of the forward model.
+
+As that diagnostic, the affine map holds tightly within a kernel class and
+loosens across classes. Restricted to the idle anchors and the five
+compute-bound cubes---like compared with like---the fit gives $1.65$\,pJ/op
+at $R^2 = 0.99$. Opened to all ten shapes it gives $1.60$\,pJ/op at
+$R^2 = 0.852$ (\cref{fig:overhead-affine}): the slope moves by $4\%$ while
+the scatter grows sharply, so the launch- and bandwidth-bound shapes account
+for the residual and not for the rate---the expected behaviour rather than a
+failure of the model (\cref{app:estimands}). The derivative the floor actually
+needs is what Experiment~4 identifies.
 
 \begin{figure}[t]
 	\centering
@@ -1543,7 +1274,7 @@ declared work. That derivative is what Experiment~4 identifies.
 	baseline burns identically at every dose, it cancels in the slope: unlike
 	the between-shape fit of \cref{fig:overhead-affine}, this within-cell
 	slope is the incremental estimand $\partial E/\partial C_{\mathrm{cov}}$
-	the floor's covert denominator requires (\cref{rmk:incremental}).}
+	the floor's covert denominator requires (\cref{app:estimands}).}
 	\label{fig:marginal-dose}
 \end{figure}
 
@@ -1599,14 +1330,43 @@ Experiment~4 the amortised idle baseline cancels in the slope, so this is the
 incremental estimand the useful rungs of \cref{sec:decreasing-beta} require,
 not a total quotient.
 
+\paragraph{Matched-energy witnesses.}
+The corner assumption behind the floor (\cref{ass:corners}) admits a direct
+empirical probe, and two measurements bear on it (full protocol in
+\cref{app:witness}). First, matched-pair lower witnesses on one A100 hold the
+trusted declaration and the observation window fixed by construction: run~A
+executes $N$ declared fp16 iterations on dear operands (the
+$r_{\mathrm{hi}}^{\mathrm{dec}}$ edge) and idles to a fixed $T = 10$\,s window;
+run~B executes the \emph{same} $N$ iterations on cheap operands (the
+$r_{\mathrm{lo}}^{\mathrm{dec}}$ edge) plus a covert int8 fill tuned to match
+A's energy, padded to the same window. At $h = 0.10$ the two arms match to
+$|\Delta E|/E = 0.9\%$ while B hides $3.5\times 10^{4}$ covert int8
+iterations, and the one-sided no-alarm rule of \cref{prop:estimands}(ii), set
+three standard deviations above the honest mean, accepts \emph{every} cheating
+repeat. The witnesses reach $h = 0.10$, $0.15$, and $0.216$, where the accepted
+covert load reaches $0.19$, $0.29$, and $0.41$ machines of declared-format
+capacity respectively---a measured, capacity- and time-feasible lower bound on
+the ambiguity. They are lower witnesses, not corner attainment: at $h = 0.216$
+the accepted load $0.41$ sits well below the model's $\beta(0.216) = 0.72$, and
+it is the largest load we could get accepted, not a comfortable one
+(\cref{app:witness}). The construction holds only up to a busy-time ceiling
+$h_{\max} \approx 0.24$, above which run~B's work no longer fits the window;
+above $h_{\max}$ the wall-clock budget binds before the energy budget, so a
+verifier reading time as well as energy constrains more than the energy channel
+alone prices, and that joint energy--time inversion is future work. Second, the
+\emph{transfer gap} behind re-execution (\cref{sec:decreasing-beta}) is
+grounded by re-measuring the band edges on three A100s of the same SKU: every
+edge agrees to $2$--$3\%$ across devices, so same-SKU re-execution transfers
+bands at the few-per-cent level.
+
 \paragraph{Assembling the floor.}
 The floor is evaluated inside the jointly feasible fp16-declared scenario
-of \cref{subsec:forward}: the declared band is the fp16 cells' own
+of \cref{app:worstcase}: the declared band is the fp16 cells' own
 $[r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}] =
 [1.10,\,2.19]$\,pJ/op (Experiment~1), the covert cost is Experiment~4's
 marginal lower limit, the overhead width is $\Delta P_0 = 41.2$\,W
-(Experiment~3), and capacity and $\gamma$ come from the two formats'
-published peaks. The set is format-consistent by construction---our
+(Experiment~3), and capacity and $\gamma$ (\cref{eq:capratio}) come from
+the two formats' published peaks. The set is format-consistent by construction---our
 analysis code rejects any cross-format combination of extrema---and joint
 attainability of its cheating corner within one observation window is
 \cref{ass:corners}. Reading the fp16 cells as the declared band carries
@@ -1616,24 +1376,24 @@ the format pin entirely, so both declared edges open to the full measured
 envelope and the worst case rises to
 $1.95$ (the bare-meter rung of \cref{sec:decreasing-beta}). With
 covert int8 ($\gamma = 2$,
-$r_{\mathrm{lo}}^{\mathrm{cov}} = 0.51$\,pJ/op) the energy-slack index at
+$r_{\mathrm{lo}}^{\mathrm{cov}} = 0.51$\,pJ/op) the energy-only width at
 full declared utilisation is
 \begin{equation}
-	S(1) \;=\; \mathbf{2.39},
-	\label{eq:betameasured}
+	\beta_{\mathrm{en}}(1) \;=\; \mathbf{2.39},
+	\label{eq:betaenmeasured}
 \end{equation}
 or $1.62$ with covert work held to fp16
-($r_{\mathrm{lo}}^{\mathrm{cov}} = 0.76$\,pJ/op). $S(1)$ is an
+($r_{\mathrm{lo}}^{\mathrm{cov}} = 0.76$\,pJ/op). $\beta_{\mathrm{en}}(1)$ is an
 energy-only diagnostic, not a physical floor: at full declared
 utilisation the capacity clip $(1-h)\gamma$ is zero, so no covert work
-fits and $\beta_{\mathrm{phys}}(1) = 0$. The floor couples the slack to
-that clip through \cref{eq:betaphys}. \Cref{fig:betaphys} traces
-$\beta_{\mathrm{phys}}(h)$ for the two covert scenarios: with covert int8
+fits and $\beta(1) = 0$. The floor couples the slack to
+that clip through \cref{eq:betafloor}. \Cref{fig:betafloor} traces
+$\beta(h)$ for the two covert scenarios: with covert int8
 against declared fp16 the worst case over utilisation is
 \begin{equation}
-	\beta_{\mathrm{phys}}^{*} \;=\; \mathbf{1.16}
+	\beta^{*} \;=\; \mathbf{1.16}
 	\quad\text{at}\quad h^{*} = 0.42,
-	\label{eq:betaphysmeasured}
+	\label{eq:betafloormeasured}
 \end{equation}
 and with covert work held to fp16 ($\gamma = 1$) it is $0.66$ at
 $h^{*} = 0.34$. Energy is the binding constraint below the crossing,
@@ -1643,19 +1403,15 @@ still leaves much of the machine free.
 
 This peak is a model \emph{upper} bound, and one that no single
 observation window realises: $h^{*} = 0.42$ lies above the busy-time
-ceiling $h_{\max} \approx 0.24$ (\cref{ass:corners}), so at the headline
+ceiling $h_{\max} \approx 0.24$ (\cref{app:witness}), so at the headline
 utilisation the wall-clock budget binds before any schedule reaches the
 corner. Restricting the maximisation to the utilisations our witness
 construction can hold ($h \le h_{\max}$) puts the model worst case at
-$\beta_{\mathrm{phys}} \approx 0.77$. We stress that $h_{\max}$ is a property
-of that construction rather than a general feasibility bound: it is set by
-this kernel's achieved rates and covert dose ratio, and includes a $10\%$
-protocol margin so the idle pad never underflows (without it,
-$h_{\max} = 0.27$ and the restricted worst case is $0.82$). A different
-covert workload would move it. What we \emph{attain} is smaller
-and measured directly: the matched-energy witnesses of
-\cref{subsec:proposition} reach $h \approx 0.22$, where an accepted
-cheating run hides $\mathbf{0.41}$ machines of covert int8 work. The
+$\beta \approx 0.77$; $h_{\max}$ is a property of that
+construction rather than a general feasibility bound, and a different
+covert workload would move it (\cref{app:witness}). What we \emph{attain} is
+smaller and measured directly: the witnesses above get $\mathbf{0.41}$
+machines of covert int8 work accepted at $h \approx 0.22$. The
 identified-set width the meter admits is therefore \emph{at least} $0.41$
 machines---measured, attained, and accepted by the sensor---and
 \emph{at most} about $1.16$ as a model bound whose maximiser is
@@ -1669,16 +1425,16 @@ the energy budget and the silicon, not by either alone.
 \begin{figure}[t]
 	\centering
 	\includegraphics[width=\columnwidth]{beta_phys_curve}
-	\caption{The capacity-clipped floor $\beta_{\mathrm{phys}}(h)$
-	(\cref{eq:betaphys}) from the jointly feasible fp16-declared bands,
+	\caption{The capacity-clipped floor $\beta(h)$
+	(\cref{eq:betafloor}) from the jointly feasible fp16-declared bands,
 	for covert int8 ($\gamma = 2$, blue) and covert fp16 ($\gamma = 1$,
 	orange), both priced at Experiment~4's marginal lower limits. Faint
-	dashed lines are the unclipped energy-slack indices $S(h)$
-	($S(1) = 2.39$ and $1.62$): energy is the binding constraint left of
+	dashed lines are the unclipped energy-only widths $\beta_{\mathrm{en}}(h)$
+	($\beta_{\mathrm{en}}(1) = 2.39$ and $1.62$): energy is the binding constraint left of
 	each crossing, capacity right of it, and both bind at $h^{*}$. Dotted
 	lines are the capacity clips $(1-h)\,\gamma$; markers are the worst
-	cases of \cref{eq:betaphysworst}.}
-	\label{fig:betaphys}
+	cases of \cref{eq:betaworst}.}
+	\label{fig:betafloor}
 \end{figure}
 
 \section{The capability ladder}
@@ -1687,28 +1443,13 @@ the energy budget and the silicon, not by either alone.
 The bare meter is the worst case: the verifier sees nothing but the power,
 and the prover has maximum wiggle room. Each capability the verifier gains
 moves one band edge and shrinks the identified set by a measurable factor.
-\Cref{tab:ladder,fig:ladder} walk down that ladder \emph{cumulatively}:
-each rung adds one capability to all the rungs above it, and every priced
-rung is recomputed as the same quantity the headline uses --- the
-capacity-clipped physical worst case
-$\beta_{\mathrm{phys}}^{*} = \max_h \beta_{\mathrm{phys}}(h)$ of
-\cref{eq:betaphysworst}, under the joint model of
-\cref{subsec:proposition}: fp16-declared case study, covert work priced at
-the int8 marginal lower confidence limit $0.51$\,pJ/op
-(\cref{sec:empirical-measurements}), $\gamma = 2$. The bare rung alone,
-which pins no declared format, carries the cross-format clip $\gamma - h$
-of \cref{subsec:poweronly} in place of $(1-h)\,\gamma$. The energy-slack
-diagnostic $S(1)$ is reported alongside for orientation only: it is the
-unclipped no-alarm budget at full utilisation, not a physical floor
-($\beta_{\mathrm{phys}}(1) = 0$ --- a fully busy machine has no residual
-capacity to hide work in). Because a verifier that gains a capability can
-only shrink the set, the priced chain is monotone by construction, and a
-regression test in the released code enforces it. Two disclosed
-conditions thread the chain, marked $\dagger$ in \cref{fig:ladder} and
-listed per rung in \cref{tab:ladder}: \emph{declared-format execution}
-(from the precision rung down) and an \emph{observed operating point}
-(from the re-execution rung down). The rest of this section takes the
-rungs in turn.
+\Cref{tab:ladder,fig:ladder} walk down that ladder \emph{cumulatively} ---
+each rung adds one capability to all the rungs above it --- and their
+captions fix the accounting every priced rung shares: the quantity re-computed
+at each step, the joint model it is computed in, and the two disclosed
+conditions that thread the chain. Because a verifier that gains a capability
+can only shrink the set, the priced chain is monotone by construction. The rest of this section
+takes the rungs in turn.
 
 \begin{table}[t]
 	\centering
@@ -1716,7 +1457,7 @@ rungs in turn.
 	\setlength{\tabcolsep}{3.5pt}
 	\begin{tabular}{@{}lclcc@{}}
 		\toprule
-		verifier gains & type & band edge moved & $\beta_{\mathrm{phys}}^{*}$ & $S(1)$ \\
+		verifier gains & type & band edge moved & $\beta^{*}$ & $\beta_{\mathrm{en}}(1)$ \\
 		\midrule
 		nothing (bare meter) & --- & measured envelope & $1.95$ & $37$ \\
 		precision declared \& checked$^{\dagger}$ & D,\,C & $r^{\mathrm{dec}} \to [1.10, 2.19]$ & $1.16$ & $2.4$ \\
@@ -1729,12 +1470,13 @@ rungs in turn.
 	\caption{The capability ladder. Each rung grants the verifier one more
 	capability (cumulative, top to bottom) and is re-priced as the clipped
 	physical worst case
-	$\beta_{\mathrm{phys}}^{*} = \max_h \beta_{\mathrm{phys}}(h)$
-	(\cref{eq:betaphysworst}) under the joint model (fp16-declared case
-	study, int8 covert edge at the Exp.~4 marginal LCB, $\gamma = 2$; the
+	$\beta^{*} = \max_h \beta(h)$
+	(\cref{eq:betaworst}) under the joint model of \cref{app:worstcase}
+	(fp16-declared case study, int8 covert edge at the Exp.~4 marginal LCB,
+	$\gamma = 2$; the
 	format-unpinned bare rung carries the cross-format clip $\gamma - h$ of
-	\cref{subsec:poweronly});
-	$S(1)$ is the energy-only diagnostic, not a floor. Numeric band edges
+	\cref{eq:betafloorbare});
+	$\beta_{\mathrm{en}}(1)$ is the energy-only diagnostic, not a floor. Numeric band edges
 	in pJ/op. Disclosed conditions: $\dagger$ --- assumes the declared work
 	is executed in its declared format (an off-site check cannot enforce
 	this; \cref{sec:decreasing-beta}); $\ddagger$ --- additionally assumes
@@ -1757,20 +1499,20 @@ rungs in turn.
 	\includegraphics[width=\linewidth]{capability_ladder}
 	\caption{The capability ladder of \cref{tab:ladder} on a log scale;
 	every plotted value is the clipped worst case
-	$\beta_{\mathrm{phys}}^{*} = \max_h \beta_{\mathrm{phys}}(h)$.
+	$\beta^{*} = \max_h \beta(h)$.
 	Filled circles are verifier capabilities (types D, C); the square
 	rung is forced by the threat model (type M: hidden zero-ops are no
 	threat); the hollow rung is an assumption about the adversary, not a
 	capability (type A). The shaded slot is the unpriced prospective
 	clock/locality rung; daggered labels carry the disclosed conditions
-	of \cref{tab:ladder}. The $\beta_{\mathrm{phys}}^{*} = 1$ line marks one
+	of \cref{tab:ladder}. The $\beta^{*} = 1$ line marks one
 	whole machine of conceded ambiguity; the top two rungs are model upper
 	bounds whose maximisers lie above the feasible window, so where they fall
 	relative to that line is not something we claim to settle.}
 	\label{fig:ladder}
 \end{figure}
 
-\paragraph{The bare meter ($\beta_{\mathrm{phys}}^{*} = 1.95$).}
+\paragraph{The bare meter ($\beta^{*} = 1.95$).}
 With power alone the verifier cannot tell declared work from covert, nor one
 numeric format from another, so both band edges are the full measured
 envelope of \cref{subsec:poweronly}:\footnote{``Measured'' scopes the
@@ -1793,10 +1535,10 @@ meter cannot do. The resulting exchange span is $37.9\times$ --- wider than the
 $24.8\times$ measured envelope, because the covert floor here is the int8
 \emph{marginal} edge rather than the dearest-to-cheapest ratio of total
 quotients --- wide enough that the capacity clip binds even at low utilisation.
-The clip is the cross-format $\gamma - h$ of \cref{subsec:poweronly}: with no
+The clip is the cross-format $\gamma - h$ of \cref{eq:betafloorbare}: with no
 format pinned, the declared operations themselves execute in the cheap covert
 format and occupy $h/\gamma$ of resource-time, not $h$. The clipped
-worst case peaks at $\beta_{\mathrm{phys}}^{*} = 1.95$ near
+worst case peaks at $\beta^{*} = 1.95$ near
 $h^{*} = 0.046$, essentially the int8 density advantage $\gamma = 2$ that a
 near-idle machine leaves free. This maximiser sits \emph{inside} the
 feasible window ($h^{*} < h_{\max} \approx 0.24$), so --- unlike the
@@ -1804,19 +1546,10 @@ precision rung, whose peak is pushed above the busy-time ceiling ---
 confining the worst case to feasible utilisation does not lower it; the
 bare-meter figure rests on the corner assumption \cref{ass:corners},
 alongside the measured-scope and covert-edge conditions already flagged.
-One consequence of pricing the covert side marginally is worth flagging.
-The marginal int8 edge ($0.515$\,pJ/op) is a third cheaper than the
-cheapest total quotient the hardware shows ($0.786$\,pJ/op), and the
-overhead term divides by it, so
-$\Delta P_0 / (r_{\mathrm{lo}}^{\mathrm{cov}} F_{\mathrm{max}}) \approx 0.26$
-is half again the $0.168$ a total-quotient covert edge would give: under the
-estimand the bound actually requires, the overhead band carries more of the
-width. The mixture also runs through the numerator---the ceiling is a total
-quotient whose amortised baseline does not cancel against the marginal
-floor, and the overhead band is then carried once more as its own
-term---so this rung is a conservative outer sensitivity, wider than an
-exact single-estimand band would be, which is the safe direction for a
-worst case.
+Finally, the rung mixes estimands---a total-quotient ceiling over a
+marginal covert floor---which makes it a conservative outer sensitivity,
+wider than an exact single-estimand band would be; the safe direction for
+a worst case (\cref{app:sensitivity} quantifies the mixture).
 
 \paragraph{Declare and check the precision ($1.95 \to 1.16$, conditional).}
 The prover can be made to declare the declared work's numeric format, and
@@ -1833,8 +1566,8 @@ the declared work is actually executed in its declared format at the
 monitored facility ($\dagger$ in \cref{tab:ladder}); facility-local format
 enforcement is an open capability, not one this rung grants. Under that
 condition the rung is precisely the headline case:
-$\beta_{\mathrm{phys}}^{*} = 1.16$ at $h^{*} = 0.42$
-(\cref{eq:betaphysmeasured}). Here and below, ``the verifier knows the
+$\beta^{*} = 1.16$ at $h^{*} = 0.42$
+(\cref{eq:betafloormeasured}). Here and below, ``the verifier knows the
 precision'' always means the \emph{declared} precision. The covert work's
 precision is unobservable---declaring it would make it not covert---so it
 never enters the numerator; it resurfaces at the bottom rungs.
@@ -1844,24 +1577,16 @@ Voltage/clock (DVFS, of order $1.5$) and locality (weak for a compute-bound
 kernel) are hardware-wide observables the power meter does not measure;
 pinning them via other channels would narrow what remains of the declared
 band down to its operand core. We deliberately quote no number for this
-rung, for two reasons. First, the capability is prospective on every
-candidate route: attested clock telemetry (NVML reports the clocks, but
-firmware-reported numbers count only over the tamper-resistant read path
-that \cref{sec:intro} notes does not yet exist), locked clocks by policy,
-or, in principle, the EM side channel---switching at $f$ radiates at $f$
-and its harmonics, and magnetic emanations from a GPU's power delivery are
-measurable in practice \citep{maia2022magnetic}, though clock-line
-radiation itself has not been demonstrated---with the voltage then
-following from the hardware's $V$--$f$ table. Second, the only number we
-could put on the rung, the operand core $w_0 = 1.83$, is descriptive
-within-device evidence: Experiment~2's workload families ran at different
-achieved clocks (the confound is disclosed in
+rung, for two reasons. First, every route to the capability is prospective
+rather than available---attested clock telemetry, locked clocks by policy, or
+the EM side channel (\cref{sec:discussion})---so there is no channel here to
+price. Second, the only number we could put on the rung, the operand core
+$w_0 = 1.83$, is descriptive within-device evidence: Experiment~2's workload
+families ran at different achieved clocks (the confound is disclosed in
 \cref{sec:empirical-measurements}), so $w_0$ is not a certified population
 edge and does not price a guarantee. The rung stays in the ladder as the
 slot a trusted on-site observable would fill --- and the next rung depends
-on it. The locality half is speculative: per-rail metering (core vs.\ HBM
-regulators) or interconnect telemetry might resolve it; fortunately
-Experiment~1 found locality moves $r$ little for compute-bound work.
+on it.
 
 \paragraph{Re-execute the declared work ($1.16 \to 0.34$, conditional).}
 Re-executing to \emph{measure} the declared work's actual energy per operation,
@@ -1874,11 +1599,11 @@ firmware, cooling, operating point---so the measured $r^{\mathrm{dec}}$
 transfers only up to a gap. That gap, not zero, is the floor on how far
 re-execution can pin the declared band. The cross-device spread we measured
 on three A100s of the same SKU---$2$--$3\%$ on every band edge
-(\cref{subsec:proposition})---is a lower flavour; across different
+(\cref{sec:empirical-measurements})---is a lower flavour; across different
 accelerators, firmware, and cooling the gap is larger and unmeasured. We
 take the residual gap at a few per cent of the declared rate,
 ${\approx}0.05$\,pJ/op (an assumption informed by the same-SKU spread, not
-a cross-hardware measurement), giving $\beta_{\mathrm{phys}}^{*} = 0.34$
+a cross-hardware measurement), giving $\beta^{*} = 0.34$
 at $h^{*} = 0.83$ --- at this depth the overhead band, not the declared
 residual, carries most of the width. Read the rung as a sensitivity
 analysis in the gap, not a measured bound: at the same-SKU spread itself
@@ -1897,7 +1622,7 @@ the prover may run the declared work anywhere on the DVFS curve, and the
 transfer error is not the hardware gap but the full DVFS factor of
 ${\sim}1.5$. A verifier with only ``power and paperwork'' (the power meter
 plus declarations and re-execution, but no on-site sensing) therefore
-stalls at $\beta_{\mathrm{phys}}^{*} \approx 1$: re-executing the declared
+stalls at $\beta^{*} \approx 1$: re-executing the declared
 work buys almost nothing that checking its precision had not already
 bought.
 
@@ -1914,7 +1639,7 @@ activations (not synthetic patterns), with the quantisation scales applied
 and every metered operation --- the int8 matmuls and the fp16 attention
 alike --- counted. Sweeping that block as the covert dose inside the
 Experiment-4 construction (a fixed declared burst and fixed window, so
-baseline power cancels in the dose slope; \cref{rmk:incremental}) prices
+baseline power cancels in the dose slope; \cref{app:estimands}) prices
 genuinely useful covert work at a \emph{marginal}
 $r_{\mathrm{useful}} = [2.53, 3.16]$\,pJ/op (one-sided $95\%$ lower limits;
 the standalone total quotient $E/C$ is $[3.18, 4.22]$ (one-sided lower
@@ -1924,12 +1649,12 @@ to work worth doing raises the covert edge to the bottom of that band,
 $0.51 \to 2.53$\,pJ/op, while the declared-side residual stays at the
 hardware gap --- the covert band's own width prices nothing on the
 declared side --- and the rung drops to
-$\beta_{\mathrm{phys}}^{*} = 0.071$: every slack joule now buys the
+$\beta^{*} = 0.071$: every slack joule now buys the
 adversary ${\approx}4.9\times$ fewer useful operations than silicon-floor
 accounting would concede. Because this edge is an incremental dose slope, not
 a standalone total quotient, it is a genuine marginal lower bound on the
 covert cost --- the estimand the denominator requires
-(\cref{rmk:incremental}), measured the same way as Experiment~4's int8
+(\cref{app:estimands}), measured the same way as Experiment~4's int8
 covert edge.
 
 \paragraph{Covert work at the top of the useful band ($0.071 \to 0.057$).}
@@ -1950,27 +1675,27 @@ verification literature \citep{baker2025verifying}.
 The result reads pessimistic --- against a bare power meter a
 matched-energy witness demonstrably hides four-tenths of a machine of
 covert compute, and the model worst case runs higher still, to
-$\beta_{\mathrm{phys}}^{*} = 1.95$ against a bare meter --- a figure that
+$\beta^{*} = 1.95$ against a bare meter --- a figure that
 rests on the joint feasibility of the band corners (\cref{ass:corners}) ---
 but the ladder inverts the reading. The
 meter's role in a verification regime is not to count operations by itself; it
 is to be the one channel whose integrity needs no trust in the prover, the
 anchor against which declarations, attested clocks, and re-execution are
 checked. Power plus checked declarations reaches
-$\beta_{\mathrm{phys}}^{*} \approx 1.2$; adding an observed operating
+$\beta^{*} \approx 1.2$; adding an observed operating
 point and re-execution of the declared work reaches ${\approx}0.34$, and
 restricting covert work to useful data ${\approx}0.071$ of capacity. Every
 rung is a protocol requirement a treaty could stipulate, together with a
-disclosed condition it rests on, and \cref{eq:betaphysworst} states
+disclosed condition it rests on, and \cref{eq:betaworst} states
 exactly which band each requirement moves and by how much. The negative
 result is equally operational: because re-execution transfers only at the
 verifier's operating point, ``power plus paperwork'' --- declarations and
 re-execution with no on-site sensing --- stalls at
-$\beta_{\mathrm{phys}}^{*} \approx 1$, a regime design worth ruling out
+$\beta^{*} \approx 1$, a regime design worth ruling out
 before it is proposed.
 
 \paragraph{What no verifier capability reaches.}
-The denominator of \cref{eq:beta} is a statement about the adversary, not
+The denominator of \cref{eq:betaen} is a statement about the adversary, not
 the instrumentation. Covert work is by definition undeclared, so its
 exchange rate is bounded only by the silicon and by what the threat model
 says the adversary wants: excluding zero operands (which compute nothing)
@@ -1985,7 +1710,7 @@ should state which side of that assumption it stands on.
 \paragraph{From one device to a facility.}
 Our bands are device physics, measured on one A100; a facility is a sum of
 devices behind shared power delivery and cooling, and we deliberately do
-not offer a fleet-average version of \cref{eq:beta}. Scaling the floor up
+not offer a fleet-average version of \cref{eq:betaen}. Scaling the floor up
 is a \emph{multi-resource allocation problem}, not a change of units: each
 device carries its own capacity clip and utilisation, the prover chooses
 how declared work is spread across devices (and formats) to maximise
@@ -2014,7 +1739,7 @@ total-quotient lower limits are $[3.18, 4.22]$), and the bottom rungs depend on 
 width. (iii) The hardware gap behind the
 re-execution rung (${\approx}0.05$\,pJ/op) is an assumption. The same-SKU
 piece is grounded---band edges agree to $2$--$3\%$ across three A100s
-(\cref{subsec:proposition})---but the cross-hardware gap (different
+(\cref{sec:empirical-measurements})---but the cross-hardware gap (different
 accelerators, firmware, cooling) remains unmeasured. (iv) DVFS was never
 swept --- the platform denied clock-locking --- so the voltage factor
 rides on literature numbers rather than our own; persistence mode was
@@ -2036,28 +1761,11 @@ with five repeats per cell the $20\%$ trim always removes one repeat,
 excursion or not. The sensitivity is small: restoring every positive
 flagged record moves the fp16 band to $[1.10, 2.20]$\,pJ/op, the int8
 marginal lower limit to $0.510$, and the headline to
-$\beta_{\mathrm{phys}}^{*} = 1.162$. The quantities that actually enter the bound are of three
-kinds, and we state the status of each rather than claim one statistical
-coverage guarantee over all of them. (a) The covert denominator---the one
-quantity a lower bound is genuinely sensitive to---is a one-sided $95\%$ lower
-confidence limit on a regression slope (Experiments~3 and~4, and the
-useful-band dose slope), coverage-controlled by construction. (b) The declared
-band $[r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}]$ enters
-only as a \emph{difference} of per-cell-median edges at a common saturated rate
-(\cref{rmk:incremental}), so the amortised baseline cancels and it acts as a
-band \emph{width}, not a point estimate needing its own coverage; its target
-population is the achievable per-shape operating points of the declared format
-on the audited A100 SKU, and the edges are that observed operating
-envelope; used as design-time security edges they remain sampled operating
-points, not certified physical extrema.
-(c) The overhead width $\Delta P_0$ and the capacity/$\gamma$ inputs are
-conservative worst-case \emph{design} parameters, not sampled estimates:
-$\Delta P_0$ is the observed idle envelope stretched by the adopted
-$\pm 5\%$ meter tolerance (widening it only widens $\beta$), and $C_{\max}$ and
-$\gamma$ are published hardware peaks. We therefore do not claim simultaneous
-statistical coverage over the rectangle these edges span; the rectangle is a
-deliberately conservative over-approximation, as no single schedule attains its
-combined extrema (\cref{ass:corners}). (vii) The locality contrast is
+$\beta^{*} = 1.162$. We claim no single statistical coverage guarantee over
+all the quantities that enter the bound: they are of three different kinds ---
+a coverage-controlled confidence limit, a band width, and conservative design
+parameters --- and \cref{app:estimands} states the status of each.
+(vii) The locality contrast is
 attenuated in the fp32/tf32 cache-resident cells, whose operands
 marginally spill L2.
 
@@ -2091,6 +1799,20 @@ reported here. The impossibility we state is for total-energy sensing
 under the free-variation threat model, not for analogue sensing in
 general.
 
+That none of these channels is available yet is what leaves the
+clock-and-locality rung of \cref{sec:decreasing-beta} unpriced. Every route to
+it is prospective: firmware-reported clocks count only over a tamper-resistant
+read path that does not yet exist, locked clocks are a policy the prover must
+accept, and the EM side channel is unproven for this purpose---switching at $f$
+radiates at $f$ and its harmonics, and magnetic emanations from a GPU's power
+delivery are measurable in practice \citep{maia2022magnetic}, but clock-line
+radiation itself has not been demonstrated, and the voltage would then have to
+follow from the hardware's $V$--$f$ table. The locality half is more
+speculative still---per-rail metering (core vs.\ HBM regulators) or
+interconnect telemetry might resolve it---though Experiment~1 found locality
+moves $r$ little for compute-bound work. Pricing that rung is the
+instrumentation question the ladder leaves open.
+
 \section{Conclusion}
 \label{sec:conclusion}
 
@@ -2099,14 +1821,14 @@ is unknown and data-dependent---across the five formats we measured the
 envelope spans $24.8\times$ on an A100 ($0.79$--$19.5$\,pJ/op), with the
 hardware's unmeasured int4 and binary paths wider still, and even inside
 one jointly feasible declared format the band and the marginal covert cost
-leave an energy slack ($S(1) = 2.39$, \cref{eq:betameasured}, an
+leave an energy slack ($\beta_{\mathrm{en}}(1) = 2.39$, \cref{eq:betaenmeasured}, an
 energy-only diagnostic since no covert work fits at full utilisation).
 Coupling that slack to silicon capacity gives the clipped floor of
-\cref{eq:betaphys}. What we \emph{attain} and the sensor accepts is a
+\cref{eq:betafloor}. What we \emph{attain} and the sensor accepts is a
 matched-energy witness hiding $0.41$ machines of covert int8 work at
 $h \approx 0.22$; the model worst case peaks higher,
-$\beta_{\mathrm{phys}}^{*} = 1.16$ at $h^{*} = 0.42$
-(\cref{eq:betaphysmeasured}, $1.95$ against the bare meter with the
+$\beta^{*} = 1.16$ at $h^{*} = 0.42$
+(\cref{eq:betafloormeasured}, $1.95$ against the bare meter with the
 declared format unenforced, within the measured five-format scope), but
 that peak is an upper bound whose
 maximiser sits above the busy-time ceiling---confined to a feasible
@@ -2116,8 +1838,8 @@ jointly by the energy budget and the silicon. This is not a statistical
 shortfall a better meter or a longer window repairs; it is a structural
 degeneracy of the integrated-energy forward map under free variation --- a
 property of the model, not of the A100. The specific widths above (the
-$24.8\times$ span, $S(1) = 2.39$, the measured $0.41$, and the model
-$\beta_{\mathrm{phys}}^{*} = 1.16$/$1.95$) are contingent A100 estimates,
+$24.8\times$ span, $\beta_{\mathrm{en}}(1) = 2.39$, the measured $0.41$, and the model
+$\beta^{*} = 1.16$/$1.95$) are contingent A100 estimates,
 scoped to the formats we measured;
 the closed form they instantiate is device-agnostic. An identified set
 this wide---four-tenths of a machine of covert compute demonstrably
@@ -2128,7 +1850,7 @@ adversary free to vary energy intensity.
 But the floor is a closed form built from named physical bands, and that
 is what makes it useful: each verifier capability moves one band edge by a
 measured amount, and every rung is re-priced as the same clipped worst
-case $\max_h \beta_{\mathrm{phys}}(h)$. Precision declared and checked
+case $\max_h \beta(h)$. Precision declared and checked
 brings the measured-scope worst case from $1.95$ to $1.16$, conditional on
 the declared
 work executing in its declared format; re-execution of the declared work
@@ -2159,11 +1881,12 @@ numbers rather than on the intuition that joules imply FLOPs.
 \section{From the CMOS power law to the exchange rate}
 \label{app:cmos}
 
-The back-of-the-envelope argument of \cref{subsec:envelope} adopts the
-factored exchange-rate model \cref{eq:cmos}. We derive it here from the CMOS
-power law \citep{chandrakasan1992lowpower} and locate the terms the
-factorisation drops. Total chip power separates into a dynamic (switching)
-part and a static part,
+\Cref{subsec:forward} sketches the route from the CMOS power law to the
+exchange rate; the back-of-the-envelope argument of \cref{subsec:envelope}
+additionally adopts the factored model \cref{eq:cmos}. We give the derivation
+in full here and locate the terms the factorisation drops. Resolving the
+static term of \cref{eq:cmoslaw}, total chip power separates into a dynamic
+(switching) part and a static part,
 \begin{equation}
 	P = P_{\mathrm{dyn}} + P_{\mathrm{stat}}, \qquad
 	P_{\mathrm{dyn}} = \alpha\, C\, V^2 f, \qquad
@@ -2243,7 +1966,411 @@ intercept and is operating-point dependent; we keep the marginal definition
 \cref{eq:marginal}, consistent with \cref{eq:forward}, and so carry no
 separate leakage term in $r$.
 
-\section{How Experiment~1 measures the exchange rate}
+\section{The band rectangle and what \texorpdfstring{$\beta$}{beta} bounds}
+\label{app:worstcase}
+
+The floor of \cref{sec:floor} treats its bands as independent: any edge of one
+may be attained whatever the others do. Two pieces of bookkeeping keep that
+treatment honest. The first asks which combinations of extrema a single
+schedule can reach at all, given that both energy per operation and capacity
+are format-dependent. The second asks what exactly the resulting width is a
+worst case over.
+
+\paragraph{Format bookkeeping.}
+Format dependence makes joint feasibility a modelling obligation, not a
+detail. Every floor we evaluate for a verifier that has \emph{pinned the
+declared format}---the headline and every rung below it---is computed inside a
+single jointly feasible scenario: one declared format and one covert format
+sharing one observation window. The declared band, the capacity normaliser
+$C_{\max}$, and the utilisation $h$ all refer to the same declared format;
+the covert cost and the covert peak to the same covert format; and the two
+streams time-multiplex the machine, so covert work holds at most the
+$(1-h)$ share of resource-time the declared work leaves free. We allow the
+prover to switch formats between the two streams at zero cost---the
+adversary-favorable direction, since any real switching overhead only
+shrinks the covert share. What the model forbids is combining extrema that
+no single schedule attains: an honest interpretation priced at one format's
+dearest cells is only admissible if that format can execute the declared
+work at rate $h\,F_{\max}^{\mathrm{dec}}$ at all, and the headline path in
+our analysis code rejects any cross-format combination of extrema by
+construction (\cref{sec:empirical-measurements}).
+
+\paragraph{The rectangle and its cheating corner.}
+Within one such scenario the verifier's knowledge is three bands---
+$\bar r^{\mathrm{dec}} \in [r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}]$,
+$E_0 \in [E_{0,\mathrm{lo}}, E_{0,\mathrm{hi}}]$, and
+$\bar r^{\mathrm{cov}} \ge r_{\mathrm{lo}}^{\mathrm{cov}}$ of
+\cref{subsec:derivation}---and the derivation treats them as a
+\emph{rectangle} (a box, once all three are counted): each edge attainable
+whatever the other two do. The prover's
+best play is then the rectangle's \emph{cheating corner}, the one vertex where
+all three are simultaneously most favourable to hiding: declared work run as
+cheaply as its band allows, overhead idled to the bottom of its band, and
+covert operations priced at their own floor. \Cref{eq:betafloor} is the width
+that corner buys. Nothing in the derivation guarantees that a single schedule
+can sit there.
+
+\begin{assumption}[Joint feasibility of band corners]
+\label{ass:corners}
+There exist admissible workloads that attain the cheating corner
+$(\bar r^{\mathrm{dec}}, E_0, \bar r^{\mathrm{cov}}) =
+(r_{\mathrm{lo}}^{\mathrm{dec}}, E_{0,\mathrm{lo}}, r_{\mathrm{lo}}^{\mathrm{cov}})$
+jointly, and under shared constraints: the \emph{same} observation window
+$T$, the \emph{same} trusted declared work $C_{\mathrm{dec}}$, one device in
+a \emph{common thermal and clock state} whose resource-time the declared and
+covert streams multiplex at their \emph{achieved} (not nominal-peak)
+throughputs, and the per-format capacities of \cref{eq:capclip}.
+\end{assumption}
+
+Without \cref{ass:corners} the rectangle is an \emph{outer relaxation} of the
+true feasible set, and every width we quote is an upper bound rather than an
+exact width (\cref{fig:rectangle}). Our measurements probe the assumption from
+below rather than establish it: the matched-energy witnesses of
+\cref{sec:empirical-measurements} exhibit workloads meeting these shared
+constraints whose sensor-accepted cheating points reach $h \approx 0.22$, but
+their achieved rates do not jointly reproduce the rectangle's extreme edges, so
+they attain \emph{lower witnesses} for the width ($0.41$ machines at
+$h = 0.216$, against the model's $0.72$), not the corner itself. The corner
+remains an assumption at every $h$, met from below by the witnesses.
+
+\begin{figure}[t]
+	\centering
+	\begin{tikzpicture}[>=Stealth, line join=round, line cap=round, scale=1.25]
+
+		% ---- the third band runs into the page: faint back face at dearer
+		%      covert cost, hidden edges covered by the front face below ----
+		\draw[gray!35, dashed, thin] (0.75,0.6) rectangle (5.75,3.6);
+		\draw[gray!35, thin] (0,0) -- (0.75,0.6);
+		\draw[gray!35, thin] (0,3.0) -- (0.75,3.6);
+		\draw[gray!35, thin] (5.0,3.0) -- (5.75,3.6);
+
+		% ---- the band rectangle: what the verifier knows ----
+		\fill[gray!7] (0,0) rectangle (5.0,3.0);
+		\draw[gray!75!black] (0,0) rectangle (5.0,3.0);
+		\node[gray!55!black, anchor=north east, inner sep=3pt] at (4.98,2.98)
+			{\scriptsize band rectangle};
+
+		% ---- axes ----
+		\draw[->] (0,-0.6) -- (5.5,-0.6) node[right, inner sep=2pt]
+			{\scriptsize $\bar r^{\mathrm{dec}}$};
+		\draw[->] (-0.6,0) -- (-0.6,3.85) node[above, inner sep=2pt]
+			{\scriptsize $E_0$};
+		\draw[gray!55] (0,0) -- (0,-0.6);
+		\draw[gray!55] (5.0,0) -- (5.0,-0.6);
+		\draw[gray!55] (0,0) -- (-0.6,0);
+		\draw[gray!55] (0,3.0) -- (-0.6,3.0);
+		\node[anchor=north, inner sep=3pt] at (0,-0.62)
+			{\scriptsize $r_{\mathrm{lo}}^{\mathrm{dec}}$};
+		\node[anchor=north, inner sep=3pt] at (5.0,-0.62)
+			{\scriptsize $r_{\mathrm{hi}}^{\mathrm{dec}}$};
+		\node[anchor=east, inner sep=3pt] at (-0.62,0)
+			{\scriptsize $E_{0,\mathrm{lo}}$};
+		\node[anchor=east, inner sep=3pt] at (-0.62,3.0)
+			{\scriptsize $E_{0,\mathrm{hi}}$};
+
+		% ---- the depth axis, along the bottom-right cuboid edge ----
+		\draw[->, gray!55!black, thin] (5.0,0) -- (6.0,0.8)
+			node[anchor=north west, inner sep=1pt]
+			{\scriptsize $\bar r^{\mathrm{cov}}$};
+		\node[gray!55!black, anchor=north west, inner sep=4pt, align=left] at (0.02,2.98)
+			{\scriptsize plane shown:\\[-1.5pt] \scriptsize $\bar r^{\mathrm{cov}} \!=\! r_{\mathrm{lo}}^{\mathrm{cov}}$};
+
+		% ---- the true jointly feasible set ----
+		\fill[teal!12] plot[smooth cycle, tension=0.75] coordinates
+			{(1.50,0.95) (2.65,0.78) (3.95,1.15) (4.30,2.05) (3.45,2.62) (2.30,2.50) (1.55,1.85)};
+		\draw[teal!60!black, thick] plot[smooth cycle, tension=0.75] coordinates
+			{(1.50,0.95) (2.65,0.78) (3.95,1.15) (4.30,2.05) (3.45,2.62) (2.30,2.50) (1.55,1.85)};
+		\node[teal!55!black, align=center, inner sep=1pt] at (2.95,1.72)
+			{\scriptsize jointly feasible\\[-1.5pt] \scriptsize schedules};
+
+		% ---- the cheating corner ----
+		\fill (0,0) circle (2.2pt);
+		\node[anchor=north west, inner sep=3pt] at (0.02,-0.02)
+			{\scriptsize cheating corner};
+
+		% ---- the witness and the gap to the corner ----
+		\draw[<->, orange!85!black, dashed, thin] (0.14,0.10) -- (1.44,0.87)
+			node[midway, sloped, above, inner sep=1.5pt, orange!85!black]
+			{\scriptsize gap};
+		\fill[orange!85!black] (1.52,0.94) circle (2.0pt);
+		\node[orange!85!black, anchor=west, inner sep=3pt] at (1.55,0.90)
+			{\scriptsize witness};
+
+	\end{tikzpicture}
+	\caption{The band rectangle and its cheating corner, shown in the plane
+		where covert work is priced at its floor $r_{\mathrm{lo}}^{\mathrm{cov}}$
+		(the third band runs into the page; it is bounded only below, so the
+		depth of the box is arbitrary and only this front face binds). The
+		verifier's knowledge is the rectangle: every edge of every band
+		attainable whatever the others do. $\beta$ prices its cheating corner
+		(bottom left: cheap declared work, idled overhead, cheap covert
+		operations). The schedules a single device can actually run in one
+		window are some subset of the rectangle (drawn schematically here, not
+		measured), and if that subset excludes the corner---as \cref{ass:corners} concedes it
+		may---then $\beta$ is an upper bound on the identified-set width rather
+		than the width itself. The matched-energy witnesses of
+		\cref{sec:empirical-measurements} exhibit an attained point inside the
+		set, so they bound the width from below; the gap between witness and
+		corner is what the assumption spans.}
+	\label{fig:rectangle}
+\end{figure}
+
+\paragraph{The bare-meter exception.}
+One rung breaks the single-scenario discipline by design: the power-only floor
+of \cref{subsec:poweronly}. A bare meter pins no format at all, so both band
+edges open to the cross-format envelope while $C_{\max}$ and $h$ stay the
+declared-format yardstick, and we flag that rung as a cross-format envelope by
+intent wherever it is quoted. The combination is still admissible under the
+single-schedule criterion above: the honest acceptance ceiling is the fp32
+rate, and fp32 can sustain the declared rate it implies
+($h^{*}C_{\max} = 14.3$\,Top/s against a measured $17.7$\,Top/s fp32 peak).
+The capacity clip has to be re-derived for that rung too. With no format
+pinned on the \emph{declared} side either, the cheating schedule executes the
+declared operations themselves in the cheap covert format: they occupy only
+$h/\gamma$ of the machine's resource-time rather than $h$, declared and covert
+work together obey $C_{\mathrm{cov}} \le (\gamma - h)\,C_{\max}$, and the
+floor is \cref{eq:betafloorbare}---a slightly laxer clip than the
+single-declared-format $(1-h)\,\gamma$ of \cref{eq:capclip}, which would
+charge the declared work the covert format's energy but the declared format's
+time share. The two coincide at $\gamma = 1$.
+
+\paragraph{Four estimands.}
+The derivation moves through four quantities that are easy to conflate, so we
+separate them formally. Throughout, the verifier observes the total energy $E$,
+knows the declaration $C_{\mathrm{dec}}$ (hence $h$), carries the band
+knowledge above, and is subject to the capacity constraint \cref{eq:capclip}.
+
+\begin{proposition}[Four estimands]
+\label{prop:estimands}
+Fix $C_{\mathrm{dec}}$ and the no-alarm rule \cref{eq:noalarm}. Then:
+\begin{enumerate}
+	\item[(i)] \emph{Identified width, given the observation.} For an
+	observed total $E$, the $C$-projection \cref{eq:projection} of the
+	identified set has width
+	$W(E) = \min\!\bigl[\max\!\bigl(0,\,(E - r_{\mathrm{lo}}^{\mathrm{dec}} C_{\mathrm{dec}}
+	- E_{0,\mathrm{lo}})/r_{\mathrm{lo}}^{\mathrm{cov}}\bigr),\;
+	(1-h)\,\gamma\,C_{\max}\bigr]$: the covert load the trace cannot rule
+	out depends on how much energy was actually drawn. The outer clamp to $0$
+	covers observations below the honest lower edge
+	$r_{\mathrm{lo}}^{\mathrm{dec}} C_{\mathrm{dec}} + E_{0,\mathrm{lo}}$ (see
+	(ii)): there no honest-plus-covert schedule reproduces $E$, the identified
+	set is empty, and $W(E)$ is $0$ by convention rather than negative.
+	\item[(ii)] \emph{One-sided acceptance region (intentionally permissive).}
+	The no-alarm rule \cref{eq:noalarm} accepts exactly the totals
+	$E \le r_{\mathrm{hi}}^{\mathrm{dec}} C_{\mathrm{dec}} + E_{0,\mathrm{hi}}$.
+	The rule is deliberately permissive: covert work only \emph{adds} energy, so
+	the test guards only against draws that run \emph{high} and does not certify
+	that every accepted draw is honestly explainable. Accepted draws split in
+	two. Those at or above the honest lower edge
+	$r_{\mathrm{lo}}^{\mathrm{dec}} C_{\mathrm{dec}} + E_{0,\mathrm{lo}}$
+	\emph{are} explainable by honest declared work at some admissible rate and
+	overhead; those \emph{below} it are accepted too but are \emph{not}
+	honestly explainable---honest work cannot draw that little---so their honest
+	identified set is empty ($W(E) = 0$ in (i)). Such under-draws indicate
+	\emph{under}-delivery, which lies outside the covert-compute threat model, so
+	the rule tolerates them by design rather than imposing a lower alarm. The
+	worst-case widths (iii)--(iv) are set at the region's \emph{upper} boundary,
+	where the identified set is largest, so the empty lower regime never binds
+	them. The modelled decision rule, and the empirical $3\sigma$ rule of
+	\cref{sec:empirical-measurements}, are therefore one-sided.
+	\item[(iii)] \emph{Worst case over accepted observations.} Write
+	$W_{\mathrm{en}}(E)$ for the energy-only width in (i) before its
+	capacity clamp (the first argument of the $\min$). The largest such
+	width over the acceptance region, in units of $C_{\max}$, is attained
+	at the region's top edge:
+	$\sup_E W_{\mathrm{en}}(E)/C_{\max} = \beta_{\mathrm{en}}(h)$ of \cref{eq:betaen}.
+	\item[(iv)] \emph{Capacity-clipped minimax width.} Restoring
+	\cref{eq:capclip}, the worst case becomes
+	$\beta(h) = \min[\,\beta_{\mathrm{en}}(h),\,(1-h)\,\gamma\,]$ of
+	\cref{eq:betafloor}, and the verifier-free headline is its maximum over
+	utilisation, $\beta^{*}$ at $h^{*}$
+	(\cref{eq:betaworst}).
+\end{enumerate}
+Under \cref{ass:corners} the suprema in (iii) and (iv) are attained;
+otherwise they are upper bounds.
+\end{proposition}
+
+The proof is the derivation of \cref{sec:floor}: (i)--(ii) restate
+\cref{eq:cov,eq:noalarm}; (iii) is the corner argument of
+\cref{subsec:derivation} evaluated at the top of the acceptance region;
+(iv) intersects with \cref{eq:capclip}. The distinctions matter because
+only (i) is a statement about a particular audited window; (iii) and (iv)
+are design-time guarantees about what \emph{any} accepted window could
+hide. Quoting (iii) as if it were (i) overstates the ambiguity of a
+typical window; quoting it without (iv) overstates what physics admits.
+
+\section{What the bound requires of the measurements}
+\label{app:estimands}
+
+\Cref{app:cmos} derives the affine forward map \cref{eq:forward} from device
+physics. The security bound does not need it. This appendix states the
+weaker condition it does need, and why the two band edges are estimated by
+different means.
+
+Two roles, two estimands. The declared edges enter \cref{eq:covmax} only
+through their \emph{difference} $r_{\mathrm{hi}}^{\mathrm{dec}} -
+r_{\mathrm{lo}}^{\mathrm{dec}}$ at a common saturated rate, so any baseline
+amortised equally into both edges cancels and a measured total quotient
+$E/C$ is the correct estimand for the numerator (the overhead enters once,
+separately, as $\Delta E_0$). The covert cost enters as the
+\emph{denominator} $r_{\mathrm{lo}}^{\mathrm{cov}}$, where nothing cancels:
+the bound is a valid security guarantee only if $r_{\mathrm{lo}}^{\mathrm{cov}}$
+is a genuine one-sided \emph{lower} bound on the \emph{incremental} covert
+energy. Write the true draw as $P = g_x(F_{\mathrm{dec}},
+F_{\mathrm{cov}})$, some device-dependent function of what the silicon
+executes, with the subscript $x$ standing for the execution details the
+verifier never sees. The condition is then
+\begin{equation}
+	g_x(F_{\mathrm{dec}}, F_{\mathrm{cov}}) - g_x(F_{\mathrm{dec}}, 0)
+	\;\ge\; r_{\mathrm{lo}}^{\mathrm{cov}}\,F_{\mathrm{cov}},
+	\label{eq:incremental}
+\end{equation}
+for every admissible execution $g_x$. Under only this incremental
+condition the honest energy slack of \cref{eq:covmax} still divides by
+$r_{\mathrm{lo}}^{\mathrm{cov}}$, so the floor holds without the global
+affine map of \cref{eq:forward}; the affine model is the special case
+$g_x = P_0 + r^{\mathrm{dec}}F_{\mathrm{dec}} + r^{\mathrm{cov}}F_{\mathrm{cov}}$,
+which additionally makes $\beta_{\mathrm{en}}(h)$ linear in $h$. We therefore identify
+$r_{\mathrm{lo}}^{\mathrm{cov}}$ by a dose--response intervention
+(Experiment~4 for the generic int8 edge, Experiment~5 for the useful-operand
+edge), not by fitting a power--rate curve; a total-quotient covert edge is
+inadmissible here, and every covert edge the bound uses is a marginal dose
+slope.
+
+\paragraph{Why the between-shape slope is not that estimand.}
+Experiment~3's regression of power on rate across kernel shapes is a
+consistency diagnostic for the affine map, never an input to the bound, and the
+two roles above say why. Those shapes move $C_{\mathrm{eff}}$ and $\alpha$
+along with $F$, so the resulting spread in $r$ is the same physical variation
+Experiment~1 maps deliberately as the exchange-rate band---swept on purpose
+there, drifting as a side effect here. A slope fitted through them therefore
+averages over shapes whose non-covert factors vary together, where
+\cref{eq:incremental} needs the derivative at \emph{fixed} declared work. That
+is why the covert edge is identified by a dose--response intervention at a
+fixed declared burst rather than read off a power--rate curve, and why the fit
+loosening across kernel classes ($R^2 = 0.99$ within the compute-bound cubes,
+$0.852$ across all ten shapes) is expected rather than a failure of the model.
+
+\paragraph{Three kinds of quantity, three kinds of status.}
+The inputs to the bound do not share one statistical status, and we state each
+rather than claim a single coverage guarantee over all of them. The covert
+denominator---the one quantity a lower bound is genuinely sensitive to---is a
+one-sided $95\%$ lower confidence limit on a regression slope (Experiments~3
+and~4, and the useful-band dose slope), coverage-controlled by construction.
+The declared band $[r_{\mathrm{lo}}^{\mathrm{dec}},
+r_{\mathrm{hi}}^{\mathrm{dec}}]$ enters only as a \emph{difference} of
+per-cell-median edges at a common saturated rate, so the amortised baseline
+cancels and it acts as a band \emph{width} rather than a point estimate needing
+its own coverage; its target population is the achievable per-shape operating
+points of the declared format on the audited A100 SKU, and the edges are that
+observed operating envelope. Used as design-time security edges they remain
+sampled operating points, not certified physical extrema. The overhead width
+$\Delta P_0$ and the capacity and $\gamma$ inputs are conservative worst-case
+\emph{design} parameters, not sampled estimates at all: $\Delta P_0$ is the
+observed idle envelope stretched by the adopted $\pm 5\%$ meter tolerance
+(widening it only widens $\beta$), and $C_{\max}$ and $\gamma$ are published
+hardware peaks. Nothing here claims simultaneous coverage over the rectangle
+these edges span; that rectangle is a deliberately conservative
+over-approximation, since no single schedule attains its combined extrema
+(\cref{ass:corners}).
+
+\section{Two conservative accounting choices, quantified}
+\label{app:sensitivity}
+
+Two accounting choices in the model bound are deliberately
+adversary-favorable; this appendix quantifies what each concedes.
+
+\paragraph{Published peaks vs.\ achieved rates.}
+The capacity clip \cref{eq:capclip} is evaluated at the \emph{published
+peak} capacities rather than the rates our kernels achieve. Peaks give the
+covert stream more room than it can really use, so the conceded
+$\beta$ is larger than an achieved-rate evaluation would
+give. On our own measured peaks ($246.9$\,Top/s fp16 and $307.7$\,Top/s
+int8, so $\gamma = 1.25$ rather than $2$) the bare-meter rung falls from
+$1.95$ to $1.22$ and the precision rung from $1.16$ to $0.91$.
+\Cref{ass:corners} asks for achieved throughputs when it certifies that a
+particular \emph{witness} is realisable in one window, and the witnesses
+of \cref{sec:empirical-measurements} are checked that way (\cref{app:witness});
+the model bound itself is deliberately evaluated at peaks.
+
+\paragraph{The estimand mixture on the bare-meter rung.}
+The bare-meter rung of \cref{sec:decreasing-beta} prices its covert floor
+marginally while its acceptance ceiling is a total quotient. The marginal
+int8 edge ($0.515$\,pJ/op) is a third cheaper than the cheapest total
+quotient the hardware shows ($0.786$\,pJ/op), and the overhead term
+divides by it, so
+$\Delta P_0 / (r_{\mathrm{lo}}^{\mathrm{cov}} F_{\mathrm{max}}) \approx 0.26$
+is half again the $0.168$ a total-quotient covert edge would give: under
+the estimand the bound actually requires (\cref{app:estimands}), the
+overhead band carries more of the width. The mixture also runs through the
+numerator---the ceiling is a total quotient whose amortised baseline does
+not cancel against the marginal floor, and the overhead band is then
+carried once more as its own term---so the rung is a conservative outer
+sensitivity, wider than an exact single-estimand band would be, which is
+the safe direction for a worst case.
+
+\section{The matched-energy witness protocol}
+\label{app:witness}
+
+The matched-pair witnesses of \cref{sec:empirical-measurements} hold the trusted
+declaration and the observation window fixed by construction: run~A
+executes $N$ declared fp16 iterations on dear operands and idles to a
+fixed $T = 10$\,s window; run~B executes the same $N$ iterations on cheap
+operands plus a covert int8 fill tuned to match A's energy, padded to the
+same window. This appendix records the protocol details and checks behind
+the accepted loads quoted in the body ($0.19$, $0.29$, and $0.41$ machines
+at $h = 0.10$, $0.15$, and $0.216$).
+
+\paragraph{The energy match.}
+Over eight interleaved repeats at $h = 0.10$, run~A drew
+$1291.3 \pm 4.4$\,J and run~B $1279.3 \pm 5.6$\,J, matching to
+$|\Delta E|/E = 0.9\%$ while B hid $3.5\times 10^{4}$ covert int8
+iterations behind the one-sided $3\sigma$ no-alarm rule of
+\cref{prop:estimands}(ii).
+
+\paragraph{Clock matching.}
+Clock locking is denied on the platform
+(\cref{sec:empirical-measurements}), so the arms are matched by cadence
+rather than by a held clock: both reach the same $1410$\,MHz compute
+clock, and the per-window \emph{median} clock differs between them only
+through the idle-pad share, exactly as in Experiment~4.
+
+\paragraph{The power-cap asymmetry is conservative.}
+Run~A's dear burst draws ${\approx}500$\,W against run~B's
+${\approx}245$\,W and consequently sits at the card's software power cap,
+which truncates A's measured honest energy; since the acceptance threshold
+is set from A's mean, and the covert dose is tuned against it, the cap
+tightens the bar run~B must clear and understates the covert load the
+tuner can afford.
+
+\paragraph{Achieved rates: lower witnesses, not corner attainment.}
+The achieved incremental rates are $1.84$\,pJ/op for the dear declared arm
+(below the band ceiling $2.19$), $0.82$ for the cheap declared arm, and
+$0.54$ for the covert fill (above the marginal edge $0.51$): the witnesses
+meet the shared constraints of \cref{ass:corners} but do not jointly
+reproduce the rectangle's extreme edges, which is why the accepted load
+$0.41$ at $h = 0.216$ sits below the model's
+$\beta(0.216) = 0.72$.
+
+\paragraph{The margin at the topmost witness.}
+The acceptance margin narrows as the witness load rises, and the topmost
+witness is the thin one: at $h = 0.216$ the cheating arm's spread is
+$2.6\times$ the honest arm's, and its dearest repeat ($1969.5$\,J) lands
+above the honest arm's dearest ($1964.6$\,J), clearing the $3\sigma$
+threshold by $0.86\%$ of the honest mean. The $0.41$ figure should be read
+as the largest load we could get accepted, not a comfortable one.
+
+\paragraph{The busy-time ceiling.}
+Run~B multiplexes cheap declared work and roughly two covert operations
+per declared operation into one window, so above $h_{\max} \approx 0.24$
+its work no longer fits $T$. The ceiling is a property of this
+construction, not a general feasibility bound: it is set by this kernel's
+achieved rates and covert dose ratio, and includes a $10\%$ protocol
+margin so the idle pad never underflows (without it, $h_{\max} = 0.27$ and
+the restricted worst case of \cref{sec:empirical-measurements} is $0.82$
+rather than $0.77$). A different covert workload would move it.
+
+\section{Benchmark protocol, hardware, and provenance}
 \label{app:bench}
 
 Experiment~1 (\cref{sec:empirical-measurements}) reads the \emph{total
@@ -2252,11 +2379,67 @@ moving one factor of \cref{eq:cmos} at a time. The quotient is the
 band-edge estimand of \cref{sec:empirical-measurements}---not the marginal
 rate $r = \partial P/\partial F$ of \cref{eq:forward}, which Experiments~3
 and~4 estimate as regression slopes---and we keep the two apart throughout.
-This appendix gives the mechanics: the workload and why its operation count
-is exact, how each driver is set, and how the energy is metered.
+Both declared band edges are read at the same saturated rate, so their
+amortised baselines cancel in the band-edge difference the floor uses; the
+${\approx}5\%$ spread in achieved rate across cells leaves a small
+residual, which widens the slack conservatively.
+This appendix gives the hardware, provenance, and mechanics: the workload
+and why its operation count is exact, how each driver is set, and how the
+energy is metered.
 Experiments~2 and~3 reuse the same protocol with a different swept axis;
 Experiment~4 reuses its metering inside fixed-length composite windows
 (declared burst + covert dose + idle pad).
+
+\paragraph{Hardware and provenance.}
+Experiments~1--4 ran sequentially on one NVIDIA A100-SXM4-80GB (driver
+595.84), in a single Slurm allocation on the OzSTAR facility on
+22~July 2026 ($340$, $135$, $85$, and $70$ recorded windows respectively).
+The released records and capture scripts index experiments by their
+capture identifiers, which differ from the numbering used here---in
+particular, capture \texttt{exp4} is the cross-device sweep and \emph{not}
+Experiment~4, whose records are \texttt{exp7}; the repository's
+\texttt{README} maps the two schemes. Every record carries the device
+UUID, sweep id, configuration snapshot, and git commit, and the
+band-extraction code refuses to mix devices silently; because
+Experiment~4's marginal cost and Experiment~1's declared band price the
+same floor, the guard requires them to share one device. Seven cards of
+one SKU appear in total, by UUID prefix: \texttt{GPU-ac1cbae9}
+(Experiments~1--4); \texttt{GPU-4bb93dfb}, \texttt{GPU-617f2717},
+\texttt{GPU-aa412071} (cross-device sweep); \texttt{GPU-757ff02a} (the
+trained-weight total quotient, reported only as a contrast to the marginal
+edge) and \texttt{GPU-747045fa} (Experiment~5, the incremental useful-work
+edge that prices the bottom two rungs of \cref{sec:decreasing-beta});
+\texttt{GPU-108c1549} (the matched-energy witnesses of
+\cref{sec:empirical-measurements}). Each single-device band is therefore compared
+against declared edges measured on a different card, and the same-SKU
+spread ($2$--$3\%$ on every band edge; \cref{sec:empirical-measurements}) bounds
+the device variation it inherits. Full manifests accompany the released
+records; the trained weight/activation tensors themselves are not
+committed, but the manifests record their SHA-256 hashes and the GPU
+pre-flight validation metrics, so the extraction is checkable against the
+release but not replayable from the repository alone.
+
+\paragraph{Operating point.}
+The platform denied clock locking and power capping, so DVFS is a recorded
+axis rather than a controlled one: each window logs the governor-selected
+SM clock (achieved $1335$--$1410$\,MHz on the band sweeps), the bands are
+stratified into $45$\,MHz clock strata, and no window was flagged with a
+\emph{harmful} throttle (thermal or hardware power brake). The densest
+operand bursts do sit at the card's software power cap by design, which
+truncates their measured power and is therefore conservative for a
+dearest-rate edge.
+
+\paragraph{Meter accuracy and cadence.}
+\texttt{nvmlDeviceGetTotalEnergyConsumption} exposes a cumulative
+millijoule register integrated in firmware. NVML publishes no accuracy
+specification for this counter on GA100; the documented $\pm 5\%$ applies
+to the power readings of the earlier Fermi and Kepler generations, and we
+adopt that figure as a working meter tolerance wherever one is needed,
+always in the direction that widens the bound. The counter's underlying
+power telemetry updates on a ${\sim}100$\,ms cadence and samples only part
+of the runtime \citep{yang2023parttime}; each measured cell therefore
+fills a ${\sim}1.5$\,s window (${\gg}100$\,ms), as described under
+\emph{Metering the energy} below.
 
 \paragraph{The workload and its exact operation count.}
 Every cell runs a dense square matrix multiply $A\,B$ with
@@ -2282,6 +2465,13 @@ inherits the meter's accuracy directly; and because $r$ is intensive
 compare directly.
 
 \paragraph{Setting the swept drivers.}
+The floor reads only the edges $r_{\mathrm{hi}}$ and $r_{\mathrm{lo}}$, so what
+the sweep needs from each factor of \cref{eq:cmos} is its \emph{range}, not a
+typical value: every axis below is built to drive its factor to both extremes.
+Each must also move without disturbing the operation count
+\cref{eq:flopcount}, or the quotient $r = E/C$ would change for two reasons at
+once---a constraint that dictates the design of the locality and operand axes
+in particular.
 \begin{itemize}
 	\item \textbf{Precision $\kappa$} is the tensor \texttt{dtype}:
 	\texttt{fp32}, \texttt{tf32} (fp32 operands routed through the tf32
@@ -2340,16 +2530,13 @@ ceiling $r_{\mathrm{hi}}$; \cref{fig:exchange-band} plots the full set.
 \label{app:operands}
 
 Experiment~2 (\cref{sec:empirical-measurements}) holds the kernel, shape,
-and precision fixed and moves \emph{only the operand values}; the SM clock
-was governor-selected rather than locked (locking is privilege-denied), so
-it is recorded per window and stratified in analysis, not held. Every
+and precision fixed and moves \emph{only the operand values}. Every
 configuration runs the identical matmul $A\,B$ with the identical operation
 count \cref{eq:flopcount}, so the energy differences track the
 switching-activity factor $\alpha$ of \cref{eq:cmos}---how many bits
 physically toggle in the datapath as the multiply--accumulates stream
-through---though, because the clock was not controlled, we read the
-resulting spread as descriptive rather than as a clean measurement of
-$\alpha$ alone (\cref{sec:empirical-measurements}). A datapath that sees the
+through---read descriptively, per the clock confound disclosed in
+\cref{sec:empirical-measurements}. A datapath that sees the
 same bits over and over charges little capacitance; one whose bits flip on
 every operation charges the most. The six distributions are constructed to
 walk $\alpha$ from its floor to its ceiling. Below we show each on a
@@ -2468,14 +2655,12 @@ to the densest operands (dense-random, declared-typical, and the adversarial
 checkerboard), at fixed operation count, is the observed operand spread
 $w_0 = 1.83$ of \cref{fig:operand-envelope}. The measured ordering follows
 the textbook one, zeros $<$ low-entropy $<$ structured-sparse $<$
-dense-random $\approx$ declared-typical $\approx$ adversarial-toggle. Because
-the SM clock was governor-selected rather than locked
-(\cref{sec:empirical-measurements}), this spread is descriptive within-device
-evidence of how far operand activity can stretch the meter, not a clean
-isolation of $\alpha$ and not a certified population edge---and maximal
-input-level toggling does not itself certify maximal switching inside the
-Tensor Core internals, whose operand encodings are opaque (nor do zero
-operands mean no hardware bits switch); no security bound
-in the paper rests on it.
+dense-random $\approx$ declared-typical $\approx$ adversarial-toggle. Per
+the clock confound of \cref{sec:empirical-measurements}, the spread is
+descriptive within-device evidence, not a certified population edge---and
+maximal input-level toggling does not itself certify maximal switching
+inside the Tensor Core internals, whose operand encodings are opaque (nor
+do zero operands mean no hardware bits switch); no security bound in the
+paper rests on it.
 
 \end{document}
