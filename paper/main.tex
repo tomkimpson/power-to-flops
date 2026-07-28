@@ -893,23 +893,7 @@ identified set would have ended at the capacity edge instead: at full
 declared utilisation $\beta$ vanishes no matter how wide
 the rate band is.
 
-\paragraph{What \texorpdfstring{$\beta$}{beta} is, and is not.}
-Two readings of the width must be kept apart. Given an \emph{observed} total
-$E$, the identified set has a width that depends on how much energy was
-actually drawn. $\beta$ is instead the largest such width over every total the
-no-alarm rule accepts: a design-time statement about what \emph{any} accepted
-window could hide, not the ambiguity of the window in front of you. Quoting the
-second as though it were the first overstates a typical audit, and quoting the
-energy-only width $\beta_{\mathrm{en}}$ without its capacity clip overstates
-what the silicon admits. Both readings also inherit one assumption: the bands
-are treated as independent, so $\beta$ prices a combination of band edges that
-we do not prove any single schedule attains, and it is therefore an upper bound
-on the width rather than the width itself (\cref{ass:corners}).
-\Cref{app:worstcase} states the assumption, draws the geometry, and separates
-the readings formally, together with the one-sidedness of the acceptance rule.
-Read with those caveats, $\beta$ is a design-time budget: whatever the audited
-window turns out to be, no accepted window can hide more than this. What
-remains is to find out how much that is.
+
 
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
@@ -2874,5 +2858,25 @@ maximal input-level toggling does not itself certify maximal switching
 inside the Tensor Core internals, whose operand encodings are opaque (nor
 do zero operands mean no hardware bits switch); no security bound in the
 paper rests on it.
+
+\section{Scratch space} %for text we may want in the future
+
+\paragraph{What \texorpdfstring{$\beta$}{beta} is, and is not.}
+Two readings of the width must be kept apart. Given an \emph{observed} total
+$E$, the identified set has a width that depends on how much energy was
+actually drawn. $\beta$ is instead the largest such width over every total the
+no-alarm rule accepts: a design-time statement about what \emph{any} accepted
+window could hide, not the ambiguity of the window in front of you. Quoting the
+second as though it were the first overstates a typical audit, and quoting the
+energy-only width $\beta_{\mathrm{en}}$ without its capacity clip overstates
+what the silicon admits. Both readings also inherit one assumption: the bands
+are treated as independent, so $\beta$ prices a combination of band edges that
+we do not prove any single schedule attains, and it is therefore an upper bound
+on the width rather than the width itself (\cref{ass:corners}).
+\Cref{app:worstcase} states the assumption, draws the geometry, and separates
+the readings formally, together with the one-sidedness of the acceptance rule.
+Read with those caveats, $\beta$ is a design-time budget: whatever the audited
+window turns out to be, no accepted window can hide more than this. What
+remains is to find out how much that is.
 
 \end{document}
