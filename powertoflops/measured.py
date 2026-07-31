@@ -6,8 +6,10 @@ tests and figures stay reproducible. A2 measures the real bands (paper Sec. 3.6;
 This module loads that artifact and returns a *new* frozen :class:`Config` with
 the six measured fields swapped in — ``DEFAULT`` is never mutated, so every
 existing test and placeholder figure is inert to the measurement. A measured
-beta(0) is then just ``floor.beta_bare(...)`` fed the overridden config (see
-``scripts/plot_beta_phys.py``).
+beta is then ``floor.beta_two_band(...)`` fed the overridden config (see
+``scripts/plot_beta_phys.py``) -- never ``floor.beta_bare``, whose single-band
+idealisation no measured configuration satisfies: the covert divisor is a
+marginal LCB and sits strictly below the declared band's floor.
 
 No GPU / NVML dependency: this is plain dataclass plumbing over JSON.
 """
@@ -31,9 +33,17 @@ class MeasuredBands:
         P0_lo, P0_hi    -> FloorParams.P0_lo, .P0_hi    (Exp 3 overhead band)
         sigma_dec       -> ChannelParams.sigma_dec      (Exp 2 declared-typical)
 
+    ``r_lo``/``r_hi`` are the extremes of the measured sweep as TOTAL QUOTIENTS.
+    They are values of the DECLARED pair (r_hi^dec, r_lo^dec) at its widest
+    setting -- the bare meter, which pins no format. Total quotients are the
+    correct estimand there because the declared pair enters the floor only
+    through a difference.
+
     ``FloorParams.r_lo_cov`` -- the covert denominator -- is NOT taken from
-    Exp 2. It is the Exp-7 marginal dose slope, reached via
-    :func:`covert_edge`; see :func:`config_with_measured`.
+    Exp 2, and NOT from ``r_lo`` either. It is the Exp-7 marginal dose slope,
+    reached via :func:`covert_edge`; see :func:`config_with_measured`. Same
+    physical corner of the hardware as ``r_lo``, different estimand, so the two
+    are never interchanged.
 
     ``r_lo_op`` and ``w0`` (= r_hi_op/r_lo_op) are Exp-2 total quotients kept
     for reporting only. They are descriptive -- the operand families ran at

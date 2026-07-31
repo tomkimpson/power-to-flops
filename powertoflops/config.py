@@ -58,11 +58,12 @@ class FloorParams:
     r_hi: float = 15.0e-12         # ~15x band (mid of the 10-20x range)
 
     # Cheapest covert edge r_lo^cov (the divisor of beta). These placeholders
-    # set it equal to r_lo, the beta(emptyset) special case where a bare meter
-    # cannot separate the two. The MEASURED config does not: it prices the
-    # covert side at exp7's marginal dose slope, which is strictly cheaper than
-    # r_lo, so r_lo_cov < r_lo there and the floor is beta_two_band. See
-    # :func:`powertoflops.measured.config_with_measured`.
+    # set it equal to r_lo purely to exercise the single-band algebraic special
+    # case in the unit tests. No measured configuration satisfies it, not even
+    # the bare meter: r_lo is a total quotient (a declared-band edge) while
+    # r_lo_cov admits only a one-sided MARGINAL bound, and exp7's dose slope is
+    # strictly cheaper than r_lo, so r_lo_cov < r_lo and every measured floor is
+    # beta_two_band. See :func:`powertoflops.measured.config_with_measured`.
     r_lo_cov: float = 1.0e-12
 
     # Declared hardware FLOP utilisation HFU_dec = C_dec / C_max (dimensionless).

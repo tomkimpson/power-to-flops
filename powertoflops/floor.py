@@ -11,13 +11,23 @@ numeric, trace-based inversion path must reproduce.
 
 Closed forms (paper Sec. 3):
 
-    bare meter:   beta(emptyset) = HFU_dec (r_hi / r_lo - 1)
-                                   + dE0 / (r_lo C_max)
-
-    two-band:     beta = HFU_dec (r_hi^dec - r_lo^dec) / r_lo^cov
+    general:      beta = HFU_dec (r_hi^dec - r_lo^dec) / r_lo^cov
                          + dE0 / (r_lo^cov C_max)
 
+    single-band:  beta = HFU_dec (r_hi / r_lo - 1) + dE0 / (r_lo C_max)
+                  (the special case r_lo^dec == r_lo^cov == r_lo)
+
     budget form:  beta = (u_dec + u_0 + u_m + u_eta) / (r_lo^cov C_max)
+
+:func:`beta_two_band` is the general form and the one every reported number
+uses, INCLUDING the bare-meter rung. The single-band form is an algebraic
+special case, not "the power-only floor": a bare meter widens the declared band
+to the hardware envelope but does not merge it with the covert floor, because
+the declared edges enter through a difference (total quotients suffice) while
+the covert floor is a divisor (marginal LCB only). On the A100 those two
+estimands differ by ~1.5x, so the special case is not attainable from real
+measurements — it survives here only as a test anchor. See
+:func:`powertoflops.ladder.build_ladder` for the bare rung's actual inputs.
 
 ``dE0`` is the overhead *energy* band width [J] (= (P0_hi - P0_lo) T).
 
@@ -42,15 +52,26 @@ def beta_bare(
     dE0: float,
     C_max: float,
 ) -> float:
-    """Power-only floor beta(emptyset) = HFU_dec (r_hi/r_lo - 1) + dE0/(r_lo C_max).
+    """Single-band idealisation: HFU_dec (r_hi/r_lo - 1) + dE0/(r_lo C_max).
 
-    Single band: with power alone the verifier cannot tell declared joules from
-    covert joules, so there is one band [r_lo, r_hi] and the divisor is the band
-    floor r_lo itself -- the cheapest rate the hardware reaches (operand zeros).
-    The general two-band form, where a wider channel separates the covert edge
-    r_lo^cov from the declared floor, is :func:`beta_two_band`; do NOT divide a
-    declared-band numerator by a different r_lo^cov here (that silently evaluates
-    the two-band floor, not beta(emptyset)).
+    The special case of :func:`beta_two_band` in which one number serves as both
+    the declared floor and the covert divisor, so the leading term reduces to a
+    band ratio minus one. Use it ONLY as an algebraic reference (it anchors the
+    budget-form and channel-residual regression tests against the placeholder
+    bands, where r_lo_cov == r_lo by construction).
+
+    It is NOT the power-only floor, despite the pleasing form. A bare meter is
+    just the widest SETTING of the triple (r_hi^dec, r_lo^dec, r_lo^cov) -- the
+    declared pair opens to the extremes of what the silicon reaches, the covert
+    entry does not move. It does not merge the declared floor with the covert
+    divisor, because the two entries
+    admit different estimands -- the declared band enters through a difference
+    (total quotients suffice), the covert floor is a divisor (one-sided marginal
+    LCB only), and on measured A100 bands they differ by ~1.5x. Asking one
+    symbol to carry both estimands gets the divisor's role wrong, which
+    UNDERSTATES beta -- the one direction a security floor cannot be wrong in.
+    The bare-meter rung therefore calls :func:`beta_two_band` like every other
+    rung; see :func:`powertoflops.ladder.build_ladder`.
     """
     return hfu_dec * (r_hi / r_lo - 1.0) + dE0 / (r_lo * C_max)
 

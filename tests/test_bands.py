@@ -770,3 +770,113 @@ def test_useful_band_lcb_never_exceeds_point():
         ub = useful_band(_qcell(512, 8, rs))
         assert ub.r_lo <= ub.r_lo_point
         assert ub.r_hi <= ub.r_hi_point
+
+
+# ---- conditional factor widths (paper eq:widthfactor) -----------------------
+
+
+def _factorial(w_kappa=10.0, w_alpha=2.0, w_C=1.05, base=1.0e-12, clocks=None):
+    """A clean 3-factor factorial with planted per-factor widths.
+
+    r = base * kappa * alpha * C_eff exactly, so factor_widths must recover the
+    planted widths and their product must equal the pooled span.
+    """
+    kap = {"int8": 1.0, "fp16": w_kappa ** 0.5, "fp32": w_kappa}
+    alp = {"zeros": 1.0, "dense_random": w_alpha}
+    ceff = {"resident": 1.0, "streamed": w_C}
+    out = []
+    for d, k in kap.items():
+        for o, a in alp.items():
+            for loc, c in ceff.items():
+                clk = 1410 if clocks is None else clocks[o]
+                out.append(_rec(dtype=d, operand_dist_a=o, locality=loc,
+                                sm_clock_mhz=clk, sm_clock_p50_mhz=float(clk),
+                                r_j_per_op=base * k * a * c))
+    return out
+
+
+def test_factor_widths_recovers_planted_widths():
+    from powertoflops.bench.bands import factor_widths
+
+    got = factor_widths(_factorial(w_kappa=10.0, w_alpha=2.0, w_C=1.05))
+    assert got["kappa"]["w"] == pytest.approx(10.0)
+    assert got["alpha"]["w"] == pytest.approx(2.0)
+    assert got["C_eff"]["w"] == pytest.approx(1.05)
+
+
+def test_factorisation_is_exact_on_a_separable_factorial():
+    # If r factorises exactly, the product of conditional widths IS the pooled
+    # span -- the identity paper eq:widthfactor asserts. Any residual on real
+    # data is factor interaction, not a defect of the estimator.
+    from powertoflops.bench.bands import factorisation_check
+
+    got = factorisation_check(_factorial(w_kappa=8.0, w_alpha=2.0, w_C=1.04),
+                              fmt="fp16")
+    assert got["rel_err"] == pytest.approx(0.0, abs=1e-12)
+    # And pinning kappa leaves exactly w_alpha * w_C.
+    assert got["pinned_pred"] == pytest.approx(2.0 * 1.04)
+    assert got["pinned_rel_err"] == pytest.approx(0.0, abs=1e-12)
+
+
+def test_factor_widths_ignores_incomplete_groups():
+    # A group missing a level on the axis is not a like-for-like comparison and
+    # must be skipped, not averaged in. Dropping one operand cell from a single
+    # (dtype, locality) group must leave the width untouched.
+    from powertoflops.bench.bands import factor_widths
+
+    full = _factorial(w_alpha=2.0)
+    partial = [r for r in full
+               if not (r.dtype == "fp32" and r.locality == "streamed"
+                       and r.operand_dist_a == "zeros")]
+    assert factor_widths(partial)["alpha"]["w"] == pytest.approx(
+        factor_widths(full)["alpha"]["w"])
+    assert factor_widths(partial)["alpha"]["n_groups"] == \
+        factor_widths(full)["alpha"]["n_groups"] - 1
+
+
+def test_clock_balance_flags_a_confounded_axis():
+    # The nuisance check: the achieved clock is NOT in the conditioning key
+    # (locking is privilege-denied), so factor_widths reports whether the axis's
+    # levels ran at a common clock. Exp 1's operand families do (balance 1.000);
+    # Exp 2's slide 1410 -> 1324 MHz against operand cost, and that is why its
+    # w0 is descriptive only.
+    from powertoflops.bench.bands import factor_widths
+
+    balanced = factor_widths(_factorial())
+    assert balanced["alpha"]["clock_balance"] == pytest.approx(1.0)
+    confounded = factor_widths(
+        _factorial(clocks={"zeros": 1410, "dense_random": 1320}))
+    assert confounded["alpha"]["clock_balance"] == pytest.approx(1410 / 1320)
+
+
+def test_committed_exp1_factor_widths_pin_the_manuscript():
+    # Regression pin on the sweep that produced results/bench/measured_bands.json
+    # (identified by its exchange_band matching the artifact). These are the
+    # numbers Sec. "How big is beta?" and tab:inputs quote, and the two checks
+    # that license reading tab:ladder as one factor pinned per rung.
+    import pathlib
+
+    from powertoflops.bench.bands import factor_widths, factorisation_check
+    from powertoflops.bench.records import read_jsonl
+
+    src = (pathlib.Path(__file__).resolve().parent.parent
+           / "results/bench/exp1_exchange_e2958cc757b9.jsonl")
+    if not src.exists():                       # artifact not fetched in this checkout
+        pytest.skip(f"{src.name} not present")
+    recs = read_jsonl(src)
+
+    w = factor_widths(recs)
+    assert w["kappa"]["w"] == pytest.approx(13.53, abs=0.05)
+    assert w["alpha"]["w"] == pytest.approx(1.88, abs=0.02)
+    assert w["C_eff"]["w"] == pytest.approx(1.04, abs=0.01)
+    # The operand and locality axes ran at a common clock; precision to 3%.
+    assert w["alpha"]["clock_balance"] == pytest.approx(1.0, abs=1e-9)
+    assert w["C_eff"]["clock_balance"] == pytest.approx(1.0, abs=1e-9)
+    assert w["kappa"]["clock_balance"] < 1.03
+
+    c = factorisation_check(recs, fmt="fp16")
+    assert c["product"] == pytest.approx(26.5, abs=0.2)     # vs pooled 24.8
+    assert abs(c["rel_err"]) < 0.10                          # ~7% interaction
+    assert c["pinned_pred"] == pytest.approx(1.96, abs=0.02)  # w_alpha * w_C
+    assert c["pinned_obs"] == pytest.approx(2.00, abs=0.02)   # fp16's own band
+    assert abs(c["pinned_rel_err"]) < 0.04                    # ~2%

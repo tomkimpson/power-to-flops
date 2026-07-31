@@ -16,13 +16,16 @@ Semantics fixed by the second-round review (user decisions 2026-07-23):
 
   * **Conditional chain.** The *unconditional* bare rung is the genuine
     power-only floor of subsec:poweronly (referee B4, third round): a bare meter
-    cannot separate declared from covert work or one format from another, so
-    both band edges are the full measured envelope (five tested formats) — the
-    honest ceiling is the
-    dearest measured rate (the pooled r_hi, fp32) and the covert/declared floor
-    is the cheapest incremental covert op (the int8 marginal edge). No precision
-    is assumed on either side (the earlier fp16-ceiling / int8-floor hybrid was
-    the inconsistency the referee flagged). The precision rung then keeps the
+    cannot separate declared from covert work or one format from another, so the
+    DECLARED BAND widens to the full measured envelope (five tested formats) —
+    ceiling at the dearest measured rate (the pooled r_hi, fp32), floor at the
+    cheapest (the pooled r_lo, int8 zeros) — while the covert denominator stays
+    the int8 marginal edge, which no verifier capability ever reaches. No
+    precision is assumed on either side (the earlier fp16-ceiling / int8-floor
+    hybrid was the inconsistency the referee flagged). The declared floor and
+    the covert floor are never collapsed onto one symbol: same physical corner,
+    different algebraic roles, and each role admits only its own estimand
+    (see :func:`build_ladder`). The precision rung then keeps the
     fp16-band arithmetic — it IS the headline case — but carries the disclosed
     condition COND_FORMAT, inherited by every rung below. Re-execution transfers
     only at a matched operating point, adding COND_OPERATING_POINT (prospective:
@@ -45,10 +48,11 @@ acceptance criterion that strengthening the verifier never worsens the bound.
 
 Every priced input is validated against the measured artifact (same guard
 style as :func:`powertoflops.joint_model.validate_joint_case`). The bare rung reads
-the pooled ceiling r_hi — that IS the power-only band by construction
-(subsec:poweronly), and it enters only as a numerator-widening honest ceiling,
-never as a covert denominator. w0, the pooled floor r_lo, and the pooled/Exp-2
-covert edge r_lo_cov are never read (B6).
+the pooled band [r_lo, r_hi] — that IS the power-only declared band by
+construction (subsec:poweronly), and both edges enter only the numerator, never
+as a covert denominator; a total quotient is the correct estimand there. Every
+covert denominator on every rung is a marginal LCB. w0 and the Exp-2 operand
+quotient r_lo_op are never read (B6).
 """
 
 from __future__ import annotations
@@ -154,21 +158,33 @@ def build_ladder(mb: MeasuredBands, *, gap: float = HW_GAP) -> list[Rung]:
 
     # Rung 0 — bare meter, unconditional: the genuine power-only floor of
     # subsec:poweronly. A bare meter cannot separate declared from covert work,
-    # nor one format from another, so both edges are the full measured envelope
-    # (five tested formats; referee B4, third round): the honest ceiling is the
-    # dearest measured rate
-    # (the pooled r_hi, fp32) and the covert/declared floor is the cheapest
-    # incremental covert op (the int8 marginal edge). No precision is assumed on
-    # either side. r_hi enters only as a numerator-widening honest ceiling (a
-    # total quotient there is conservative); the covert edge stays the Exp-7
-    # marginal LCB (B2). Because the declared side is not pinned to a format
-    # either, the cheating schedule executes the declared ops in the cheap
-    # covert format, occupying h/kappa of resource-time rather than h: the
-    # format-consistent capacity clip is kappa - h, not (1 - h) kappa
-    # (kappa_dec = kappa; numerical-audit finding 2).
+    # nor one format from another, so the DECLARED BAND widens to the full
+    # measured envelope (five tested formats; referee B4, third round): ceiling
+    # at the dearest measured rate (the pooled r_hi, fp32), floor at the
+    # cheapest (the pooled r_lo, int8 zeros). No precision is assumed on either
+    # side.
+    #
+    # The declared floor is mb.r_lo, NOT the covert edge. The two describe the
+    # same physical corner of the hardware, but they sit in different algebraic
+    # roles and each admits only its own estimand (app:estimands): the declared
+    # band enters through a DIFFERENCE, so total quotients suffice and mb.r_lo
+    # is the right number; the covert floor is a DIVISOR, so it admits only the
+    # one-sided marginal LCB. Collapsing them onto one symbol — the earlier
+    # r_lo_dec=edge — asked a single number to carry both estimands, and mixed
+    # them by a factor 1.5 (0.786 vs 0.515 pJ/op). Numerically the collapse
+    # barely moved the rung (beta* 1.954 -> 1.953, since r_hi dominates the
+    # difference), but it left the paper unable to say which estimand the rung
+    # used, so the manuscript carried an apologetic "mixture of estimands"
+    # caveat that this de-collapse retires.
+    #
+    # Because the declared side is not pinned to a format either, the cheating
+    # schedule executes the declared ops in the cheap covert format, occupying
+    # h/kappa of resource-time rather than h: the format-consistent capacity
+    # clip is kappa - h, not (1 - h) kappa (kappa_dec = kappa; numerical-audit
+    # finding 2).
     kappa = A100_DENSE_PEAK_OPS[COVERT_FORMAT] / A100_DENSE_PEAK_OPS[DECLARED_FORMAT]
     bare = _priced(mb, "bare meter", None, (),
-                   r_hi_dec=mb.r_hi, r_lo_dec=edge, r_lo_cov=edge,
+                   r_hi_dec=mb.r_hi, r_lo_dec=mb.r_lo, r_lo_cov=edge,
                    kappa_dec=kappa)
 
     # Rung 1 — precision declared & checked. CONDITIONAL: the fp16-band
@@ -199,13 +215,21 @@ def build_ladder(mb: MeasuredBands, *, gap: float = HW_GAP) -> list[Rung]:
     # price the covert denominator at the MARGINAL useful edge (qblock-marginal
     # dose-response, useful_lo/useful_hi), not the retired total-quotient
     # useful band, so baseline power does not inflate the covert cost (B5).
+    #
+    # The residual band is anchored at the DECLARED floor these rungs inherit
+    # from the precision rung (fp16's own r_lo), not at the covert edge. Only
+    # the width r_hi_dec - r_lo_dec enters the floor, so the anchor is
+    # numerically inert — but anchoring on the covert edge would assert
+    # r_lo_dec == r_lo_cov, which is the estimand collapse the bare rung above
+    # exists to avoid (see the rung-0 comment). Same width, honest symbols.
     chain = (COND_FORMAT, COND_OPERATING_POINT)
+    dec_floor, _ = format_band(mb, DECLARED_FORMAT)
     reexec = _priced(mb, "declared work re-executed", "C", chain,
-                     r_hi_dec=edge + gap, r_lo_dec=edge, r_lo_cov=edge)
+                     r_hi_dec=dec_floor + gap, r_lo_dec=dec_floor, r_lo_cov=edge)
     useful = _priced(mb, "covert work on useful data", "M", chain,
-                     r_hi_dec=edge + gap, r_lo_dec=edge, r_lo_cov=useful_lo)
+                     r_hi_dec=dec_floor + gap, r_lo_dec=dec_floor, r_lo_cov=useful_lo)
     top = _priced(mb, "covert work at top of useful band", "A", chain,
-                  r_hi_dec=edge + gap, r_lo_dec=edge, r_lo_cov=useful_hi)
+                  r_hi_dec=dec_floor + gap, r_lo_dec=dec_floor, r_lo_cov=useful_hi)
 
     return [bare, precision, clock, reexec, useful, top]
 
@@ -224,8 +248,11 @@ def power_and_paperwork_stall(mb: MeasuredBands) -> float:
     r_lo_dec, r_hi_dec = format_band(mb, DECLARED_FORMAT)
     edge = covert_edge(mb, COVERT_FORMAT)
     width = (DVFS_FACTOR - 1.0) * 0.5 * (r_lo_dec + r_hi_dec)
+    # Anchored at the declared floor, not the covert edge: only the width enters,
+    # and collapsing the two floors onto one symbol is what subsec:poweronly
+    # forbids (see :func:`build_ladder`).
     _, beta = beta_phys_worst_case(
-        r_hi_dec=edge + width, r_lo_dec=edge, r_lo_cov=edge,
+        r_hi_dec=r_lo_dec + width, r_lo_dec=r_lo_dec, r_lo_cov=edge,
         dE0=mb.P0_hi - mb.P0_lo,
         C_max=A100_DENSE_PEAK_OPS[DECLARED_FORMAT],
         kappa=A100_DENSE_PEAK_OPS[COVERT_FORMAT] / A100_DENSE_PEAK_OPS[DECLARED_FORMAT])

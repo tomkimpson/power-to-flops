@@ -116,17 +116,17 @@ def test_conditional_chain_is_disclosed():
 
 def test_bare_rung_is_full_envelope_power_only():
     # Referee B4 (third round): a bare meter cannot separate declared from
-    # covert work nor one format from another, so BOTH edges are the full
-    # hardware envelope (subsec:poweronly) — the honest ceiling is the dearest
-    # measured rate (the pooled r_hi, fp32) and the covert/declared floor is the
-    # cheapest incremental covert op (the int8 marginal edge). No precision is
-    # assumed on either side (the retired fp16-ceiling / int8-floor hybrid was
-    # the inconsistency flagged). The ceiling is deliberately NOT the fp16 band.
+    # covert work nor one format from another, so the DECLARED BAND is the full
+    # hardware envelope (subsec:poweronly) — ceiling at the dearest measured
+    # rate (the pooled r_hi, fp32), floor at the cheapest (the pooled r_lo, int8
+    # zeros). No precision is assumed on either side (the retired fp16-ceiling /
+    # int8-floor hybrid was the inconsistency flagged), so the ceiling is
+    # deliberately NOT the fp16 band.
     mb = _mb()
     bare = build_ladder(mb)[0]
     assert bare.r_hi_dec == mb.r_hi
     assert bare.r_hi_dec != mb.format_bands["fp16"]["r_hi"]   # not the old hybrid
-    assert bare.r_lo_dec == covert_edge(mb, "int8")
+    assert bare.r_lo_dec == mb.r_lo
     assert bare.r_lo_cov == covert_edge(mb, "int8")
     # Cross-format clip (numerical-audit finding 2): the bare rung pins no
     # declared format, so its declared ops execute in the covert format and
@@ -141,6 +141,29 @@ def test_bare_rung_is_full_envelope_power_only():
     h1, b1, _ = _expected(mb, bare.r_hi_dec, bare.r_lo_dec, bare.r_lo_cov)
     assert bare.beta_star > b1                                # relaxed clip widens
     assert bare.h_star > h1
+
+
+def test_no_rung_collapses_the_declared_floor_onto_the_covert_floor():
+    # The de-collapse invariant (subsec:poweronly, app:estimands). r_lo^dec and
+    # r_lo^cov can describe the same physical corner of the hardware, but they
+    # sit in different algebraic roles and admit different estimands: the
+    # declared band enters through a DIFFERENCE (total quotients suffice), the
+    # covert floor is a DIVISOR (one-sided marginal LCB only). Every priced
+    # rung must therefore keep them on separate numbers, and no rung may divide
+    # by a total quotient — a quotient amortises baseline power that a marginal
+    # covert op does not pay, so it overstates the divisor and UNDERSTATES beta,
+    # the one direction a security floor cannot be wrong in.
+    #
+    # NOT asserted: an ordering between the two. r_lo^cov is the cheaper number
+    # wherever both describe the unconstrained hardware floor, but the
+    # useful-data rungs deliberately lift r_lo^cov ABOVE the declared floor —
+    # that threat-model restriction (hidden zero-ops are no threat) is exactly
+    # what those rungs buy.
+    mb = _mb()
+    quotients = {mb.r_lo, mb.r_hi, mb.r_lo_op, mb.r_useful_lo, mb.r_useful_hi}
+    for rung in (r for r in build_ladder(mb) if r.priced):
+        assert rung.r_lo_cov != rung.r_lo_dec, rung.name
+        assert rung.r_lo_cov not in quotients, rung.name
 
 
 def test_precision_rung_equals_headline():
@@ -178,26 +201,32 @@ def test_useful_band_width_never_enters_declared_numerator():
         assert r.S1 == pytest.approx(s1)
 
 
-def test_w0_pooled_floor_and_covert_edge_do_not_price_any_rung():
-    # B6 ban: Exp-2's w0 and operand edge r_lo_op, and the pooled floor r_lo,
-    # must not enter ANY priced rung — guarantee rungs price off the Exp-7
-    # marginal edge and the per-format bands. Poisoning them leaves every
-    # priced rung finite and unchanged.
+def test_exp2_quotients_do_not_price_any_rung():
+    # B6 ban: Exp-2's w0 and operand edge r_lo_op must not enter ANY priced rung
+    # — guarantee rungs price off the Exp-7 marginal edge and the per-format
+    # bands. Poisoning them leaves every priced rung finite and unchanged.
+    # (The pooled envelope edges r_lo/r_hi are NOT in this ban: they are the
+    # bare rung's declared band by construction — see the two tests below.)
     clean = build_ladder(_mb())
-    poisoned = build_ladder(_mb(w0=math.nan, r_lo_op=math.nan, r_lo=math.nan))
+    poisoned = build_ladder(_mb(w0=math.nan, r_lo_op=math.nan))
     for c, p in zip(clean, poisoned):
         if c.priced:
             assert math.isfinite(p.beta_star)
             assert p.beta_star == c.beta_star
 
 
-def test_pooled_ceiling_prices_only_the_bare_rung():
-    # B4 (third round): the pooled ceiling r_hi IS the power-only band, so it
-    # prices the bare rung by construction (subsec:poweronly) — but no capability
-    # rung below it. Poisoning r_hi must break only the bare rung.
+@pytest.mark.parametrize("edge", ["r_hi", "r_lo"])
+def test_pooled_envelope_prices_only_the_bare_rung(edge):
+    # B4 (third round): the pooled envelope [r_lo, r_hi] IS the power-only
+    # DECLARED band, so both its edges price the bare rung by construction
+    # (subsec:poweronly) — but no capability rung below it, which prices inside
+    # one format. Poisoning either edge must break only the bare rung.
+    #
+    # r_lo joined r_hi here when the bare rung was de-collapsed: it previously
+    # read the covert marginal edge as its declared floor, mixing estimands.
     clean = build_ladder(_mb())
-    poisoned = build_ladder(_mb(r_hi=math.nan))
-    assert not math.isfinite(poisoned[0].beta_star)          # bare reads r_hi
+    poisoned = build_ladder(_mb(**{edge: math.nan}))
+    assert not math.isfinite(poisoned[0].beta_star)          # bare reads both edges
     for c, p in zip(clean[1:], poisoned[1:]):                 # capability rungs intact
         if c.priced:
             assert math.isfinite(p.beta_star)
@@ -274,12 +303,15 @@ def test_committed_artifact_rung_values():
     rungs = build_ladder(load_measured_bands(ARTIFACT))
     check_monotone(rungs)
     betas = {r.name: r.beta_star for r in rungs if r.priced}
-    # Bare rung is the full-envelope power-only floor (B4, third round): pooled
-    # r_hi ceiling (fp32, 19.5 pJ/op) + int8 marginal floor, up from the retired
-    # fp16-ceiling hybrid's 1.34, under the format-consistent cross-format clip
-    # kappa - h (numerical-audit finding 2; the single-format clip gave 1.910).
-    # Its maximiser h*~0.046 sits inside the feasible window (below h_max~0.24).
-    assert betas["bare meter"] == pytest.approx(1.954, abs=5e-3)
+    # Bare rung is the full-envelope power-only floor (B4, third round): the
+    # pooled declared band [r_lo, r_hi] = [0.786, 19.5] pJ/op over the int8
+    # marginal covert edge, up from the retired fp16-ceiling hybrid's 1.34,
+    # under the format-consistent cross-format clip kappa - h (numerical-audit
+    # finding 2; the single-format clip gave 1.910). Its maximiser h*~0.047 sits
+    # inside the feasible window (below h_max~0.24). De-collapsing the declared
+    # floor off the covert edge moved this 1.954 -> 1.953: r_hi dominates the
+    # numerator's difference, so estimand purity is nearly free here.
+    assert betas["bare meter"] == pytest.approx(1.953, abs=5e-3)
     assert betas["precision declared & checked"] == pytest.approx(1.156, abs=5e-3)
     assert betas["declared work re-executed"] == pytest.approx(0.337, abs=5e-3)
     # Rungs 4-5 price off the qblock-marginal MARGINAL useful edge (B5, third round):
