@@ -52,7 +52,7 @@ GAP_SWEEP = (0.02e-12, 0.03e-12, 0.04e-12, 0.05e-12, 0.2e-12)
 # unobserved, re-execution transfers with a DVFS-wide error, not the gap.
 
 LABELS = {
-    "bare meter": "bare meter",
+    "bare meter": "power only",
     "precision declared & checked": "precision declared\n& checked",
     "clock & locality observed": "clock & locality\nobserved",
     "declared work re-executed": "declared work\nre-executed",
@@ -76,7 +76,7 @@ def main() -> None:
     fig, ax = plt.subplots(figsize=(3.4, 2.9))
     ax.axhline(1.0, color=C["grey"], lw=0.8, ls="--", zorder=1)
     ax.text(len(rungs) - 0.55, 1.09,
-            r"$\beta^{*}_{\mathrm{phys}} = 1$: one whole machine",
+            r"$\hat{\beta}^{*} = 1$: one whole machine",
             ha="right", va="bottom", fontsize=6.5, color=C["grey"])
 
     xs = [i for i, r in enumerate(rungs) if r.priced]
@@ -112,7 +112,7 @@ def main() -> None:
     ax.set_xlim(-0.4, len(rungs) - 0.45)
     ax.set_xticks(range(len(rungs)))
     ax.set_xticklabels(labels, fontsize=6.5, rotation=38, ha="right")
-    ax.set_ylabel(r"worst case $\beta^{*}_{\mathrm{phys}} = \max_h \beta_{\mathrm{phys}}(h)$")
+    ax.set_ylabel(r"worst case $\hat{\beta}^{*} = \max_h \hat{\beta}(h)$")
     ax.tick_params(axis="x", length=0)
 
     fig.tight_layout(pad=0.4)

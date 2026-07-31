@@ -86,15 +86,15 @@ def main() -> None:
         kappa = res["case"].kappa
         ax.plot(h, b, color=col, lw=1.3, zorder=3,
                 label=rf"{res['case'].covert_format} covert "
-                      rf"($\kappa = {kappa:g}$)")
+                      rf"($\gamma = {kappa:g}$)")
         hs, bs = res["h_star"], res["beta_star"]
         ax.plot(hs, bs, "o", ms=4, color=col, zorder=4)
-        ax.annotate(rf"$\beta = {bs:.2f}$ at $h = {hs:.2f}$", (hs, bs),
+        ax.annotate(rf"$\hat{{\beta}} = {bs:.2f}$ at $h = {hs:.2f}$", (hs, bs),
                     textcoords="offset points", xytext=(6, 6), fontsize=6.5,
                     color=col)
 
     ax.axhline(1.0, color=C["grey"], lw=0.8, ls="--", zorder=1)
-    ax.text(0.985, 1.0, r"$\beta = 1$: whole machine", ha="right",
+    ax.text(0.985, 1.0, r"$\hat{\beta} = 1$: whole machine", ha="right",
             va="bottom", fontsize=6.5, color=C["grey"])
 
     # Binding-regime annotations (referee B1: energy DOES bind below h*).
@@ -108,7 +108,7 @@ def main() -> None:
     ax.set_xlim(0.0, 1.0)
     ax.set_ylim(0.0, top)
     ax.set_xlabel(r"declared utilisation $h$")
-    ax.set_ylabel(r"clipped floor $\beta_{\mathrm{phys}}(h)$")
+    ax.set_ylabel(r"clipped floor $\hat{\beta}(h)$")
     ax.legend(frameon=False, fontsize=6.5, loc="upper right", borderaxespad=1.2)
 
     fig.tight_layout(pad=0.4)
