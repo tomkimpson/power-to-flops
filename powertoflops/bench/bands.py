@@ -242,6 +242,125 @@ def exchange_band_strata(exp1: Sequence[RunRecord]) -> dict[int, dict]:
     return out
 
 
+# ---- conditional factor widths of the CMOS factorisation (paper eq:widthfactor) ----
+#
+# r ~ kappa(precision) . alpha(operands) . C_eff(locality) . V^2(clock), so the
+# DECLARED band's ratio is the product of per-factor widths w_x = x_hi/x_lo, and a
+# verifier capability that pins one factor sets that factor's width to 1. To read
+# the ladder that way the widths must be SEPARABLE, which means measuring each one
+# with the other factors HELD FIXED -- a pooled min/max over the whole factorial
+# mixes them and is not a factor width.
+#
+# Hence "conditional": group cells by the other DESIGNED axes, take max/min across
+# the axis of interest within each group, and report the median over groups. On the
+# committed A100 artifact this yields w_kappa = 13.5, w_alpha = 1.90, w_C = 1.04,
+# whose product 26.8 reproduces the pooled 24.9x span to 8% (the residual is
+# factor interaction), and w_alpha * w_C = 1.98 predicts the fp16 sub-band's
+# measured 2.00x to 1%. Those two checks are what license the paper's
+# one-factor-per-rung reading of the ladder.
+#
+# Two design decisions here, both load-bearing:
+#
+# (1) Condition on the DESIGNED axes (dtype, locality, operand) only -- NOT on the
+#     achieved clock. Clock locking is privilege-denied, so the clock is an
+#     uncontrolled nuisance, not a swept factor. Adding it to the conditioning key
+#     shatters a balanced 6-level operand axis into groups of 1-6 levels, and the
+#     thin groups contribute ratios near 1.01 that drag the median down (w_alpha
+#     1.90 -> 1.58 on the committed artifact). That is a sparsity artifact, not a
+#     cleaner measurement. Groups are additionally required to be COMPLETE on the
+#     axis, so every reported width is a like-for-like comparison.
+#
+# (2) Because the nuisance is excluded from the key, it must be CHECKED instead:
+#     each width carries ``clock_balance``, the ratio of max to min median clock
+#     across the axis's levels. Near 1.0 means the levels ran at a common clock and
+#     the width is clean; a value well above 1 flags the confound Exp 2 discloses
+#     (there the clock slides monotonically against operand cost, 1410 -> 1324 MHz,
+#     which is why Exp 2's w0 is descriptive and Exp 1's w_alpha is not).
+#
+# The clock axis is NOT measured by this sweep: the governor held Exp 1 inside a
+# +-3% window, so `factor_widths` returns no w_V entry and the manuscript carries
+# the physics estimate (~1.5) explicitly flagged as an assumption. Do not
+# synthesise a w_V from the residual clock jitter here -- that is what makes the
+# clock/locality rung unpriceable, and inventing the number would hide it.
+
+# Designed Exp-1 factorial axes: factor name -> record attribute.
+_FACTOR_AXES = {
+    "kappa": "dtype",
+    "alpha": "operand_dist_a",
+    "C_eff": "locality",
+}
+
+
+def factor_widths(exp1: Sequence[RunRecord]) -> dict[str, dict]:
+    """Conditional widths {factor: {w, n_groups, w_min, w_max, clock_balance}}.
+
+    ``w`` is the median over groups of (max/min) across that factor's axis with
+    the other *designed* axes held fixed -- a separable factor width, not a
+    pooled span. Only groups covering every observed level of the axis count, so
+    the comparison is like-for-like. ``clock_balance`` is the max/min ratio of
+    median achieved clock across the axis's levels: near 1 the uncontrolled
+    clock is balanced and the width is clean, well above 1 it is confounded.
+    """
+    clean = clean_records(exp1)
+    if not clean:
+        raise ValueError("factor_widths: no un-throttled Exp-1 records")
+    out: dict[str, dict] = {}
+    for factor, attr in _FACTOR_AXES.items():
+        others = [a for f, a in _FACTOR_AXES.items() if f != factor]
+        levels = {getattr(r, attr) for r in clean}
+        cells = _median_per_cell(
+            clean, key=lambda r: tuple(getattr(r, a) for a in others) + (getattr(r, attr),))
+        groups: dict[tuple, dict] = defaultdict(dict)
+        for cell, r in cells.items():
+            groups[cell[:-1]][cell[-1]] = r
+        ratios = [max(m.values()) / min(m.values())
+                  for m in groups.values() if set(m) == levels]
+        if not ratios:
+            raise ValueError(
+                f"factor_widths: no Exp-1 group covers every {factor} level at "
+                f"fixed other factors -- the sweep is not factorial in {factor}")
+        # Nuisance check: did the axis's levels run at a common clock?
+        by_level: dict[object, list[float]] = defaultdict(list)
+        for r in clean:
+            by_level[getattr(r, attr)].append(
+                float(r.sm_clock_p50_mhz if r.sm_clock_p50_mhz is not None
+                      else r.sm_clock_mhz))
+        med_clk = [float(np.median(v)) for v in by_level.values()]
+        out[factor] = {"w": float(np.median(ratios)), "n_groups": len(ratios),
+                       "w_min": float(min(ratios)), "w_max": float(max(ratios)),
+                       "clock_balance": max(med_clk) / min(med_clk)}
+    return out
+
+
+def factorisation_check(exp1: Sequence[RunRecord], fmt: str = "fp16") -> dict:
+    """Does the product of conditional widths reproduce the measured bands?
+
+    Returns the two checks the manuscript quotes:
+      ``product``/``pooled``/``rel_err``  -- w_kappa w_alpha w_C vs the pooled
+          :func:`exchange_band` ratio (residual = factor interaction);
+      ``pinned_pred``/``pinned_obs``/``pinned_rel_err`` -- w_alpha w_C (the
+          band left once a capability sets w_kappa = 1) vs ``fmt``'s own
+          measured sub-band ratio.
+    The second is the sharper test: it predicts a capability's effect from the
+    factorisation and compares against an independently measured band.
+    """
+    w = factor_widths(exp1)
+    product = w["kappa"]["w"] * w["alpha"]["w"] * w["C_eff"]["w"]
+    r_lo, r_hi = exchange_band(exp1)
+    pooled = r_hi / r_lo
+    band = exchange_band_by_format(exp1)[fmt]
+    pinned_pred = w["alpha"]["w"] * w["C_eff"]["w"]
+    pinned_obs = band["r_hi"] / band["r_lo"]
+    return {
+        "widths": {k: v["w"] for k, v in w.items()},
+        "product": product, "pooled": pooled,
+        "rel_err": product / pooled - 1.0,
+        "format": fmt,
+        "pinned_pred": pinned_pred, "pinned_obs": pinned_obs,
+        "pinned_rel_err": pinned_pred / pinned_obs - 1.0,
+    }
+
+
 def operand_core_strata(exp2: Sequence[RunRecord]) -> dict[int, dict]:
     """Per-achieved-clock-stratum operand cores (R2.3).
 
