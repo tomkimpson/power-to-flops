@@ -1282,7 +1282,7 @@ widths separately and both edges of the declared band at either setting.
 The platform did not expose voltage control, so we could not sweep $V^2$; we
 record the governor-selected clock as operating-point metadata instead. The
 static component of the power omitted by \cref{eq:cmos} returns as the
-intercept $P_0$ of the affine power law; Experiment~3 measures the width of
+intercept $P_0$ of the affine power law; Experiment~2 measures the width of
 that intercept band and hence $\Delta E_0$ over the observation window.
 
 Those two experiments map how wide the exchange rate's range is, but mapping
@@ -1290,21 +1290,21 @@ a range is not the same as pricing its floor. The covert denominator of
 \cref{eq:betaen} is a \emph{marginal} quantity that no sweep of whole busy
 windows estimates, for the reason the next paragraph gives, so two further
 experiments measure it by intervening on the covert dose directly:
-Experiment~4 for generic covert work and Experiment~5 for covert work that
+Experiment~3 for generic covert work and Experiment~4 for covert work that
 does something useful. Experiment~1's cheapest cell is a value of
 $r_{\mathrm{lo}}^{\mathrm{dec}}$, not a covert floor, and no rung divides by it.
 \Cref{tab:inputs} records which experiment supplies
 which entry of the triple, and at which setting. A fourth
-sweep, Experiment~2, varies the operand axis alone; it corroborates
+sweep, Experiment~5, varies the operand axis alone; it corroborates
 Experiment~1's $\alpha$ width from independent data and prices nothing, so it is
 reported in \cref{app:operands} rather than here.
 
 \paragraph{Setup and provenance.}
-Experiments~1--4 ran sequentially on one NVIDIA A100-SXM4-80GB in a single
-Slurm allocation; a compact cross-device sweep on three more cards of the
+Experiments~1--3 and~5 ran sequentially on one NVIDIA A100-SXM4-80GB in a
+single Slurm allocation; a compact cross-device sweep on three more cards of the
 same SKU gives the $2$--$3\%$ device-to-device spread reported with the
 matched-energy witnesses below, and the useful-operand workloads
-(Experiment~5) and matched-energy witnesses ran on further same-SKU
+(Experiment~4) and matched-energy witnesses ran on further same-SKU
 cards. The platform denied clock locking and power capping, so DVFS is a
 recorded axis rather than a controlled one: each window logs the
 governor-selected SM clock and the bands are stratified into clock
@@ -1340,9 +1340,9 @@ which band.
 		dearest $r$ & fp32, dear operands & Exp.~1 & $19.5$ \\
 		cheapest $r$ & int8, zeros & Exp.~1 & $0.786$ \\
 		fp16 band & one format's own & Exp.~1 & $1.10$--$2.19$ \\
-		covert floor & generic covert op & Exp.~4 & $0.51$ \\
-		covert floor & \emph{useful} covert op & Exp.~5 & $2.53$ \\
-		$\Delta P_0$ & overhead band & Exp.~3 & $41.2$\,W \\
+		covert floor & generic covert op & Exp.~3 & $0.51$ \\
+		covert floor & \emph{useful} covert op & Exp.~4 & $2.53$ \\
+		$\Delta P_0$ & overhead band & Exp.~2 & $41.2$\,W \\
 		\bottomrule
 	\end{tabular}
 	\caption{What each experiment pins down. Values in pJ/op unless marked
@@ -1356,7 +1356,7 @@ which band.
 	fp16 sub-band's measured $2.00$ to $2\%$---the check that licenses reading
 	\cref{sec:decreasing-beta} as one factor pinned per rung.
 	%
-	$w_V$ is the exception and is flagged as such: neither Exp.~1 nor Exp.~2
+	$w_V$ is the exception and is flagged as such: neither Exp.~1 nor Exp.~5
 	sweeps the clock (the governor held both inside a $\pm3\%$ window), so its
 	width is a physics estimate, not a measurement. That is why the clock rung of
 	\cref{tab:ladder} is left unpriced.
@@ -1389,7 +1389,7 @@ which band.
 	mark the widest setting's edges, both of them operand extremes: fp32 at its
 	dearest operands, int8 with zeros. Nothing in this figure is the third entry
 	$r_{\mathrm{lo}}^{\mathrm{cov}}$, which is a marginal cost and lies below
-	every bar here (Experiment~4).}
+	every bar here (Experiment~3).}
 	\label{fig:exchange-band}
 \end{figure}
 
@@ -1463,7 +1463,7 @@ it.
 \begin{figure}[t]
 	\centering
 	\includegraphics[width=\columnwidth]{overhead_affine}
-	\caption{The overhead band and the affine forward map (Experiment~3,
+	\caption{The overhead band and the affine forward map (Experiment~2,
 	$n=65$ windows across a $15$-cell rate ladder). \emph{Top:} mean power
 	$P$ vs.\ nominal-op rate $F$, plotted as per-cell medians with
 	$\pm1$\,SD error bars over each cell's repeats. Markers give each cell's
@@ -1481,11 +1481,11 @@ it.
 	which is what its $R^2$ measures; the orange shapes carry the scatter.
 	This is a \emph{between-shape} diagnostic of the affine map; the covert
 	denominator the floor actually uses is the \emph{within-cell} marginal cost
-	of \cref{fig:marginal-dose} (Experiment~4), not either fit here.}
+	of \cref{fig:marginal-dose} (Experiment~3), not either fit here.}
 	\label{fig:overhead-affine}
 \end{figure}
 
-\paragraph{Experiment 3---the overhead band $\Delta E_0$ and the marginal rate.}
+\paragraph{Experiment 2---the overhead band $\Delta E_0$ and the marginal rate.}
 The \emph{rate ladder} is ten fp16 matmul shapes chosen to span the machine's
 sustained throughput: three small cubes ($256^3$ to $1024^3$) that are
 launch-bound, two skinny-$K$ shapes
@@ -1519,12 +1519,12 @@ $R^2 = 0.852$ (black dashed): the slope moves by $4\%$ while
 the scatter grows sharply, so the launch- and bandwidth-bound shapes account
 for the residual and not for the rate---the expected behaviour rather than a
 failure of the model (\cref{app:estimands}). The derivative the floor actually
-needs is what Experiment~4 identifies.
+needs is what Experiment~3 identifies.
 
 \begin{figure}[t]
 	\centering
 	\includegraphics[width=\columnwidth]{marginal_dose}
-	\caption{The marginal covert cost (Experiment~4): window energy $E$ vs.\
+	\caption{The marginal covert cost (Experiment~3): window energy $E$ vs.\
 	covert dose $C_{\mathrm{cov}}$ for int8 and fp16 covert work, added to a
 	fixed fp16 declared burst inside a fixed $10$\,s window. \emph{Top:}
 	per-cell medians with $\pm1$\,SD error bars over each cell's four
@@ -1541,7 +1541,7 @@ needs is what Experiment~4 identifies.
 	\label{fig:marginal-dose}
 \end{figure}
 
-\paragraph{Experiment 4---the marginal covert cost.}
+\paragraph{Experiment 3---the marginal covert cost.}
 The covert denominator, measured as the theorem defines it: the energy an
 \emph{added} covert operation costs, with everything else held fixed. Every
 measured window has the same fixed $10$\,s wall length and contains the
@@ -1571,7 +1571,7 @@ admits---unseen kernels, schedules, operand encodings, or thermal states
 could in principle sit below it. Every rung that divides by
 $r_{\mathrm{lo}}^{\mathrm{cov}}$ is therefore conditional on the measured
 covert families bracketing the adversary's cheapest edge; the same reading
-applies to the useful band of Experiment~5, estimated from one trained
+applies to the useful band of Experiment~4, estimated from one trained
 transformer layer at two shapes.} Clock locking is denied on this platform,
 so the governor is a recorded, not controlled, axis here too; the
 window-median clock varies with the dose through the idle-pad share, and
@@ -1579,7 +1579,7 @@ the identification rests on the dose-response linearity and the intercept
 anchor rather than on a common clock stratum---a stated limitation of the
 platform.
 
-\paragraph{Experiment 5---the marginal \emph{useful} covert cost.}
+\paragraph{Experiment 4---the marginal \emph{useful} covert cost.}
 The same intervention, with the covert dose replaced by forward passes of the
 trained-weight int8 transformer block of \cref{sec:decreasing-beta} (one
 Pythia-6.9B layer on real text activations, quantisation scales applied, the
@@ -1589,7 +1589,7 @@ covert nominal operations gives a marginal useful cost of $2.54$--$3.21$\,pJ/op
 (both fits $R^2 > 0.999$; one-sided $95\%$ lower limits $[2.53, 3.16]$\,pJ/op),
 against standalone total-quotient one-sided $95\%$ lower limits of
 $[3.18, 4.22]$ (point means $[3.26, 4.24]$): exactly as in
-Experiment~4 the amortised idle baseline cancels in the slope, so this is the
+Experiment~3 the amortised idle baseline cancels in the slope, so this is the
 incremental estimand the useful rungs of \cref{sec:decreasing-beta} require,
 not a total quotient.
 
@@ -1626,9 +1626,9 @@ bands at the few-per-cent level.
 The floor is evaluated inside the jointly feasible fp16-declared scenario
 of \cref{app:worstcase}: the declared band is the fp16 cells' own
 $[r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}] =
-[1.10,\,2.19]$\,pJ/op (Experiment~1), the covert cost is Experiment~4's
+[1.10,\,2.19]$\,pJ/op (Experiment~1), the covert cost is Experiment~3's
 marginal lower limit, the overhead width is $\Delta P_0 = 41.2$\,W
-(Experiment~3), and capacity and $\gamma$ (\cref{eq:capratio}) come from
+(Experiment~2), and capacity and $\gamma$ (\cref{eq:capratio}) come from
 the two formats' published peaks. The set is format-consistent by construction---our
 analysis code rejects any cross-format combination of extrema---and joint
 attainability of its cheating corner within one observation window is
@@ -1691,7 +1691,7 @@ the energy budget and the silicon, not by either alone.
 	\caption{The capacity-clipped floor $\beta(h)$
 	(\cref{eq:betafloor}) from the jointly feasible fp16-declared bands,
 	for covert int8 ($\gamma = 2$, blue) and covert fp16 ($\gamma = 1$,
-	orange), both priced at Experiment~4's marginal lower limits. Faint
+	orange), both priced at Experiment~3's marginal lower limits. Faint
 	dashed lines are the unclipped energy-only widths $\beta_{\mathrm{en}}(h)$
 	($\beta_{\mathrm{en}}(1) = 2.39$ and $1.62$): energy is the binding constraint left of
 	each crossing, capacity right of it, and both bind at $h^{*}$. Dotted
@@ -1755,7 +1755,7 @@ takes the rungs in turn.
 	physical worst case
 	$\beta^{*} = \max_h \beta(h)$
 	(\cref{eq:betaworst}) under the joint model of \cref{app:worstcase}
-	(fp16-declared case study, int8 covert edge at the Exp.~4 marginal LCB,
+	(fp16-declared case study, int8 covert edge at the Exp.~3 marginal LCB,
 	$\gamma = 2$; the
 	format-unpinned bare rung carries the cross-format clip $\gamma - h$ of
 	\cref{eq:betafloorbare});
@@ -1878,7 +1878,7 @@ First, the capability does not exist: every route to it---attested clock
 telemetry, locked clocks by policy, or the EM side channel
 (\cref{sec:discussion})---is prospective, so there is no channel to price.
 Second, and independently, \emph{we have not measured $w_V$}. Neither
-Experiment~1 nor Experiment~2 sweeps the clock; the governor held both inside a
+Experiment~1 nor Experiment~5 sweeps the clock; the governor held both inside a
 $\pm3\%$ window, so the ${\approx}1.5$ we carry for $w_V$ is
 \cref{subsec:factors}'s device-physics estimate and not a measurement
 (\cref{tab:inputs}). Pricing a security guarantee on the width a capability
@@ -1961,7 +1961,7 @@ adversary ${\approx}4.9\times$ fewer useful operations than silicon-floor
 accounting would concede. Because this edge is an incremental dose slope, not
 a standalone total quotient, it is a genuine marginal lower bound on the
 covert cost --- the estimand the denominator requires
-(\cref{app:estimands}), measured the same way as Experiment~4's int8
+(\cref{app:estimands}), measured the same way as Experiment~3's int8
 covert edge.
 
 \paragraph{Covert work at the top of the useful band ($0.071 \to 0.057$).}
@@ -2041,7 +2041,7 @@ A100-specific, though the closed form is not.
 (ii) The band edges are read from a factorial sweep whose corner cell
 (int8, zero operands) is directly measured, but on synthetic operands;
 genuinely useful covert work prices at the measured marginal useful band
-$[2.53, 3.16]$\,pJ/op instead (Experiment~5's dose-response; the standalone
+$[2.53, 3.16]$\,pJ/op instead (Experiment~4's dose-response; the standalone
 total-quotient lower limits are $[3.18, 4.22]$), and the bottom rungs depend on that band's
 width. (iii) The hardware gap behind the
 re-execution rung (${\approx}0.05$\,pJ/op) is an assumption. The same-SKU
@@ -2210,7 +2210,7 @@ is the intercept,
 	r = \frac{\partial P}{\partial F}, \qquad P_0 = P\big|_{F=0}.
 	\label{eq:marginal}
 \end{equation}
-Experiment~3 estimates \cref{eq:marginal} directly, regressing mean power
+Experiment~2 estimates \cref{eq:marginal} directly, regressing mean power
 on sustained nominal-op rate with idle cells as the $F = 0$ anchors
 (\cref{sec:empirical-measurements}).
 
@@ -2233,7 +2233,7 @@ and the clock drops out: energy per operation does not depend on how fast
 the operations run, only on what each switching event costs and how many
 operations it delivers. The rate is constant in $F$, so $P_{\mathrm{dyn}} = rF$
 is linear through the origin, exactly the affine form the forward model
-\cref{eq:forward} assumes and Experiment~3 fits. The capacitance switched
+\cref{eq:forward} assumes and Experiment~2 fits. The capacitance switched
 per operation, $C/N_{\mathrm{op}}$, has two structural sources: the arithmetic
 datapath, whose width is set by the numeric format, and the data-movement
 path, set by where the operands live and which kernel runs. Factoring it
@@ -2539,13 +2539,13 @@ affine map of \cref{eq:forward}; the affine model is the special case
 $g_x = P_0 + r^{\mathrm{dec}}F_{\mathrm{dec}} + r^{\mathrm{cov}}F_{\mathrm{cov}}$,
 which additionally makes $\beta_{\mathrm{en}}(h)$ linear in $h$. We therefore identify
 $r_{\mathrm{lo}}^{\mathrm{cov}}$ by a dose--response intervention
-(Experiment~4 for the generic int8 edge, Experiment~5 for the useful-operand
+(Experiment~3 for the generic int8 edge, Experiment~4 for the useful-operand
 edge), not by fitting a power--rate curve; a total-quotient covert edge is
 inadmissible here, and every covert edge the bound uses is a marginal dose
 slope.
 
 \paragraph{Why the between-shape slope is not that estimand.}
-Experiment~3's regression of power on rate across kernel shapes is a
+Experiment~2's regression of power on rate across kernel shapes is a
 consistency diagnostic for the affine map, never an input to the bound, and the
 two roles above say why. Those shapes move $C_{\mathrm{eff}}$ and $\alpha$
 along with $F$, so the resulting spread in $r$ is the same physical variation
@@ -2649,7 +2649,7 @@ Clock locking is denied on the platform
 (\cref{sec:empirical-measurements}), so the arms are matched by cadence
 rather than by a held clock: both reach the same $1410$\,MHz compute
 clock, and the per-window \emph{median} clock differs between them only
-through the idle-pad share, exactly as in Experiment~4.
+through the idle-pad share, exactly as in Experiment~3.
 
 \paragraph{The power-cap asymmetry is conservative.}
 Run~A's dear burst draws ${\approx}500$\,W against run~B's
@@ -2703,27 +2703,36 @@ This appendix gives the hardware, provenance, and mechanics: the workload
 and why its operation count is exact, how each driver is set, and how the
 energy is metered.
 Experiments~2 and~3 reuse the same protocol with a different swept axis;
-Experiment~4 reuses its metering inside fixed-length composite windows
+Experiment~3 reuses its metering inside fixed-length composite windows
 (declared burst + covert dose + idle pad).
 
 \paragraph{Hardware and provenance.}
-Experiments~1--4 ran sequentially on one NVIDIA A100-SXM4-80GB (driver
+Experiments~1--3 and~5 ran sequentially on one NVIDIA A100-SXM4-80GB (driver
 595.84), in a single Slurm allocation on the OzSTAR facility on
-22~July 2026 ($340$, $135$, $85$, and $70$ recorded windows respectively).
-The released records and capture scripts index experiments by their
-capture identifiers, which differ from the numbering used here---in
-particular, capture \texttt{exp4} is the cross-device sweep and \emph{not}
-Experiment~4, whose records are \texttt{exp7}; the repository's
-\texttt{README} maps the two schemes. Every record carries the device
+22~July 2026 ($340$, $85$, $70$, and $135$ recorded windows respectively).
+The released records and capture scripts index experiments by
+capture identifier, which does \emph{not} match the numbering used here: the
+captures are named in the order they were written, the experiments in the order
+the argument needs them. The mapping is
+Experiment~1 $\to$ \texttt{exp1\_exchange},
+Experiment~2 $\to$ \texttt{exp3\_overhead},
+Experiment~3 $\to$ \texttt{exp7\_marginal},
+Experiment~4 $\to$ \texttt{qblock\_marginal}, and
+Experiment~5 $\to$ \texttt{exp2\_operand}.
+Two identifiers carry no experiment number at all: \texttt{exp4\_core} is the
+cross-device sweep and \texttt{qblock} the trained-weight total quotient
+reported only as a contrast to Experiment~4's marginal edge. Read the
+identifiers, not the digits in them; the repository's \texttt{README} carries
+the same table. Every record carries the device
 UUID, sweep id, configuration snapshot, and git commit, and the
 band-extraction code refuses to mix devices silently; because
-Experiment~4's marginal cost and Experiment~1's declared band price the
+Experiment~3's marginal cost and Experiment~1's declared band price the
 same floor, the guard requires them to share one device. Seven cards of
 one SKU appear in total, by UUID prefix: \texttt{GPU-ac1cbae9}
-(Experiments~1--4); \texttt{GPU-4bb93dfb}, \texttt{GPU-617f2717},
+(Experiments~1--3 and~5); \texttt{GPU-4bb93dfb}, \texttt{GPU-617f2717},
 \texttt{GPU-aa412071} (cross-device sweep); \texttt{GPU-757ff02a} (the
 trained-weight total quotient, reported only as a contrast to the marginal
-edge) and \texttt{GPU-747045fa} (Experiment~5, the incremental useful-work
+edge) and \texttt{GPU-747045fa} (Experiment~4, the incremental useful-work
 edge that prices the bottom two rungs of \cref{sec:decreasing-beta});
 \texttt{GPU-108c1549} (the matched-energy witnesses of
 \cref{sec:empirical-measurements}). Each single-device band is therefore compared
@@ -2823,7 +2832,7 @@ platform denied user clock-locking, so the clock was left to the governor
 and merely recorded per run. The operand \emph{values} are a fourth axis:
 Experiment~1 crosses all six operand distributions (\cref{app:operands})
 with precision and locality in a full factorial, so the pooled envelope
-already contains the operand spread; Experiment~2 re-runs the operand axis
+already contains the operand spread; Experiment~5 re-runs the operand axis
 alone, at fixed precision and locality, as the descriptive operand-only map
 of \cref{app:operands}.
 
@@ -2844,10 +2853,10 @@ $r_{\mathrm{hi}}^{\mathrm{dec}}$ with no format pinned, and the largest within
 one format is that format's own ceiling;
 \cref{fig:exchange-band} plots the full set.
 
-\section{How Experiment~2 varies the operands}
+\section{How Experiment~5 varies the operands}
 \label{app:operands}
 
-Experiment~2 holds the kernel, shape,
+Experiment~5 holds the kernel, shape,
 and precision fixed and moves \emph{only the operand values}. Every
 configuration runs the identical matmul $A\,B$ with the identical operation
 count \cref{eq:flopcount}, so the energy differences track the
@@ -2862,7 +2871,7 @@ walk $\alpha$ from its floor to its ceiling.
 It measures a width the body already has. Experiment~1's factorial varies the
 same six operand families \emph{inside every format}, so its fp16 cells contain
 this experiment's comparison as one slice of a larger grid---and contain it at a
-matched clock, which this sweep does not have. Experiment~2 is therefore
+matched clock, which this sweep does not have. Experiment~5 is therefore
 dominated: fp16-only, streamed-only, and confounded where Experiment~1 is
 balanced. We keep it for two reasons, neither of them load-bearing. It
 corroborates $w_\alpha$ from independent data, and it resolves the activity
@@ -2895,13 +2904,13 @@ directions, and one-sided uncertainty cannot repair an uncontrolled confound.
 
 The minimum-energy run (zeros) puts the fp16 operand floor at $1.16$\,pJ/op as a
 total quotient---a descriptive edge only; the covert denominator the floor
-actually uses is Experiment~4's marginal cost (a one-sided $95\%$ lower
+actually uses is Experiment~3's marginal cost (a one-sided $95\%$ lower
 confidence limit), which strips the baseline power this quotient amortises in.
 
 \begin{figure}[t]
 	\centering
 	\includegraphics[width=\columnwidth]{operand_envelope}
-	\caption{The shape of the activity factor $\alpha$ (Experiment~2, $n=96$
+	\caption{The shape of the activity factor $\alpha$ (Experiment~5, $n=96$
 	windows across six operand distributions). Kernel, shape, and
 	precision (fp16) are held fixed and only the operand values vary; the clock
 	was governor-selected, not locked, and slides monotonically against operand
@@ -2911,7 +2920,7 @@ confidence limit), which strips the baseline power this quotient amortises in.
 	predicts. The
 	minimum (zeros, dashed) is the descriptive fp16 operand floor
 	$1.16$\,pJ/op as a total quotient---\emph{not}
-	the covert denominator, which is Experiment~4's marginal edge.}
+	the covert denominator, which is Experiment~3's marginal edge.}
 	\label{fig:operand-envelope}
 \end{figure}
 
@@ -2931,7 +2940,7 @@ operand floor, $1.16$\,pJ/op as a total quotient; combined with the int8
 format in Experiment~1's factorial it reaches the cheapest measured quotient,
 $0.786$\,pJ/op, which is $r_{\mathrm{lo}}^{\mathrm{dec}}$ with no format pinned.
 (A declared entry. The covert entry
-$r_{\mathrm{lo}}^{\mathrm{cov}}$ is Experiment~4's marginal cost, not either of
+$r_{\mathrm{lo}}^{\mathrm{cov}}$ is Experiment~3's marginal cost, not either of
 these quotients; \cref{sec:empirical-measurements,tab:inputs}.)
 
 \paragraph{2. Low-entropy---a few distinct levels.}

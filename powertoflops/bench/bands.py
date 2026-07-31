@@ -273,11 +273,12 @@ def exchange_band_strata(exp1: Sequence[RunRecord]) -> dict[int, dict]:
 # (2) Because the nuisance is excluded from the key, it must be CHECKED instead:
 #     each width carries ``clock_balance``, the ratio of max to min median clock
 #     across the axis's levels. Near 1.0 means the levels ran at a common clock and
-#     the width is clean; a value well above 1 flags the confound Exp 2 discloses
-#     (there the clock slides monotonically against operand cost, 1410 -> 1324 MHz,
-#     which is why Exp 2's w0 is descriptive and Exp 1's w_alpha is not).
+#     the width is clean; a value well above 1 flags the confound capture exp2
+#     discloses (manuscript Experiment 5: there the clock slides monotonically
+#     against operand cost, 1410 -> 1324 MHz, which is why its w0 is descriptive
+#     and exp1's w_alpha is not).
 #
-# The clock axis is NOT measured by this sweep: the governor held Exp 1 inside a
+# The clock axis is NOT measured by this sweep: the governor held exp1 inside a
 # +-3% window, so `factor_widths` returns no w_V entry and the manuscript carries
 # the physics estimate (~1.5) explicitly flagged as an assumption. Do not
 # synthesise a w_V from the residual clock jitter here -- that is what makes the

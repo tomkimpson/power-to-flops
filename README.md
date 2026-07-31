@@ -35,18 +35,21 @@ same numbers. Everywhere below, `expN` means the capture identifier.
 
 | manuscript | capture id | record that prices it | flag | GPU |
 |---|---|---|---|---|
-| Experiment 1 — exchange band | `exp1` | `exp1_exchange_e2958cc757b9.jsonl` (340) | `--exp1` | `GPU-ac1cbae9` |
-| Experiment 2 — operand sweep | `exp2` | `exp2_operand_cbfbb110b29e.jsonl` (135) | `--exp2` | `GPU-ac1cbae9` |
-| Experiment 3 — overhead band | `exp3` | `exp3_overhead_b9af294e862e.jsonl` (85) | `--exp3` | `GPU-ac1cbae9` |
-| Experiment 4 — marginal covert cost | `exp7` | `exp7_marginal_b73b5094c430.jsonl` (70) | `--exp7` | `GPU-ac1cbae9` |
-| Experiment 5 — marginal useful cost | `qblock_marginal` | `qblock_marginal_5dd152cc216f.jsonl` (60) | `--qblock-marg` | `GPU-747045fa` |
+| Experiment 1 — exchange band (three factor widths) | `exp1` | `exp1_exchange_e2958cc757b9.jsonl` (340) | `--exp1` | `GPU-ac1cbae9` |
+| Experiment 2 — overhead band | `exp3` | `exp3_overhead_b9af294e862e.jsonl` (85) | `--exp3` | `GPU-ac1cbae9` |
+| Experiment 3 — marginal covert cost | `exp7` | `exp7_marginal_b73b5094c430.jsonl` (70) | `--exp7` | `GPU-ac1cbae9` |
+| Experiment 4 — marginal useful cost | `qblock_marginal` | `qblock_marginal_5dd152cc216f.jsonl` (60) | `--qblock-marg` | `GPU-747045fa` |
+| Experiment 5 — operand sweep *(appendix only; prices nothing)* | `exp2` | `exp2_operand_cbfbb110b29e.jsonl` (135) | `--exp2` | `GPU-ac1cbae9` |
 | *(unnumbered)* cross-device spread | `exp4` | `exp4_core_*.jsonl` | `--core` | 3 further cards |
 | *(unnumbered)* matched-energy witnesses | `matched_pair` | `matched_pair_*.json` | — | `GPU-108c1549` |
 | *(disclosure only)* useful total quotient | `qblock` | `qblock_5ba826fed96c.jsonl` (40) | `--qblock` | `GPU-757ff02a` |
 
-**Mind the collision:** capture `exp4` is the cross-device sweep, whereas *manuscript*
-Experiment 4 is the marginal-dose intervention (capture `exp7`). The two schemes disagree
-on the number 4; the table is the authority.
+**Mind the collisions.** Captures are numbered in the order they were written, manuscript
+experiments in the order the argument needs them, so *no* digit can be trusted to agree
+across the two schemes. Three traps in particular: capture `exp4` is the cross-device
+sweep and not manuscript Experiment 4 (that is `qblock_marginal`); capture `exp2` is
+manuscript Experiment 5, not Experiment 2 (that is `exp3_overhead`); and manuscript
+Experiment 3 is capture `exp7`. The table is the authority.
 
 Capture ids 5 and 6 were the matched-pair and qblock harnesses (`bench/runner.py`), which
 the manuscript reports without numbering. Nothing is missing from either list. A third
@@ -68,7 +71,7 @@ python scripts/analyze_bands.py \
     --allow-multi-device
 ```
 
-`--qblock-marg` (manuscript Experiment 5) is **required**: without it the artifact carries
+`--qblock-marg` (manuscript Experiment 4) is **required**: without it the artifact carries
 no `r_useful_marg` and the bottom two ladder rungs cannot be priced. `--allow-multi-device`
 declares that the qblock captures ran on other cards of the same SKU; it is not load-bearing
 here, since the mixed-device guard covers `exp1`–`exp3` and `exp7` only and this command
