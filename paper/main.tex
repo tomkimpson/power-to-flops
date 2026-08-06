@@ -593,6 +593,7 @@ observables (clock, voltage) can raise $r_{\mathrm{lo}}^{\mathrm{cov}}$.
 
 \begin{figure}[t]
 	\centering
+	\resizebox{\columnwidth}{!}{%
 	\begin{tikzpicture}[line join=round, line cap=round]
 
 		% ---------- the window: one device, one observation window T ----------
@@ -626,7 +627,8 @@ observables (clock, voltage) can raise $r_{\mathrm{lo}}^{\mathrm{cov}}$.
 			{\scriptsize $(1-h)\,\gamma\,C_{\max} = 12$};
 		\node[anchor=east, inner sep=4pt] at (0,0.92) {\scriptsize operations};
 
-	\end{tikzpicture}
+	\end{tikzpicture}%
+	}
 	\caption{The capacity clip. Declared work takes $h\,T$ of the window and
 		the covert block gets the rest (top); each block executes operations at
 		its own format's rate (bottom), drawn at $h = 1/2$ and $\gamma = 2$
@@ -669,25 +671,18 @@ run.
 \subsection{The floor}
 \label{subsec:betafloor}
 
-Each width is what \cref{eq:betadef} returns when one constraint is imposed
-and the other ignored, so the floor---the width when both hold at once---is
-the smaller of them,
+The covert load must fit under both caps at once, so the floor is the
+smaller of the two widths,
 \begin{equation}
 	\;\beta(h) \;=\;
 	\min\bigl[\,\beta_{\mathrm{en}}(h),\; (1-h)\,\gamma\,\bigr].\;
 	\label{eq:betafloor}
 \end{equation}
 
-The maximisation behind \cref{eq:betafloor} extremises the three bands
-jointly, at a corner no single schedule is guaranteed to attain, so $\beta$
-upper-bounds the true identified-set width; \cref{app:boundkind} states the
-corner assumption (\cref{ass:corners}) and the relaxation it implies
-(\cref{eq:relaxation}), and \cref{sec:attained} probes the gap with
-constructed schedules.
-
 \begin{figure}[t]
 	\centering
-	\begin{tikzpicture}[>=Stealth, line join=round, line cap=round]
+	\resizebox{\columnwidth}{!}{%
+	\begin{tikzpicture}[>=Stealth, line join=round, line cap=round, yscale=1.2]
 
 		% ---------- axes: no numeric scale, this is a shape not a measurement ----------
 		\draw[->] (0,0) -- (5.6,0) node[right, inner sep=2pt] {\scriptsize $h$};
@@ -727,7 +722,8 @@ constructed schedules.
 		\node[gray!55!black, anchor=north, inner sep=2pt] at (3.55,-0.34)
 			{\scriptsize capacity binds};
 
-	\end{tikzpicture}
+	\end{tikzpicture}%
+	}
 	\caption{The shape of the floor. The energy-only width
 		$\beta_{\mathrm{en}}(h) = s\,h + b$ rises with declared utilisation---more
 		honest work offers more cover (dashed)---while the capacity clip
@@ -736,18 +732,19 @@ constructed schedules.
 		a tent peaking at the crossing $(h^{*}, \beta^{*})$ of
 		\cref{eq:betaworst}, with energy binding to its left, capacity to its
 		right, and $\beta(1) = 0$ because a fully occupied machine leaves
-		nowhere to hide. No numeric scale is intended---the $s$, $b$ and
-		$\gamma$ drawn here are illustrative, and \cref{fig:betafloor} plots the
-		same construction on measured bands.}
+		nowhere to hide.}
 	\label{fig:betashape}
 \end{figure}
 
-The two pull in opposite directions (\cref{fig:betashape}). Energy
-\emph{rises} with $h$---more declared work offers more cover---while capacity
-\emph{falls}---more
+The two caps pull in opposite directions (\cref{fig:betashape}). Energy
+rises with $h$---more declared work offers more cover---while capacity
+falls---more
 declared work leaves less machine to hide on. At full declared utilisation
 the machine is spoken for and $\beta(1) = 0$; at idle there
-is capacity but almost no cover. The worst case sits at the crossing,
+is capacity but almost no cover. The declared utilisation is the prover's to
+set, so the guarantee a verifier can quote is the worst case over it,
+$\beta^{*} \equiv \max_h \beta(h)$; this is the figure of merit the rest of
+the paper tracks. The maximum sits at the crossing,
 \begin{equation}
 	h^{*} = \frac{\gamma - b}{s + \gamma}, \qquad
 	\beta^{*} = \gamma\,\frac{s + b}{s + \gamma},
@@ -760,23 +757,28 @@ boundary, $(h^{*}, \beta^{*}) = (0, \gamma)$. Each side of the
 minimum is the binding constraint in its own regime: energy binds for
 $h < h^{*}$ (the trace itself caps the covert load), capacity binds for
 $h > h^{*}$, and both bind at the crossing. Where the crossing sits is an
-empirical question about $s$. On jointly consistent bands---one declared
-format's own band over the covert format's marginal cost---the measured
-slope is of order one (\cref{sec:empirical-measurements}), so the crossing
-falls at intermediate utilisation and the worst case is a fraction of
-$\gamma$.
+empirical question about $s$.
+
+One caveat is that the cheating strategy of \cref{subsec:derivation} pushed three
+quantities to their edges at once---cheap declared work, idled overhead,
+cheap covert work---and no single schedule is guaranteed to reach all three
+edges together, so $\beta$ upper-bounds the true identified-set width.
+\Cref{app:boundkind} states this and discusses this corner assumption precisely.
 
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
 
 So far the floor is only a pair of formulas---the energy-only width
 \cref{eq:betaen} and its capacity clip \cref{eq:capclip}; this section asks how
-large they actually are. Because both read the same three numbers, that reduces
-to one concrete question: how big is each entry of the triple
+large they actually are. The clip costs nothing to evaluate: its inputs
+$\gamma$ and $C_{\max}$ are read from published peaks. Everything that needs
+measuring lives in the energy width, so the question reduces to a concrete
+one: how big is each entry of the triple
 \cref{eq:triple}? We first ask what physically drives each entry
 (\cref{subsec:factors}), then measure them directly on an
 NVIDIA A100, where each experiment is built to pin one entry
-(\cref{sec:empirical-measurements}).
+(\cref{sec:empirical-measurements}); the clip returns there when the
+measured bands are assembled into the floor \cref{eq:betafloor}.
 
 \subsection{The two terms}
 \label{subsec:factors}
@@ -1996,7 +1998,7 @@ floor precise---including which per-device telemetry restores the
 single-device analysis---is open.
 
 \paragraph{Limitations.}
-Seven caveats bound the claims. (i) The bands come from one vendor, one
+Eight caveats bound the claims. (i) The bands come from one vendor, one
 GPU model, one driver, and one cluster; the ladder's numbers are
 A100-specific, though the closed form is not.
 (ii) The band edges are read from a factorial sweep whose corner cell
@@ -2035,7 +2037,12 @@ a coverage-controlled confidence limit, a band width, and conservative design
 parameters --- and \cref{app:estimands} states the status of each.
 (vii) The locality contrast is
 attenuated in the fp32/tf32 cache-resident cells, whose operands
-marginally spill L2.
+marginally spill L2. (viii) The floor prices the cheating corner of
+\cref{subsec:derivation}---cheap declared work, idled overhead, cheap
+covert work, all at their edges at once (\cref{ass:corners}).
+\Cref{sec:attained} probes attainability with constructed schedules, but
+accurately quantifying the true restrictions on reaching all three edges
+jointly---and how much they tighten $\beta$---we defer to future work.
 
 \paragraph{What richer telemetry adds.}
 Everything here is time-integrated, and the sufficiency of total energy
