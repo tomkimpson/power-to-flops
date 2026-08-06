@@ -443,13 +443,13 @@ exceeds the entire machine.
 \label{sec:floor}
 
 We now derive a closed form for $\beta$. Two physical constraints cap the
-covert work a window can hold, and each contributes a width. The first is the
+covert work that can run inside the observation window $[0,T]$. The first is the
 \emph{energy budget}: the total the meter reports must stay explainable as
 honest declared work, so covert operations can spend only the joules that
 ambiguity leaves free (\cref{subsec:derivation}). The second is
 \emph{capacity}: covert operations must also fit on the machine, in whatever
 machine-time the declared work leaves unused (\cref{subsec:capclip}). The
-floor $\beta$ is the smaller of the two widths.
+floor $\beta$ is the smaller of the two widths (\cref{subsec:betafloor}).
 
 \subsection{The energy budget}
 \label{subsec:derivation}
@@ -517,9 +517,8 @@ adversary.} These band edges,
 	r_{\mathrm{lo}}^{\mathrm{cov}}\bigr),
 	\label{eq:triple}
 \end{equation}
-are the whole parameter vector of this paper: everything below---every rung
-of the ladder, every measurement, every headline figure---is the same formula
-evaluated at a different setting of the triple.
+are the whole parameter vector of this paper: from here on, all that changes
+is which setting of the triple a verifier can justify.
 
 The verifier raises no alarm so long as the measured total is explainable by
 honest declared work at some admissible rate and overhead. The most an
@@ -556,20 +555,18 @@ A cheater now pushes every free choice on the right-hand side to its limit:
 	operation costs as little as the hardware allows.
 \end{itemize}
 At those values \cref{eq:cov} attains its maximum, the largest covert load
-the \emph{energy budget} admits,
+the energy budget admits,
 \begin{equation}
 	C_{\mathrm{cov}}^{\max,\,\mathrm{en}} \;=\;
 	\frac{\bigl(r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}\bigr)\,C_{\mathrm{dec}}
 	      \;+\; \Delta E_0}{r_{\mathrm{lo}}^{\mathrm{cov}}}.
 	\label{eq:covmax}
 \end{equation}
-Divide by $C_{\max}$ and write the declared \emph{hardware utilisation}
+Divide by $C_{\max}$ and write the declared hardware utilisation
 $h = C_{\mathrm{dec}}/C_{\max}$ for the fraction of the machine's
-declared-format capacity the declared work occupies. What results is the
-identified-set width of \cref{eq:betadef} with the admissible set cut by the
-energy constraint alone --- the same normalised width as $\beta$, computed as
-though the no-alarm condition \cref{eq:noalarm} were the only thing standing
-between the prover and unlimited covert work. We write it
+declared-format capacity the declared work occupies. The result is a covert load in the
+normalised units of \cref{eq:betadef}: the width the identified set would
+have if energy were the only constraint. We write it
 $\beta_{\mathrm{en}}$, the \emph{energy-only width},
 \begin{equation}
 \;\beta_{\mathrm{en}}(h) \;=\; h\,
@@ -577,8 +574,6 @@ $\beta_{\mathrm{en}}$, the \emph{energy-only width},
 		\;+\; \frac{\Delta E_0}{r_{\mathrm{lo}}^{\mathrm{cov}}\,C_{\max}}\,.\;
 	\label{eq:betaen}
 \end{equation}
-It is a component of the floor, not yet the floor itself: energy is one
-constraint on covert work, and \cref{subsec:capclip} adds the other.
 Pedagogically, Equation \eqref{eq:betaen} describes (how much honest work there is) $\times$ (how uncertain its
 per-operation cost is), divided by (how cheaply covert work can run), plus a
 smaller slack from the overhead band. The first term grows with the
@@ -591,11 +586,7 @@ Declarations and re-execution can narrow the declared band width
 $r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}$ in the
 numerator, but no declaration reaches the covert floor
 $r_{\mathrm{lo}}^{\mathrm{cov}}$ in the denominator; only hardware-wide
-observables (clock, voltage) can raise $r_{\mathrm{lo}}^{\mathrm{cov}}$. The
-two edges therefore also have to be \emph{measured} differently: the declared
-width tolerates a total-quotient estimate, the covert floor admits only a
-marginal one. \Cref{app:estimands} states that condition precisely, and it asks
-less of the hardware than the affine map of \cref{eq:forward} does.
+observables (clock, voltage) can raise $r_{\mathrm{lo}}^{\mathrm{cov}}$.
 
 \subsection{The capacity clip}
 \label{subsec:capclip}
@@ -637,56 +628,46 @@ less of the hardware than the affine map of \cref{eq:forward} does.
 
 	\end{tikzpicture}
 	\caption{The capacity clip. Declared work takes $h\,T$ of the window and
-		the covert block gets the rest (top); each block retires operations at
+		the covert block gets the rest (top); each block executes operations at
 		its own format's rate (bottom), drawn at $h = 1/2$ and $\gamma = 2$
 		(int8 covert work against declared fp16). The free half-window hides a
 		full $C_{\max} = 12$ worth of covert work.}
 	\label{fig:timeclip}
 \end{figure}
 
-The second constraint is capacity: covert work must also \emph{fit on the
-machine}. What binds here is not joules but machine-time.
-The declared and covert streams multiplex one device across a single window of
+The second constraint is capacity: covert work must also fit on the
+machine. The declared and covert streams multiplex one device across a single window of
 length $T$, so the covert block runs only in the time the declared block
-leaves free. Turning that free time into a count of operations means
-multiplying by a rate, and the rate on offer is the peak of whichever format
-the covert stream executes in---which makes this constraint format-dependent
-from the outset. The setup already bounds the operation rate by the hardware
-capacity (\cref{subsec:forward}), but that peak $F_{\max}$ is not one number:
-it is a property of the executing format. An A100's dense peaks run from
+leaves free. What turns free time into an operation count is a rate. The realised rate
+$F(t)$ is the prover's to choose, so a worst-case bound must price the time
+at the one rate the verifier does know: the published peak $F_{\max}$. But
+the peak is not just a property of the hardware; it is also a property of
+the executing format. An A100's dense peaks run from
 $19.5$\,Top/s at fp32 on the CUDA cores through $156$ at tf32 and $312$ at
-fp16/bf16 to $624$\,Top/s at int8 on the tensor cores \citep{nvidia2020a100}. We write $F_{\max}^{\mathrm{dec}}$
-for the peak of the declared format, which fixes the capacity normaliser
-$C_{\max} = F_{\max}^{\mathrm{dec}}\,T$ used throughout, and
+fp16/bf16 to $624$\,Top/s at int8 on the tensor cores \citep{nvidia2020a100}.
+We define the capacity ratio of the covert format against the declared one,
 \begin{equation}
 	\gamma \;=\; \frac{F_{\max}^{\mathrm{cov}}}{F_{\max}^{\mathrm{dec}}}
 	\label{eq:capratio}
 \end{equation}
-for the capacity ratio of a covert format against the declared one
-($\gamma = 2$ for int8 covert work against fp16 declared work on an A100).
-
-However much energy slack the trace leaves, then, the covert block can never
-retire more than the free window admits. Three steps fix how much that is
-(\cref{fig:timeclip}).
-Declared work of $C_{\mathrm{dec}} = h\,C_{\max}$ operations cannot be retired
+($\gamma = 2$ for int8 covert work against fp16 declared work on an A100). The declared work of $C_{\mathrm{dec}} = h\,C_{\max}$ operations cannot be executed
 in less than $C_{\mathrm{dec}}/F_{\max}^{\mathrm{dec}} = h\,T$ of the window,
-so at most $(1-h)\,T$ is left free. Run at the covert format's peak, that free
-time retires $F_{\max}^{\mathrm{cov}}\,(1-h)\,T$ covert operations. Dividing by
-$C_{\max} = F_{\max}^{\mathrm{dec}}\,T$ turns the count into a second width, in
-the same units as $\beta_{\mathrm{en}}$:
+so at most $(1-h)\,T$ is left free (\cref{fig:timeclip}).
+Run at the covert format's peak, that free
+time is worth $F_{\max}^{\mathrm{cov}}\,(1-h)\,T$ covert operations. Dividing by
+$C_{\max} = F_{\max}^{\mathrm{dec}}\,T$ gives
 \begin{equation}
 	C_{\mathrm{cov}}/C_{\max} \;\le\; (1-h)\,\gamma .
 	\label{eq:capclip}
 \end{equation}
-When $\gamma > 1$ the covert format retires more operations per unit of
+When $\gamma > 1$ the covert format executes more operations per unit of
 machine-time than the declared one, so $C_{\mathrm{dec}} + C_{\mathrm{cov}}$
 may exceed $C_{\max}$: the normaliser is the machine's capacity priced in
 \emph{declared-format} operations, not a ceiling on how many operations can
-run. This is what leaves room for $\beta > 1$---with int8 covert work against
-declared fp16 ($\gamma = 2$), the free half-window at $h = 1/2$ already
-retires a full $C_{\max}$ worth of covert operations, and at lower utilisation
-the clip sits above one, so the width is capped by the energy budget rather
-than by the silicon.
+run.
+
+\subsection{The floor}
+\label{subsec:betafloor}
 
 Each width is what \cref{eq:betadef} returns when one constraint is imposed
 and the other ignored, so the floor---the width when both hold at once---is
@@ -798,38 +779,6 @@ we quote $\beta_{\mathrm{en}}$ on its own as a diagnostic---
 $\beta_{\mathrm{en}} > 1$ says the energy budget alone cannot rule out a
 machine's worth of covert work---but only $\beta$ is the width of the
 identified set.
-
-\paragraph{The worst-case setting.}
-The weakest verifier we consider is a bare power meter, which reports total
-energy and nothing more: to it an operation is an operation, declared or
-covert. It therefore takes the widest setting of the triple \cref{eq:triple}:
-the declared edges
-$(r_{\mathrm{hi}}^{\mathrm{dec}}, r_{\mathrm{lo}}^{\mathrm{dec}})$ open to the
-dearest and cheapest per-operation costs the silicon reaches at all, and
-$r_{\mathrm{lo}}^{\mathrm{cov}}$ stays exactly where it is, because no channel
-ever reached it. The clip is also laxer than the $(1-h)\,\gamma$ of
-\cref{eq:capclip}, because a bare meter pins no format on the \emph{declared}
-side either: the cheating schedule may run the declared operations themselves
-in the cheap covert format, where they occupy only $h/\gamma$ of the machine's
-resource-time rather than $h$. Redoing the count above with that smaller
-declared share leaves
-$(1 - h/\gamma)\,T$ free, worth $\gamma\,(1 - h/\gamma) = \gamma - h$ machines
-of covert work. With $\beta_{\mathrm{en}}$ evaluated at the widest setting of
-the triple, the power-only floor is therefore
-\begin{equation}
-	\beta(h) \;=\;
-	\min\bigl[\,\beta_{\mathrm{en}}(h),\; \gamma-h\,\bigr],
-	\label{eq:betafloorbare}
-\end{equation}
-and this rung is the deliberate exception to the single-scenario discipline of
-\cref{app:boundkind}: both declared edges open to the cross-format envelope
-while $C_{\max}$ and $h$ stay the declared-format yardstick.\footnote{The
-combination still passes the single-schedule test, since the honest acceptance
-ceiling is the fp32 rate and fp32 can sustain the declared rate it implies: at
-the bare rung's worst case, $h^{*}C_{\max} = 14.3$\,Top/s against a measured
-$17.7$\,Top/s fp32 peak (\cref{sec:empirical-measurements}).} We flag the rung
-as a cross-format envelope by intent wherever it is quoted; the two clips
-coincide at $\gamma = 1$.
 
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
@@ -1329,7 +1278,7 @@ which band.
 	\cref{eq:slopebridge}, which needs an edge as well as a ratio. Note also that
 	the covert floor is measured
 	differently from the declared edges, and must be---it is the one quantity the
-	floor divides by (\cref{subsec:derivation,app:estimands}), which is why it
+	floor divides by (\cref{app:estimands}), which is why it
 	sits below the cheapest declared quotient despite describing the same corner
 	of the hardware. $C_{\max}$ and $\gamma$ are read from published peaks rather
 	than measured here.}
@@ -1485,7 +1434,11 @@ intercept; no input to the floor comes from the fitted slope, which serves
 only as a diagnostic of the forward model.
 
 As that diagnostic, the affine map holds tightly within a kernel class and
-loosens across classes. Restricted to the idle anchors and the five
+loosens across classes. A pooled $P$--$F$ line tests two things at
+once---that power is affine in the rate, and that $r$ is common across the
+shapes swept---and the model itself denies the second: the shape that sets a
+cell's rate also sets its $\alpha$ and $C/N_{\mathrm{op}}$, so each kernel
+class sits on its own line. Restricted to the idle anchors and the five
 compute-bound cubes---like compared with like---the fit gives $1.65$\,pJ/op
 at $R^2 = 0.99$ (blue in \cref{fig:overhead-affine}). Opened to all ten
 shapes it gives $1.60$\,pJ/op at
@@ -1736,7 +1689,7 @@ takes the rungs in turn.
 \paragraph{The bare meter ($\beta^{*} = 1.95$).}
 With power alone the verifier cannot tell declared work from covert, nor one
 numeric format from another, so the declared band opens to the full measured
-envelope of \cref{subsec:capclip}:\footnote{``Measured'' scopes the
+envelope of \cref{subsec:betafloor}:\footnote{``Measured'' scopes the
 envelope to the five formats of \cref{sec:empirical-measurements} (fp32,
 tf32, fp16, bf16, int8). The A100
 also exposes dense int4 ($1{,}248$\,Top/s) and binary ($4{,}992$\,Top/s)
@@ -2884,6 +2837,40 @@ paper rests on it.
 
 \section{Scratch space} %for text we may want in the future
 
+% Cut from Sec 3.3 (the floor); may return in Sec 4. NB: eq:betafloorbare
+% is still cited from the ladder section and must move back with this text.
+\paragraph{The worst-case setting.}
+The weakest verifier we consider is a bare power meter, which reports total
+energy and nothing more: to it an operation is an operation, declared or
+covert. It therefore takes the widest setting of the triple \cref{eq:triple}:
+the declared edges
+$(r_{\mathrm{hi}}^{\mathrm{dec}}, r_{\mathrm{lo}}^{\mathrm{dec}})$ open to the
+dearest and cheapest per-operation costs the silicon reaches at all, and
+$r_{\mathrm{lo}}^{\mathrm{cov}}$ stays exactly where it is, because no channel
+ever reached it. The clip is also laxer than the $(1-h)\,\gamma$ of
+\cref{eq:capclip}, because a bare meter pins no format on the \emph{declared}
+side either: the cheating schedule may run the declared operations themselves
+in the cheap covert format, where they occupy only $h/\gamma$ of the machine's
+resource-time rather than $h$. Redoing the count of \cref{subsec:capclip} with
+that smaller declared share leaves
+$(1 - h/\gamma)\,T$ free, worth $\gamma\,(1 - h/\gamma) = \gamma - h$ machines
+of covert work. With $\beta_{\mathrm{en}}$ evaluated at the widest setting of
+the triple, the power-only floor is therefore
+\begin{equation}
+	\beta(h) \;=\;
+	\min\bigl[\,\beta_{\mathrm{en}}(h),\; \gamma-h\,\bigr],
+	\label{eq:betafloorbare}
+\end{equation}
+and this rung is the deliberate exception to the single-scenario discipline of
+\cref{app:boundkind}: both declared edges open to the cross-format envelope
+while $C_{\max}$ and $h$ stay the declared-format yardstick.\footnote{The
+combination still passes the single-schedule test, since the honest acceptance
+ceiling is the fp32 rate and fp32 can sustain the declared rate it implies: at
+the bare rung's worst case, $h^{*}C_{\max} = 14.3$\,Top/s against a measured
+$17.7$\,Top/s fp32 peak (\cref{sec:empirical-measurements}).} We flag the rung
+as a cross-format envelope by intent wherever it is quoted; the two clips
+coincide at $\gamma = 1$.
+
 \paragraph{A worked example.}
 To put a number on the power-only floor, take $C_{\max}=100$ operation-units,
 declared work $C_{\mathrm{dec}}=50$, a rate known only to lie in $[1.5, 2.5]$,
@@ -2950,5 +2937,16 @@ numbers on this next by direct measurement.
 
 Note that $\beta$ is a floor, not a measurement error. It is the ambiguity that survives a perfect meter: because distinct workloads draw identical
 power, no reading of the trace can tell them apart because the data hold no information that separates them. Averaging, longer observation, and better estimators all fight measurement noise, and none of them lowers $\beta$.
+
+The
+two edges therefore also have to be \emph{measured} differently. The declared
+edges enter only through their difference, so a baseline amortised equally
+into both cancels and a total quotient $E/C$ serves; in the covert floor
+nothing cancels, so it must be measured as the \emph{marginal} cost of an
+added covert operation. \Cref{app:estimands} states the condition precisely,
+and it is weaker than the affine map of \cref{eq:forward}: the floor needs
+only that each added covert operation draws at least
+$r_{\mathrm{lo}}^{\mathrm{cov}}$, whatever the true power law.
+
 
 \end{document}
