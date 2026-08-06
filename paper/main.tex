@@ -429,7 +429,7 @@ exceeds the entire machine.
 		$[r_{\mathrm{lo}},r_{\mathrm{hi}}]$ cuts the constant-energy arc
 		$A$--$B$, whose projection onto the $C$-axis spans
 		$[C_{\mathrm{lo}},C_{\mathrm{hi}}]$; relative to capacity that width is
-		the floor $\beta$. The faint
+		the floor $\beta$. The faint grey
 		ribbon is meter noise (ignored in this work). Each rate is drawn
 		constant only for clarity; in reality $r(t)$ varies in time. This does
 		not matter for a question about total operations, which depends on $r(t)$
@@ -442,12 +442,26 @@ exceeds the entire machine.
 \section{Derivation of \texorpdfstring{$\beta$}{beta}}
 \label{sec:floor}
 
-We now derive a closed form for $\beta$. The derivation is straightforward: integrate the forward model over the window, split the total energy into declared,
-covert, and overhead pieces, and ask how large the covert piece can grow
-before the total stops looking honest. We work with the integrated trace (i.e. the total energy) rather than the resolved time series: treating power as affine in the operation rate (\cref{eq:forward}) lets its integral depend on the workload only through time-integrated quantities.
+We now derive a closed form for $\beta$. Two physical constraints cap the
+covert work a window can hold, and each contributes a width. The first is the
+\emph{energy budget}: the total the meter reports must stay explainable as
+honest declared work, so covert operations can spend only the joules that
+ambiguity leaves free (\cref{subsec:derivation}). The second is
+\emph{capacity}: covert operations must also fit on the machine, in whatever
+machine-time the declared work leaves unused (\cref{subsec:capclip}). The
+floor $\beta$ is the smaller of the two widths, and \cref{subsec:poweronly}
+evaluates it for the weakest verifier we consider, a bare power meter.
 
-\subsection{How much compute can hide?}
+\subsection{The energy budget}
 \label{subsec:derivation}
+
+The derivation of the first width is straightforward: integrate the forward
+model over the window, split the total energy into declared, covert, and
+overhead pieces, and ask how large the covert piece can grow before the total
+stops looking honest. We work with the integrated trace (i.e. the total
+energy) rather than the resolved time series: treating power as affine in the
+operation rate (\cref{eq:forward}) lets its integral depend on the workload
+only through time-integrated quantities.
 
 Integrating the forward model \cref{eq:forward} over $[0,T]$, the left-hand
 side is the total energy the meter reports and the right-hand side falls
@@ -463,12 +477,12 @@ off'' a known baseline: the prover controls fans, clocks, and idle states,
 so a known-and-removed $P_0$ would hand it a hiding channel.
 
 The compute energy $E_c$ splits into a declared block and a covert block,
-\begin{equation}
-	\int_0^T r F\,dt \;=\;
-	\underbrace{\int_0^T r^{\mathrm{dec}}\,F_{\mathrm{dec}}\,dt}_{\text{declared}} \;+\;
-	\underbrace{\int_0^T r^{\mathrm{cov}}\,F_{\mathrm{cov}}\,dt}_{\text{covert}}.
+\begin{multline}
+	\int_0^T r(t)\,F(t)\,dt \;=\;\\
+	\underbrace{\int_0^T r^{\mathrm{dec}}(t)\,F_{\mathrm{dec}}(t)\,dt}_{\text{declared}} \;+\;
+	\underbrace{\int_0^T r^{\mathrm{cov}}(t)\,F_{\mathrm{cov}}(t)\,dt}_{\text{covert}}.
 	\label{eq:dec-cov-split}
-\end{equation}
+\end{multline}
 The declared block runs $C_{\mathrm{dec}} = \int_0^T F_{\mathrm{dec}}\,dt$
 operations, taken known, and the covert block runs the excess
 $C_{\mathrm{cov}} = C - C_{\mathrm{dec}}$; this is the compute we are trying
@@ -491,41 +505,22 @@ one. The machine therefore draws
 \end{equation}
 and the verifier sees only $E$.
 
-Both blocks run on the same silicon, so both mean costs are bounded by the
-\emph{same} physical range of energy per operation. We nonetheless track them
-on separate labels,
+The two mean costs are bounded,
 $\bar r^{\mathrm{dec}} \in [r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}]$
 and
-$\bar r^{\mathrm{cov}} \ge r_{\mathrm{lo}}^{\mathrm{cov}}$, because a verifier
-with channels beyond the meter may come to know more about one than the other.
-
-These three numbers are the whole parameter vector of this paper. Everything
-below---every rung of the ladder, every measurement, every headline
-figure---is the same formula evaluated at a different setting of the triple
+$\bar r^{\mathrm{cov}} \ge r_{\mathrm{lo}}^{\mathrm{cov}}$.\footnote{No upper
+edge is needed for the covert cost: $\bar r^{\mathrm{cov}}$ enters the bound
+only as a divisor in \cref{eq:cov}, so the worst case sits at its lower edge
+and a ceiling would never bind---expensive covert work only hurts the
+adversary.} These band edges,
 \begin{equation}
 	\bigl(r_{\mathrm{hi}}^{\mathrm{dec}},\;r_{\mathrm{lo}}^{\mathrm{dec}},\;
 	r_{\mathrm{lo}}^{\mathrm{cov}}\bigr),
 	\label{eq:triple}
 \end{equation}
-so it is worth being clear what the triple is and is not. It is not a list of
-hardware constants: the two declared edges are \emph{epistemic}, the range of
-per-operation costs a particular verifier cannot rule out, and they narrow as
-the verifier gains channels. A bare meter distinguishes nothing, so its
-declared band is the widest the silicon allows; pinning the numeric format
-shrinks it to one format's own span. The covert floor is the exception that
-gives the paper its shape---covert work is undeclared by construction, so no
-channel narrows it, and it is bounded only by the silicon and the threat model.
-
-The two floors therefore stay on separate labels even where they describe the
-same physical corner of the hardware, and even for the bare meter. Beyond the
-epistemic point, they take different \emph{estimands}
-(\cref{app:estimands}): the declared edges enter only through their difference
-and so tolerate a total quotient $E/C$, while the covert floor is a divisor and
-admits only a one-sided bound on the \emph{marginal} cost of an added covert
-operation---on real hardware the strictly cheaper number, since a marginal cost
-does not pay the baseline a quotient amortises. One symbol could satisfy at
-most one of the two roles, and getting the divisor's role wrong understates
-$\beta$.
+are the whole parameter vector of this paper: everything below---every rung
+of the ladder, every measurement, every headline figure---is the same formula
+evaluated at a different setting of the triple.
 
 The verifier raises no alarm so long as the measured total is explainable by
 honest declared work at some admissible rate and overhead. The most an
@@ -535,11 +530,8 @@ top of the highest overhead,
 	E \;\le\; r_{\mathrm{hi}}^{\mathrm{dec}}\,C_{\mathrm{dec}} \;+\; E_{0,\mathrm{hi}}.
 	\label{eq:noalarm}
 \end{equation}
-The test is deliberately one-sided: covert work can only \emph{add} energy, so
-a draw is suspicious only when the total runs \emph{high}. A symmetric lower
-alarm would flag \emph{under}-delivery---drawing too little to be the declared
-work---which is outside the covert-compute threat model, so no lower bound is
-imposed.
+The test is one-sided because covert work can only add energy: only a
+total that runs high is suspicious.
 Substituting the budget \cref{eq:cheaterbudget} into the no-alarm condition
 \cref{eq:noalarm} and rearranging,
 \begin{equation}
@@ -660,8 +652,8 @@ less of the hardware than the affine map of \cref{eq:forward} does.
 	\label{fig:timeclip}
 \end{figure}
 
-The energy budget is not the only physical constraint: covert work must also
-\emph{fit on the machine}. What binds here is not joules but machine-time.
+The second constraint is capacity: covert work must also \emph{fit on the
+machine}. What binds here is not joules but machine-time.
 The declared and covert streams multiplex one device across a single window of
 length $T$, so the covert block runs only in the time the declared block
 leaves free. Turning that free time into a count of operations means
