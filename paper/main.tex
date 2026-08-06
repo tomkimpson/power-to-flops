@@ -766,20 +766,6 @@ slope is of order one (\cref{sec:empirical-measurements}), so the crossing
 falls at intermediate utilisation and the worst case is a fraction of
 $\gamma$.
 
-The two are not symmetric, though, despite entering \cref{eq:betafloor} as a
-bare minimum. Only the energy width \emph{creates} ambiguity: pin the declared
-band and the overhead
-($r_{\mathrm{hi}}^{\mathrm{dec}} = r_{\mathrm{lo}}^{\mathrm{dec}}$,
-$\Delta E_0 = 0$)
-and $\beta_{\mathrm{en}}$ vanishes while the clip still stands at
-$(1-h)\,\gamma$, yet $\beta = 0$---free capacity hides nothing once the meter
-converts joules straight back into operations. The clip never adds width; it
-only caps the width that blindness has already opened. That asymmetry is why
-we quote $\beta_{\mathrm{en}}$ on its own as a diagnostic---
-$\beta_{\mathrm{en}} > 1$ says the energy budget alone cannot rule out a
-machine's worth of covert work---but only $\beta$ is the width of the
-identified set.
-
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
 
@@ -2836,6 +2822,23 @@ do zero operands mean no hardware bits switch); no security bound in the
 paper rests on it.
 
 \section{Scratch space} %for text we may want in the future
+
+% Cut from Sec 3.3 (the floor): energy creates ambiguity, capacity only caps
+% it. This is the licence for quoting beta_en alone as a diagnostic (the bold
+% beta_en(1) = 2.39 headline) if a referee asks.
+The two are not symmetric, though, despite entering \cref{eq:betafloor} as a
+bare minimum. Only the energy width \emph{creates} ambiguity: pin the declared
+band and the overhead
+($r_{\mathrm{hi}}^{\mathrm{dec}} = r_{\mathrm{lo}}^{\mathrm{dec}}$,
+$\Delta E_0 = 0$)
+and $\beta_{\mathrm{en}}$ vanishes while the clip still stands at
+$(1-h)\,\gamma$, yet $\beta = 0$---free capacity hides nothing once the meter
+converts joules straight back into operations. The clip never adds width; it
+only caps the width that blindness has already opened. That asymmetry is why
+we quote $\beta_{\mathrm{en}}$ on its own as a diagnostic---
+$\beta_{\mathrm{en}} > 1$ says the energy budget alone cannot rule out a
+machine's worth of covert work---but only $\beta$ is the width of the
+identified set.
 
 % Cut from Sec 3.3 (the floor); may return in Sec 4. NB: eq:betafloorbare
 % is still cited from the ladder section and must move back with this text.
