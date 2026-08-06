@@ -134,45 +134,44 @@ last.}
 \label{sec:intro}
 
 %Motivation - what is verification and compute thresholds
-As frontier AI systems grow more capable, governance proposals increasingly
-turn on \emph{verification}: the ability of an outside party to check what a
-compute operator is doing \citep{reuel2025openproblems,baker2025verifying}. One proposed mechanism is a threshold on compute
+As frontier AI systems grow more capable
+\citep{sevilla2022compute,bengio2026safetyreport}, governance proposals increasingly
+rely on \emph{verification}: the ability of an outside party to check what a
+monitored operator is doing \citep{reuel2025openproblems,baker2025verifying}. One proposed mechanism is a threshold on compute
 \citep{sastry2024computing}. Above a specified number of floating-point
 operations (FLOP), a training run triggers registration, reporting, or audit
-obligations \citep{shavit2023chinchilla,baker2025verifying,heim2024thresholds}. For example, U.S.~Executive Order 14110 required reports on models
+obligations \citep{shavit2023chinchilla,baker2025verifying,heim2024thresholds}. For example, U.S.~Executive Order 14110 temporarily required reports on models
 trained using more than $10^{26}$ integer or floating-point operations
-\citep{whitehouse2023eo14110}, until its revocation in January 2025
-\citep{whitehouse2025eo14148}.
+\citep{whitehouse2023eo14110,whitehouse2025eo14148}.
 
 
 %But the prover is not honest
-A threshold in operation counts is only as good as the count it is applied
-to, so compute verification policies need to be robust to adversarial
-operators who do not declare honestly, but instead subvert the threshold by
-hiding computation. The mechanisms proposed to catch such an operator share
-a common weakness: they trust hardware or software that the operator
-controls. Utilisation counters, on-chip clocks, and memory telemetry all
-read silicon in the operator's hands, and so are conditional on
-tamper-resistant read paths and attested monitoring firmware that do not
-yet exist \citep{ogara2025hardware,ansari2026hardware,rahman2026telemetry}.
+Compute verification policies need to be robust to adversarial
+operators who do not behave honestly, but instead try to subvert the
+threshold by hiding computation. Verification methods that rely on passive telemetry such as utilisation counters, on-chip clocks or memory traffic read silicon the
+operator controls.
+Consequently they rely on  tamper-resistant read paths and attested
+monitoring firmware that do not yet exist
+\citep{ogara2025hardware,ansari2026hardware,rahman2026telemetry}.
 Cryptographic proof-of-training protocols
-\citep{jia2021proofoflearning,garg2023zkpot} need the prover's cooperation,
-and active challenge--response schemes \citep{monfared2026timing} must run
-their probes on the same untrusted hardware. An operator can even attempt
-to restructure its computation to evade compute-based oversight, though
-\citet{seferis2025structuring} argue such structuring is itself detectable.
+\citep{jia2021proofoflearning,garg2023zkpot} depend on the operator's
+cooperation. Active challenge--response schemes \citep{monfared2026timing}
+run their probes on the operator's own untrusted hardware.
 
 % off-chip analogue sensors
-``Off-chip'' analogue sensors have been suggested precisely to escape this
-trust dependence \citep{baker2025verifying}. Such sensors could be
-retrofitted to existing data centres and physically secured against
-tampering by the adversary, returning measurements of physical side
-channels---power, electromagnetic, acoustic, or thermal emissions---that
-the operator cannot edit in software.
+``Off-chip'' analogue sensors have been suggested as an alternative verification method
+\citep{baker2025verifying}. This involves measurement hardware physically separate from
+the monitored chips such as a meter on the power feed, an antenna beside the
+rack, a microphone, or a thermal camera. Each
+reads a physical side channel such as power, electromagnetic, acoustic, or
+thermal emissions and so its measurements reach the verifier without passing
+through any silicon or software the operator controls. Such sensors could
+be retrofitted to existing data centres and physically secured against
+tampering by the adversary.
 
 % prior work: emissions leak workload information
 There are reasons for optimism: in non-adversarial settings, physical
-emissions leak workload information. Emissions let an observer recover
+emissions are known to leak workload information. Emissions let an observer recover
 model architectures and hyperparameters
 \citep{hu2020deepsniffer,maia2022magnetic,gao2023deeptheft,chaudhuri2025energon},
 and software-visible counters and timing let a co-resident process do the
@@ -182,37 +181,23 @@ and on-chip counters classify workloads
 draw betrays anomalous computation \citep{clark2013wattsupdoc} and running
 GPU activity \citep{arefin2024hdmi}; a related body of work characterises
 power draw for GPUs and data centres
-\citep{patel2023polca,choukse2025power,latif2025power}. But these are
-forward models, fitted largely in cooperative conditions: they map known
+\citep{patel2023polca,choukse2025power,latif2025power}. However these are forward models, fitted largely in cooperative conditions, i.e. they map known
 workloads to their emissions. Verification poses the inverse
-problem (i.e.emissions to workload) against an operator actively trying to
-evade the sensor, and the question is how tightly analogue-sensor
-measurements can constrain compute in that setting.
-
-% why power
-Of the physical side channels an off-chip sensor could read, we take power
-first: it already serves in the governance literature as a coarse proxy for
-compute, and it bears the most direct link to computation, since every
-operation costs energy and total energy therefore budgets total work.
-Whether the framework carries to the other channels is open, and we leave
-that to future work. Our contribution to the verification programme is the
-exchange rate between what the sensor reads and what the threshold counts.
+problem (i.e. emissions to workload) against an operator actively trying to
+evade the sensor. It is an open question how well analogue-sensor
+measurements can constrain compute in that setting. This paper addresses that
+question for one channel: power, the channel most directly linked to
+computation, since every operation costs energy and total energy therefore
+budgets total work. We defer the study of other channels to a future work.
 
 This paper is organised as follows. \Cref{sec:setup} sets up the problem mathematically.
-We then derive a floor on the covert compute a power trace admits, in closed
-form from a handful of named physical bands (\cref{sec:floor}).
-\Cref{sec:howbig} then asks how large that floor is: first from the
-physics of CMOS switching, then by measuring the
-bands directly on NVIDIA A100 hardware---one card for the band sweeps,
-three more for a cross-device check, together a stand-in for a full
-cluster---and
-assembling the floor a power meter allows (\cref{sec:empirical-measurements}). Finally we walk that
-floor down a capability ladder (\cref{sec:decreasing-beta}): each
-capability the verifier gains --- a checked precision declaration, an observed
-clock, re-execution of the declared work, an assumption about the adversary's
-operands --- moves one edge of the closed form, and the same measured bands
-price every rung the verifier can honestly price today. \Cref{sec:discussion} sets out what transfers from device to
-facility scale, and what does not.
+\cref{sec:floor} derives a floor on the covert compute a power trace admits, in closed
+form, from a handful of physical bands.
+\Cref{sec:howbig} empirically determines how large that floor is by measuring the
+bands directly on NVIDIA A100 hardware.
+\Cref{sec:decreasing-beta} shows how additional information gained by the
+verifier beyond the power trace (e.g a precision declaration) pushes the floor lower. We close with a discussion in 
+\cref{sec:discussion}.
 
 \section{Setup and threat model}
 \label{sec:setup}
@@ -2075,7 +2060,7 @@ assumption about the adversary's objective rather than on any measurement; the
 distinction matters for the power-monitoring layers proposed in the
 verification literature \citep{baker2025verifying}.
 
-\section{How much of the bound is real?}
+\subsection{How much of the bound is real?}
 \label{sec:attained}
 
 Every number so far, at every rung, is the same kind of object: a maximum
