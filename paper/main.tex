@@ -206,16 +206,18 @@ verifier beyond the power trace (e.g a precision declaration) pushes the floor l
 \label{subsec:forward}
 
 Fix an observation window $t \in [0,T]$ and let $F(t)$ be the instantaneous
-rate of arithmetic operations [op/s], bounded by the hardware capacity
-$F_{\max}$. The forward model follows from the CMOS power law
-\citep{chandrakasan1992lowpower}: chip power splits into a switching term and
+rate of arithmetic operations, bounded by the hardware capacity
+$F_{\max}$. The forward model of $F(t)$ to power follows from the CMOS power law
+\citep{chandrakasan1992lowpower}; chip power splits into a switching term and
 a static term,
 \begin{equation}
 	P \;=\; \underbrace{\alpha\,C\,V^2 f}_{\text{dynamic}} \;+\; P_{\mathrm{stat}},
 	\label{eq:cmoslaw}
 \end{equation}
-with $\alpha$ the activity factor, $C$ the switched capacitance, $V$ the
-supply voltage and $f$ the clock. A datapath that retires $N_{\mathrm{op}}$
+with $V$ the supply voltage, $f$ the clock frequency, $C$ the total capacitance of
+the logic, and $\alpha$ the activity factor: the fraction of $C$ that
+actually toggles in a given cycle ($0 \le \alpha \le 1$), so that
+$\alpha C$ is the capacitance switched per clock tick. A datapath that retires $N_{\mathrm{op}}$
 nominal operations per cycle runs at operation rate $F = N_{\mathrm{op}}f$.
 Substituting $f = F/N_{\mathrm{op}}$ and collecting constants gives the
 forward model
@@ -226,34 +228,26 @@ forward model
 \end{equation}
 where $P_0$ collects $P_{\mathrm{stat}}$ and the remaining non-compute
 overhead (idle draw, cooling, I/O). We call $r$ the \emph{exchange rate}
-[J/op]. Both equations hold instantaneously: $\alpha$, $C/N_{\mathrm{op}}$
-and $V$ are set by whatever the datapath is executing at time $t$, and $r$
-inherits their time dependence. We carry the argument in $r(t)$, where that
-variation is the whole point, and suppress it in the definition. The clock
+[J/op]. The clock frequency
 has dropped out: what an operation costs does not depend on
 how fast the operations run, only on what each switching event costs and how
-many operations it delivers. \Cref{app:cmos} gives this derivation in full
-and locates the short-circuit and leakage terms.
+many operations it delivers. \Cref{app:cmos} gives this derivation in full.
 
 The exchange rate $r(t)$ is not a constant of the device but a property of the
-execution, and it moves as the execution moves. Take its three factors in
+execution, and it changes whenever the execution does. Take its three factors in
 turn. The activity factor $\alpha$ depends on the operand values being
 multiplied \citep{chandrakasan1992lowpower}. The capacitance switched per operation,
-$C/N_{\mathrm{op}}$, depends on the numeric format---which sets both the
-datapath width and the packing $N_{\mathrm{op}}$---and on where the operands
-live \citep{horowitz2014computing}. The supply voltage $V$ tracks the
+$C/N_{\mathrm{op}}$, depends on the numeric format (which sets both the
+datapath width and the packing $N_{\mathrm{op}}$) and on where the operands
+reside \citep{horowitz2014computing}. The supply voltage $V$ tracks the
 voltage--frequency operating point \citep{pallipadi2006ondemand}. Every one
 of them is under the prover's control, and none is visible to an off-chip
 meter. Empirically the spread is wide: component-level analyses of a 45\,nm
 process put arithmetic and on-chip memory access at $0.1$--$20$\,pJ per
 operation depending on format and operand locality
-\citep{horowitz2014computing}, and our device-level
-measurements on a modern accelerator span $0.8$--$20$\,pJ/op
-(\cref{sec:empirical-measurements}). More than an order of magnitude
-separates the cheapest operation a chip can retire from the dearest, and the
-prover chooses where in that range to sit.
+\citep{horowitz2014computing}. 
 
-The meter reports only a noisy version of this power,
+In practice, the meter reports only a noisy version of the power,
 \begin{equation}
 	P_{\mathrm{obs}}(t) = P(t) + \eta(t),
 	\label{eq:obs}
@@ -266,12 +260,12 @@ we therefore assume a perfect meter and work with the clean power $P(t)$; every
 floor we derive is a floor on what even a noiseless meter can establish.
 
 We count
-\emph{hardware} operations---what the silicon actually executes---rather than
-model FLOPs, the algorithmically required operations, and we count them as
-\emph{nominal operations} of whichever numeric format runs: a multiply--add
+hardware operations (i.e. what the silicon actually executes) rather than
+model FLOPs (i.e. the algorithmically required operations).  Every executed operation costs joules, so
+the meter sees hardware operations. We count them as
+nominal operations of whichever numeric format runs: a multiply--add
 retires two nominal ops whether it executes at fp32 or int8, and integer
-multiply--adds are ops, not FLOPs. Every executed operation costs joules, so
-the meter sees hardware operations.
+multiply--adds are ops, not FLOPs. 
 
 \subsection{The threat model}
 \label{subsec:threat}
@@ -296,9 +290,9 @@ this; independently checking that the declared work ran is a separate
 verification problem---the domain of proof-of-learning and zero-knowledge
 proof-of-training protocols \citep{jia2021proofoflearning,garg2023zkpot}.
 \end{assumption}
-Everything else---the exchange rate $r(t)$, the overhead $P_0(t)$, and how the
-operation rate $F(t)$ splits between declared and covert work---is under the prover's
-control and unobserved.
+Everything else is under the prover's control and unobserved: the exchange
+rate $r(t)$, the overhead $P_0(t)$, and how the operation rate $F(t)$ splits
+between declared and covert work.
 
 \subsection{The inverse model}
 \label{subsec:noninjective}
@@ -313,8 +307,7 @@ problem: read the power trace and recover the workload that produced it,
 i.e.\ invert $G$. But $G$ is \emph{non-injective}. Since $r(\cdot)$ is free
 to vary, a low rate spent on much computation draws exactly the same power as
 a high rate spent on little. Distinct workloads $(F,r,P_0)$ map to identical
-traces, and a many-to-one map has no inverse. Inversion therefore returns a
-set, not a point: the identified set $\mathcal{A}(P_{\mathrm{obs}})$
+traces, and a many-to-one map has no inverse. Inversion therefore returns the identified set $\mathcal{A}(P_{\mathrm{obs}})$ which
 collects every physically admissible workload that reproduces
 $P_{\mathrm{obs}}$ (\cref{fig:noninjective}).
 
@@ -339,9 +332,7 @@ machine's peak declared-format capacity $C_{\max} = F_{\max}^{\mathrm{dec}}T$,
 	\label{eq:betadef}
 \end{equation}
 Under \cref{ass:declaration} the lower edge is the declaration itself,
-$C_{\mathrm{lo}} = C_{\mathrm{dec}}$, and the normaliser $C_{\max} = F_{\max}^{\mathrm{dec}}T$
-is the machine's capacity priced in declared-format operations---a yardstick,
-not a ceiling on the operations that can run (\cref{subsec:capclip}).
+$C_{\mathrm{lo}} = C_{\mathrm{dec}}$.
 The interval runs from that honest baseline up to
 the most compute the meter cannot rule out, so the upper edge is the declared
 work plus the largest covert load a cheater could slip past the meter,
@@ -361,8 +352,7 @@ exactly the covert operations a cheater could hide. A wider interval means a lar
 $\beta$ and more room for undeclared work; $\beta \gg 1$ means the ambiguity
 exceeds the entire machine.
 
-Note that $\beta$ is a floor, not a measurement error. It is the ambiguity that survives a perfect meter: because distinct workloads draw identical
-power, no reading of the trace can tell them apart because the data hold no information that separates them. Averaging, longer observation, and better estimators all fight measurement noise, and none of them lowers $\beta$.
+
 
 \begin{figure*}[t]
 	\centering
@@ -393,11 +383,10 @@ power, no reading of the trace can tell them apart because the data hold no info
 		% ================= (b) one power trace =================
 		\begin{scope}[shift={(4.55,0)}]
 			\draw[->] (0,0.55) -- (3.1,0.55) node[right] {\scriptsize $t$};
-			\draw[->] (0,0.55) -- (0,2.9) node[above] {\scriptsize $P$};
+			\draw[->] (0,0.55) -- (0,2.9) node[above] {\scriptsize $P_{\mathrm{obs}}$};
 			\draw[thick, blue!55!black] plot[smooth, tension=0.7] coordinates
 			{(0.15,1.2) (0.5,1.5) (0.85,2.05) (1.2,1.85) (1.55,2.3)
 				(1.9,2.05) (2.25,2.2) (2.6,1.6) (2.95,1.25)};
-			\node[blue!55!black, anchor=south west] at (0.05,2.35) {\scriptsize $P_{\mathrm{obs}}(t)$};
 			\node[anchor=north] at (1.5,0.35) {\footnotesize (b) one trace};
 		\end{scope}
 
@@ -427,9 +416,8 @@ power, no reading of the trace can tell them apart because the data hold no info
 			\draw[dashed, orange!85!black] (3.9,1.3)  -- (3.9,0.55);
 			\fill (1.0,0.55) circle (1.2pt) node[below=2pt] {\scriptsize $C_{\mathrm{lo}}$};
 			\fill (3.9,0.55) circle (1.2pt) node[below=2pt] {\scriptsize $C_{\mathrm{hi}}$};
-			\draw[decorate, decoration={brace, amplitude=5pt, mirror}]
-			(1.0,0.10) -- (3.9,0.10) node[midway, below=6pt] {$\beta\,C_{\max}$};
-			\node[anchor=north] at (2.0,-0.95) {\footnotesize (c) identified set};
+			\draw[<->] (1.0,0.9) -- (3.9,0.9) node[midway, fill=white, inner sep=2pt] {\scriptsize $\beta\,C_{\max}$};
+			\node[anchor=north] at (2.45,0.25) {\footnotesize (c) identified set};
 		\end{scope}
 
 	\end{tikzpicture}
@@ -1022,7 +1010,7 @@ Each factor is set by a different physical scale of the machine
 each precision step (fp32 $\to$ int8), tracking the pJ-scale energy hierarchy of
 arithmetic \citep{horowitz2014computing}; the activity factor $\alpha$ is the
 data-dependent fraction of transistors that toggle for the given operands; the
-effective capacitance $C_{\mathrm{eff}}$ depends on where operands live and which
+effective capacitance $C_{\mathrm{eff}}$ depends on where operands reside and which
 kernel runs. Less-local operands activate more of the memory hierarchy---storage
 arrays and peripheral logic, buffers and interfaces, as well as interconnect---so
 their combined dynamic cost is represented by a larger effective switched
@@ -2360,7 +2348,8 @@ static term of \cref{eq:cmoslaw}, total chip power separates into a dynamic
 	P_{\mathrm{stat}} = V I_{\mathrm{leak}} + P_{\mathrm{fixed}},
 	\label{eq:powertotal}
 \end{equation}
-with $\alpha$ the activity factor, $C$ the switched capacitance, $V$ the
+with $\alpha$ the activity factor, $C$ the total capacitance of the logic
+(so $\alpha C$ is the capacitance switched per cycle), $V$ the
 supply voltage, $f$ the clock, $V I_{\mathrm{leak}}$ the leakage power, and
 $P_{\mathrm{fixed}}$ the cooling, I/O, and idle draw. The forward model
 \cref{eq:forward}, $P = rF + P_0$, is slope--intercept in the operation rate $F$,
@@ -2396,7 +2385,7 @@ is linear through the origin, exactly the affine form the forward model
 \cref{eq:forward} assumes and Experiment~2 fits. The capacitance switched
 per operation, $C/N_{\mathrm{op}}$, has two structural sources: the arithmetic
 datapath, whose width is set by the numeric format, and the data-movement
-path, set by where the operands live and which kernel runs. Factoring it
+path, set by where the operands reside and which kernel runs. Factoring it
 accordingly,
 \begin{equation}
 	\frac{C}{N_{\mathrm{op}}} \;=\; \kappa(\text{precision})\;C_{\mathrm{eff}}(\text{locality},\,\text{kernel}),
@@ -3001,5 +2990,8 @@ utilisation, and the worst-case floor sits at a substantial fraction of
 the machine---up to about its declared-format capacity as a model bound.
 A bare power meter certifies little about how many operations ran. We put
 numbers on this next by direct measurement.
+
+Note that $\beta$ is a floor, not a measurement error. It is the ambiguity that survives a perfect meter: because distinct workloads draw identical
+power, no reading of the trace can tell them apart because the data hold no information that separates them. Averaging, longer observation, and better estimators all fight measurement noise, and none of them lowers $\beta$.
 
 \end{document}
