@@ -768,69 +768,59 @@ edges together, so $\beta$ upper-bounds the true identified-set width.
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
 
-So far the floor is only a pair of formulas---the energy-only width
-\cref{eq:betaen} and its capacity clip \cref{eq:capclip}; this section asks how
-large they actually are. The clip costs nothing to evaluate: its inputs
-$\gamma$ and $C_{\max}$ are read from published peaks. Everything that needs
-measuring lives in the energy width, so the question reduces to a concrete
-one: how big is each entry of the triple
-\cref{eq:triple}? We first ask what physically drives each entry
-(\cref{subsec:factors}), then measure them directly on an
-NVIDIA A100, where each experiment is built to pin one entry
-(\cref{sec:empirical-measurements}); the clip returns there when the
-measured bands are assembled into the floor \cref{eq:betafloor}.
+We now estimate the typical value of $\beta$, \cref{eq:betafloor}, for real hardware. We focus on the $\beta_{\rm en}(h)$ component, \cref{eq:betaen}: it carries all
+the physics, whereas the clip \cref{eq:capclip} is a ratio of published peaks
+with nothing to measure.
+We first ask what physically drives each entry of the triple \cref{eq:triple}
+(\cref{subsec:factors}), then measure them directly on an NVIDIA A100, where
+each experiment is built to pin one entry
+(\cref{sec:empirical-measurements}); the capacity clip \cref{eq:capclip}
+returns at the end, when the measured bands are assembled.
 
 \subsection{The two terms}
 \label{subsec:factors}
 
-The energy-only width \cref{eq:betaen} is a sum of two terms: an ambiguity term
+The energy-only width $\beta_{\rm en}(h)$ is a sum of two terms: an ambiguity term
 $s\,h$ with slope
 $s = (r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}})/r_{\mathrm{lo}}^{\mathrm{cov}}$,
 set by the spread of the declared exchange rate against the price of a covert
 operation, and an overhead term
 $b = \Delta E_0/(r_{\mathrm{lo}}^{\mathrm{cov}}\,C_{\max})$, set by the width of
-the overhead band against the same price. Both are dimensionless, and both
-divide by the covert floor: it is the exchange rate at which every slack joule,
-wherever it comes from, is converted into hidden operations. We take each term
-in turn.
+the overhead band against the same price. We take each term in turn.
 
 \paragraph{The exchange-rate term.}
-Its size is governed by the declared band's width relative to the covert floor,
-not by any single band's edge ratio---the two coincide only in the special case
-$r_{\mathrm{lo}}^{\mathrm{dec}} = r_{\mathrm{lo}}^{\mathrm{cov}}$, where
-$s$ reduces to a ratio minus one. All three entries of the triple are values of
-the same physical quantity, the energy per operation, so one piece of physics
-sets the whole vector. A chip's
-power divides into a dynamic (switching) part and a static part; the exchange
-rate comes from the dynamic part, the CMOS switching power
-$P_{\mathrm{dyn}} = \alpha C V^2 f$ \citep{chandrakasan1992lowpower}, whose cost
-per operation factors into
+\Cref{subsec:forward} wrote the exchange rate as
+$r = \alpha\,(C/N_{\mathrm{op}})\,V^2$. Here we split the capacitance term in
+two, since the numeric format and the operand locality move independently:
 \begin{equation}
 	r \;\approx\; \kappa(\text{precision})\,\cdot\,\alpha(\text{operands})\,\cdot\,
 	C_{\mathrm{eff}}(\text{locality},\,\text{kernel})\,\cdot\, V^2.
 	\label{eq:cmos}
 \end{equation}
-\Cref{app:cmos} derives this factorisation; the static part---leakage, cooling,
-and idle draw---does not enter $r$ but resurfaces as the overhead term below.
-Each factor is set by a different physical scale of the machine
-(\cref{fig:exchange-scales}). The numeric-format scale $\kappa$ falls with datapath width at
-each precision step (fp32 $\to$ int8), tracking the pJ-scale energy hierarchy of
-arithmetic \citep{horowitz2014computing}; the activity factor $\alpha$ is the
-data-dependent fraction of transistors that toggle for the given operands; the
-effective capacitance $C_{\mathrm{eff}}$ depends on where operands reside and which
-kernel runs. Less-local operands activate more of the memory hierarchy---storage
-arrays and peripheral logic, buffers and interfaces, as well as interconnect---so
-their combined dynamic cost is represented by a larger effective switched
-capacitance \citep{horowitz2014computing,chatterjee2017architecting}; and $V^2$ is the
+\Cref{app:cmos} derives this factorisation. Each factor is set by a different physical scale of the
+machine (\cref{fig:exchange-scales}). The numeric-format scale $\kappa$ falls
+with datapath width at each precision step (fp32 $\to$ int8), tracking the
+pJ-scale energy hierarchy of arithmetic \citep{horowitz2014computing}; the
+activity factor $\alpha$ is the data-dependent fraction of transistors that
+toggle for the given operands; the effective capacitance $C_{\mathrm{eff}}$
+grows as operands become less local, because more of the memory
+hierarchy---storage arrays and peripheral logic, buffers and interfaces,
+interconnect---switches per operation
+\citep{horowitz2014computing,chatterjee2017architecting}; and $V^2$ is the
 capacitor-charging energy of the supply voltage, which DVFS slides along the
-voltage--frequency curve \citep{pallipadi2006ondemand}. With the power meter as
-the only channel, every one of these factors is unknown to the verifier and
-conceded at once.
+voltage--frequency curve \citep{pallipadi2006ondemand}.
 
-\paragraph{The declared band factorises.}
-That last sentence is the hinge of the paper, so it is worth writing down
-formally. If each factor of \cref{eq:cmos} ranges over an interval the verifier
-cannot narrow, the declared band's edges are the products of the factor edges,
+\textcolor{red}{\textbf{Dev note:} revisit this factorisation passage once the
+rest of \cref{sec:howbig} has had a pass. Its framing---how much to motivate
+here, how much to defer to \cref{sec:decreasing-beta}---depends on how the
+measurement subsection and the ladder hand-off end up reading, and the notation
+defined here is what \cref{sec:empirical-measurements,sec:decreasing-beta} both
+lean on.}
+
+With the power meter as the only channel, every factor of \cref{eq:cmos} is
+conceded at once. If each ranges over an interval the verifier cannot narrow,
+and the factors can be extreme together, the declared band's edges are the
+products of the factor edges,
 \begin{equation}
 	r_{\mathrm{hi}}^{\mathrm{dec}} =
 	\kappa_{\mathrm{hi}}\,\alpha_{\mathrm{hi}}\,C_{\mathrm{hi}}\,V_{\mathrm{hi}},
@@ -840,21 +830,21 @@ cannot narrow, the declared band's edges are the products of the factor edges,
 	\label{eq:edgefactor}
 \end{equation}
 writing $C$ for $C_{\mathrm{eff}}$ and $V$ for $V^2$ to keep the subscripts
-readable. Dividing, the band's \emph{ratio} is the product of per-factor
-\emph{widths}
+readable. Dividing, the band's ratio is the product of per-factor widths
 \begin{equation}
 	\frac{r_{\mathrm{hi}}^{\mathrm{dec}}}{r_{\mathrm{lo}}^{\mathrm{dec}}}
 	\;=\; w_\kappa\,w_\alpha\,w_C\,w_V,
 	\qquad w_x \equiv \frac{x_{\mathrm{hi}}}{x_{\mathrm{lo}}}\,,
 	\label{eq:widthfactor}
 \end{equation}
-each $w_x \ge 1$.
+each $w_x \ge 1$. Taking the suprema together makes this an outer bound, for the
+same reason the caveat closing \cref{subsec:betafloor} gave for the floor's own
+corner; \cref{app:boundkind} treats both.
 
-Note what \cref{eq:widthfactor} returns and what the floor asks for: the
-factorisation gives the band's \emph{ratio}, while the slope $s$ of
-\cref{eq:betaen} reads its \emph{difference}. Writing
-$W \equiv w_\kappa w_\alpha w_C w_V$ for the product, one absolute edge bridges
-them,
+These widths price nothing on their own. The factorisation returns the band's
+ratio, whereas the slope $s$ of \cref{eq:betaen} reads its difference, and one
+absolute edge bridges the two: writing
+$W \equiv w_\kappa w_\alpha w_C w_V$,
 \begin{equation}
 	s \;=\;
 	\frac{r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}}
@@ -863,52 +853,15 @@ them,
 	      \,\bigl(W - 1\bigr).
 	\label{eq:slopebridge}
 \end{equation}
-The widths are dimensionless and the slope is not. $W$ fixes how many times over
-its own floor the band's ceiling sits; the anchor
+$W$ fixes how far the band's ceiling sits above its own floor; the anchor
 $r_{\mathrm{lo}}^{\mathrm{dec}}$ turns that into joules, and only then does the
-covert floor price it. Setting
-$r_{\mathrm{lo}}^{\mathrm{dec}} = r_{\mathrm{lo}}^{\mathrm{cov}}$ collapses the
-prefactor to one and recovers the ratio-minus-one reading flagged above---which
-is why that reading is the special case and not the general one.
-
-With that said, \cref{eq:widthfactor} is the map between the two halves of the paper.
-\emph{This} section measures the four widths, one experiment per factor
-(\cref{tab:inputs}). \emph{Section~\ref{sec:decreasing-beta}} then observes that
-a verifier capability which pins a factor sets that factor's width to $1$ and
-leaves the others untouched: forcing the prover to declare and prove the numeric
-format sets $w_\kappa = 1$ and says nothing whatever about $w_\alpha$, because
-the operands are not the format. Every rung of the ladder is one such move.
-
-Three cautions on \cref{eq:edgefactor}. First, it is a worst-case
-composition---the supremum of a product is the product of the suprema only if
-the factors can be extreme together, which is the same rectangle assumption the
-floor already makes of its three bands (\cref{ass:corners})---so it is an
-outer bound. Second, and by \cref{eq:slopebridge}, a product of widths is not
-yet a slope: it prices nothing until an absolute edge is supplied alongside it.
-For both reasons we do not use the factorisation to \emph{evaluate} $\beta$.
-Every number we report comes from measured band edges directly.
-
-The third caution is what that anchor does to the ladder, and it is worth
-stating before \cref{sec:decreasing-beta} leans on it. A ratio is invariant to
-the \emph{level} a pinned factor is pinned at; a difference is not. Pinning the
-precision sets $w_\kappa \to 1$ and leaves the residual ratio
-$w_\alpha w_C \approx 1.96$ whichever format is pinned---but composing that
-residual onto an int8 anchor gives a band $[0.786,\,1.54]$\,pJ/op and a slope
-$s \approx 1.5$, and onto an fp32 anchor a band $[9.95,\,19.5]$ and
-$s \approx 19$. Same width removed, same width surviving, slopes differing by
-the factor just pinned. So ``this rung sets $w_x = 1$'' fixes what a capability
-removes but not what it is worth: the rung must also say where the surviving
-band sits. This is why every priced rung of \cref{tab:ladder} reads measured
-edges---at the precision rung, fp16's own $[1.10,\,2.19]$ and $s = 2.1$---rather
-than a running product.
-
-What \cref{eq:widthfactor} is for, then, is explaining the ladder rather than
-pricing it, and it earns that role by being checkable:
-\cref{sec:empirical-measurements} confirms it reproduces both the full measured
-span and the fp16 sub-band to within a few per cent.
+covert floor price it. So the widths explain the band rather than price it, and
+we never evaluate $\beta$ from the factorisation: every number we report comes
+from measured band edges directly.
 
 \begin{figure*}[t]
 	\centering
+	\resizebox{\textwidth}{!}{%
 	\begin{tikzpicture}[
 		>=Stealth, line join=round, line cap=round,
 		panel/.style={draw=black!16, fill=black!1, rounded corners=3pt,
@@ -1107,7 +1060,8 @@ span and the fp16 sub-band to within a few per cent.
 			{\(f\) cancels from the marginal rate; leakage and cooling leave as
 			the overhead \(P_0\), not \(r\)};
 
-	\end{tikzpicture}
+	\end{tikzpicture}%
+	}
 	\caption{\textbf{The exchange rate, from transistors to the powered die.}
 		Each physical scale contributes one factor to the per-operation energy of
 		\cref{eq:cmos}. (1)~A complementary pMOS--nMOS inverter charges or discharges
@@ -1123,97 +1077,48 @@ span and the fp16 sub-band to within a few per cent.
 		\(V\) across the arithmetic and interconnect loads, so DVFS contributes
 		\(V^2\) per unit capacitance. The
 		clock \(f\) cancels from the marginal rate (\cref{eq:rdyn}) and the static
-		draw---leakage, cooling---leaves as the overhead \(P_0\), not \(r\).
+		draw---leakage, cooling---leaves as the overhead \(P_0\).
 		Multiplying the factors recovers \cref{eq:cmos}.}
 	\label{fig:exchange-scales}
 \end{figure*}
 
-Of the four, only $V^2$ resists measurement on our platform, which denies user
-clock control; we therefore carry $w_V \approx 1.5$ from device physics
-throughout, and flag it as an assumption wherever it appears.\footnote{Supply
-voltages on modern accelerators sit near $1$\,V \citep{horowitz2014computing}
-and DVFS moves them by roughly $\pm 10\%$; energy per operation scales as the
-ratio squared, $(1.1/0.9)^2 \approx 1.5$.} The other three are measured
-directly in \cref{sec:empirical-measurements}.
-
 \paragraph{The overhead term.}
-The overhead $P_0$---idle draw, cooling, leakage, and I/O---admits no comparably
-clean factorisation. The exchange rate, though it too varies with the hardware
-and its operating point, obeys a single switching law that resolves into a few
-factors with bounded ranges; the overhead obeys no such law. It is a
+The overhead $P_0$ admits no comparably
+clean factorisation. It is a
 heterogeneous mix of static leakage, cooling control loops, firmware idle states,
 and platform I/O, so no single relation fixes the band width $\Delta E_0$ from
 first principles.
 
 \subsection{Measurement on an NVIDIA A100}
 \label{sec:empirical-measurements}
-The question is how big $\beta$ is, so the measurement plan is organised by what
-$\beta$ reads---not by the factors of \cref{eq:cmos}, which do not enter the
-floor separately. Four numbers go in: the three entries of the triple
-\cref{eq:triple} and the overhead width $\Delta E_0$. Each experiment below
+In order to measure $\beta$ we require estimates of the three entries of the triple $	\bigl(r_{\mathrm{hi}}^{\mathrm{dec}},\;r_{\mathrm{lo}}^{\mathrm{dec}},\;
+	r_{\mathrm{lo}}^{\mathrm{cov}}\bigr)$, 
+\cref{eq:triple}, and the overhead width $\Delta E_0$. Each experiment below
 exists to pin one of them. Experiment~1 supplies both declared edges
 $(r_{\mathrm{hi}}^{\mathrm{dec}}, r_{\mathrm{lo}}^{\mathrm{dec}})$,
 Experiment~2 supplies $\Delta E_0$, and Experiment~3 supplies the covert floor
-$r_{\mathrm{lo}}^{\mathrm{cov}}$.
-
-Each of those four is worth a different number to different verifiers, so we
-split the bookkeeping by setting rather than by experiment.
-\Cref{tab:inputs}(b) collects the four at the one setting that assumes nothing:
-no format pinned on either declared edge, covert work generic. That is what a
-bare power meter concedes, and it is the base case the rest of the paper
-narrows. Values belonging to a capability rather than to the base case are
-tabulated with their rung instead (\cref{tab:ladder}). Mostly that costs no
-extra measurement---the same Experiment~1 sweep that gives the widest declared
-pair gives fp16's own sub-band as one of its bar groups---but one rung needs a
-workload no experiment here runs, so its measurement travels with it: the
-useful-work covert floor is Experiment~4, reported in
-\cref{sec:decreasing-beta}.
-
-Experiment~1 does a second job on the way, and it is the one the CMOS
-factorisation asks for. Dividing dynamic switching power by operation rate
-cancels the clock frequency and leaves $\kappa$, $\alpha$, $C_{\mathrm{eff}}$
-and $V^2$ to set the energy per operation, so running the sweep as a factorial
-decomposes the span between those two declared edges into the separate widths of
-\cref{eq:widthfactor}. Those widths price nothing on their own
-(\cref{eq:slopebridge}), but they are the spine \cref{sec:decreasing-beta}
-climbs. The platform did not expose voltage control, so we could not sweep
-$V^2$; we record the governor-selected clock as operating-point metadata
-instead. The static component of the power omitted by \cref{eq:cmos} returns as
-the intercept $P_0$ of the affine power law, which is what Experiment~2 reads
-over the observation window.
-
-Giving the covert floor an experiment of its own needs a word, since
-Experiments~1 and~2 have already mapped how wide the exchange rate runs.
-Mapping a range is not the same as pricing its floor. The covert denominator of
-\cref{eq:betaen} is a \emph{marginal} quantity that no sweep of whole busy
-windows estimates (\cref{app:estimands}), so Experiment~3---and Experiment~4
-after it---intervenes on the covert dose directly rather than reading a quotient
-off a sweep.
-Experiment~1's cheapest cell is a value of $r_{\mathrm{lo}}^{\mathrm{dec}}$, not
-a covert floor, and no rung divides by it. One further sweep, Experiment~5,
-varies the operand axis alone; it corroborates Experiment~1's $\alpha$ width
-from independent data and prices nothing, so it is reported in
-\cref{app:operands} rather than here.
+$r_{\mathrm{lo}}^{\mathrm{cov}}$. Results are summarised in Table \ref{tab:inputs}.
 
 \paragraph{Setup and provenance.}
-Experiments~1--3 and~5 ran sequentially on one NVIDIA A100-SXM4-80GB in a
-single Slurm allocation. Three measurements ran on further cards of the same
-SKU and are reported where they are used rather than here: the $2$--$3\%$
-device-to-device spread behind the re-execution rung
-(\cref{sec:decreasing-beta}), the useful-operand workloads of Experiment~4
-(same section), and the matched-energy witnesses of \cref{sec:attained}.
-The platform denied clock locking and power capping, so DVFS is a
+The experiments below ran sequentially on one NVIDIA A100-SXM4-80GB in a single
+Slurm allocation. The platform denied clock locking and power capping, so DVFS is a
 recorded axis rather than a controlled one: each window logs the
 governor-selected SM clock and the bands are stratified into clock
-strata. Energy is read from the on-die NVML total-energy counter; each
+strata. That also puts $V^2$ beyond measurement here, so of the four factors of
+\cref{eq:cmos} we measure three and carry $w_V \approx 1.5$ from device physics
+throughout, flagged as an assumption wherever it appears and carried into the
+limitations of \cref{sec:discussion}.\footnote{Supply
+voltages on modern accelerators sit near $1$\,V \citep{horowitz2014computing}
+and DVFS moves them by roughly $\pm 10\%$; energy per operation scales as the
+ratio squared, $(1.1/0.9)^2 \approx 1.5$.}
+Energy is read from the on-die NVML total-energy counter; each
 measured cell fills a ${\sim}1.5$\,s window with back-to-back kernels on
 pre-allocated buffers and keeps the per-cell median over repeated
 windows. This is a non-adversarial, device-level calibration: the
-telemetry is trusted as a laboratory instrument, not as the verifier's
-sensor in the adversarial setting of \cref{sec:setup}, and one GPU
+telemetry is trusted as a laboratory instrument. One GPU
 suffices to estimate the bands and the order of magnitude of $\beta$;
 extending the calibration to off-chip meters and multi-device systems is
-natural future work. \Cref{app:bench} gives the full protocol, the meter
+natural future work, taken up in \cref{sec:discussion}. \Cref{app:bench} gives the full protocol, the meter
 tolerance, and the provenance manifest, including which card measured
 which band.
 
@@ -1234,41 +1139,29 @@ which band.
 		$w_\kappa w_\alpha w_C$ & product & --- & $26.5\times$ \\
 		\midrule
 		\multicolumn{4}{@{}l}{\emph{(b) the edges the floor reads, nothing pinned}} \\
-		$r_{\mathrm{hi}}^{\mathrm{dec}}$ & fp32, dear operands & Exp.~1 & $19.5$ \\
+		$r_{\mathrm{hi}}^{\mathrm{dec}}$ & fp32, expensive operands & Exp.~1 & $19.5$ \\
 		$r_{\mathrm{lo}}^{\mathrm{dec}}$ & int8, zeros & Exp.~1 & $0.786$ \\
 		$r_{\mathrm{lo}}^{\mathrm{cov}}$ & generic covert op & Exp.~3 & $0.51$ \\
 		$\Delta P_0$ & overhead band & Exp.~2 & $41.2$\,W \\
 		\bottomrule
 	\end{tabular}
-	\caption{What each experiment pins down. Values in pJ/op unless marked
+	\caption{Summary of results from Experiments 1--3. Values in pJ/op unless marked
 	otherwise.
 	%
 	Block (a) is the physics: the four factors of \cref{eq:cmos} and how wide
 	each one runs. ``Cond.'' means the width is measured with the other three
 	factors held fixed, so the widths are separable rather than pooled. Their
-	product reproduces the measured span to $7\%$
-	(\cref{sec:empirical-measurements}), and $w_\alpha w_C = 1.96$ predicts the
-	fp16 sub-band's measured $2.00$ to $2\%$---the check that licenses reading
-	\cref{sec:decreasing-beta} as one factor pinned per rung.
+	product reproduces the measured span to $7\%$, and $w_\alpha w_C = 1.96$
+	predicts the fp16 sub-band's measured $2.00$ to $2\%$.
 	%
-	$w_V$ is the exception and is flagged as such: neither Exp.~1 nor Exp.~5
-	sweeps the clock (the governor held both inside a $\pm3\%$ window), so its
-	width is a physics estimate, not a measurement. That is why the clock rung of
-	\cref{tab:ladder} is left unpriced.
+	$w_V$ is the exception and is flagged as such: Exp.~1 does not sweep the
+	clock (the governor held it inside a $\pm3\%$ window), so its width is a
+	physics estimate, not a measurement.
 	%
-	Block (b) is what the floor actually reads: the triple \cref{eq:triple} plus
-	the overhead width, at the one setting that assumes nothing---no format
-	pinned on either declared edge, and the covert floor priced for generic
-	covert work. That is the bare meter's concession and the top rung of
-	\cref{tab:ladder}; every capability below it moves one of these four numbers,
-	and \cref{tab:ladder} carries the moved values rather than repeating them
-	here. Nothing in block (a) is an input to block (b): the two meet only through
-	\cref{eq:slopebridge}, which needs an edge as well as a ratio. Note also that
-	the covert floor is measured
-	differently from the declared edges, and must be---it is the one quantity the
-	floor divides by (\cref{app:estimands}), which is why it
-	sits below the cheapest declared quotient despite describing the same corner
-	of the hardware. $C_{\max}$ and $\gamma$ are read from published peaks rather
+	Block (b) is what the floor reads: the triple \cref{eq:triple} and the
+	overhead width. These are the values a bare power meter concedes, with no
+	format pinned on either declared edge and the covert floor priced for
+	generic covert work. $C_{\max}$ and $\gamma$ are read from published peaks rather
 	than measured here.}
 	\label{tab:inputs}
 \end{table}
@@ -1276,50 +1169,46 @@ which band.
 \begin{figure}[t]
 	\centering
 	\includegraphics[width=\columnwidth]{exchange_band}
-	\caption{Experiment~1 supplies both declared entries of the triple
-	\cref{eq:triple}: the full spread of bars is
-	$(r_{\mathrm{hi}}^{\mathrm{dec}}, r_{\mathrm{lo}}^{\mathrm{dec}})$ with no
-	format pinned, and one bar group's own spread is the pair once that format is
-	declared.
-	Total energy quotient $E/C$ for a fixed matmul kernel on an NVIDIA
+	\caption{Experiment~1: Total energy quotient $E/C$ for a fixed matmul kernel on an NVIDIA
 	A100, swept factorially over precision $\kappa$ (bar groups), operand
 	locality $C_{\mathrm{eff}}$ (paired bars), and operand distribution
 	$\alpha$ (whiskers); white points are the individual measured windows
 	($n=240$ across $60$ cells). Each bar is the median over the operand
-	axis and its whisker that axis's full range, so the operand factor---a
+	axis and its whisker that axis's full range, so the operand factor (a
 	little under $2\times$ inside every format, against locality's couple of
-	percent---is read off the figure rather than pooled into it. Dashed lines
+	percent) is read off the figure rather than pooled into it. Dashed lines
 	mark the widest setting's edges, both of them operand extremes: fp32 at its
-	dearest operands, int8 with zeros. Nothing in this figure is the third entry
-	$r_{\mathrm{lo}}^{\mathrm{cov}}$, which is a marginal cost and lies below
-	every bar here (Experiment~3).}
+	most expensive operands, int8 with zeros.}
 	\label{fig:exchange-band}
 \end{figure}
 
-\paragraph{Experiment 1---the declared band, and three of the four factor widths.}
+\paragraph{Experiment 1---the declared band
+$(r_{\mathrm{hi}}^{\mathrm{dec}}, r_{\mathrm{lo}}^{\mathrm{dec}})$, and three of
+the four factor widths $(w_\kappa, w_\alpha, w_C)$.}
 A compute-bound matmul (operation
-count $C = 2MNK$ known analytically;
-the int8 cells retire integer multiply--adds, counted as nominal operations
-per the convention of \cref{subsec:forward}),
+count $C = 2MNK$ known analytically
+\footnote{The int8 cells retire integer multiply--adds, counted as nominal operations
+per the convention of \cref{subsec:forward}}),
 swept factorially over precision ($\kappa$, fp32 down to int8), operand
 locality ($C_{\mathrm{eff}}$, operands resident in vs.\ streamed through
 the L2 at a byte-identical shape), and operand
 distribution ($\alpha$, zeros through adversarial-toggle).
 
 The floor's two declared entries come off that sweep directly. With no format
-pinned they are its extremes---the dearest cell $19.5$\,pJ/op (fp32, dear
-operands) and the cheapest $0.786$ (int8, zeros)---and with the format pinned
-they are one bar group's own span, $[1.10,\,2.19]$\,pJ/op for fp16
-(\cref{fig:exchange-band}). Both pairs are total quotients $E/C$, the estimand
-the declared pair admits; the covert floor is not measured here and is never one
-of these quotients (\cref{tab:inputs}).
+pinned they are its extremes, the most expensive cell (fp32, adversarial-toggle
+operands) against the cheapest (int8, zeros; \cref{fig:exchange-band}),
+\begin{equation}
+	r_{\mathrm{hi}}^{\mathrm{dec}} = 19.5\;\mathrm{pJ/op}, \qquad
+	r_{\mathrm{lo}}^{\mathrm{dec}} = 0.786\;\mathrm{pJ/op}.
+	\label{eq:measureddec}
+\end{equation}
 
-The sweep is a factorial, though, precisely so that the widths of
-\cref{eq:widthfactor} also come out \emph{separately}: vary one factor with the
-other three held fixed and the ratio you read off is that factor's own width,
-not a pooled spread. Taking each factor's
-median conditional ratio over the groups of cells that hold the other two fixed
-and cover every level of the axis in question,
+The sweep is a factorial so the widths of \cref{eq:widthfactor} are also obtained for free.
+The $60$ cells are every combination of five
+precisions, two localities and six operand distributions. To measure one
+factor's width, hold the other two axes fixed and take the ratio of the most to
+the least expensive cell as that factor runs over all its levels; the width is
+the median of that ratio across every such group of cells. This gives
 \begin{equation}
 	w_\kappa = 13.5, \qquad w_\alpha = 1.88, \qquad w_C = 1.04,
 	\label{eq:measuredwidths}
@@ -1327,49 +1216,27 @@ and cover every level of the axis in question,
 with precision following the textbook ordering
 int8 $<$ bf16 $\approx$ fp16 $<$ tf32 $<$ fp32. So precision dominates, operand
 values are worth a factor near two, and locality moves $r$ by four per cent for
-this compute-bound kernel---a small number, but a measured one, and it is the
-reason the locality half of the clock/locality rung has so little to
-buy.\footnote{Per access, DRAM costs about a hundred times more than on-chip
+this compute-bound kernel. \footnote{Per access, DRAM costs about a hundred times more than on-chip
 memory \citep{horowitz2014computing}; the per-operation effect is diluted by the
 kernel's bytes-per-operation, which is why $w_C$ is small here. A memory-bound
 kernel would not enjoy that dilution, and $w_C$ is the one width we would expect
-to move substantially with the workload.}
+to move substantially with the workload.} The clock is the one axis we could not hold fixed, so we check it rather than
+group on it. Comparing the median achieved clock across each axis's levels,
+the operand and locality levels ran at an identical clock and the precision
+levels to within $2.7\%$, so these widths are not clock artefacts. For the same
+reason the fourth width is missing: the governor held the clock inside
+$1335$--$1410$\,MHz across the whole sweep, a $\pm 3\%$ window, which is what
+keeps the three measured widths clean but leaves $w_V$ no range to be measured
+over. 
 
-Conditioning on the other \emph{designed} axes, rather than on the achieved
-clock, needs a word of defence, since the clock is exactly the nuisance we
-cannot lock. Adding it to the conditioning key would fragment a balanced
-six-level operand axis into groups of one to six levels, and the thin groups
-contribute ratios near unity that pull the median down---a sparsity artifact,
-not a cleaner measurement. We therefore condition on the designed axes and
-\emph{check} the nuisance instead, comparing the median achieved clock across
-each axis's levels. The operand and locality levels ran at an identical median
-clock (balance $1.000$ on both), and the precision levels to within $2.7\%$,
-so these widths are not clock artefacts. That check is also what separates this
-experiment from the next one.
-
-The fourth width is missing, and deliberately flagged rather than estimated from
-this data: the governor held the clock inside $1335$--$1410$\,MHz across the
-whole sweep, a $\pm 3\%$ window, so \emph{$w_V$ is not measured here at all}.
-The device-physics estimate ${\approx}1.5$ of \cref{subsec:factors} stands in
-for it, and that gap is why \cref{tab:ladder} declines to price the clock rung.
-
-Two checks that the factorisation is doing real work rather than decorating the
-argument. Multiplying the three measured widths gives
+%some useful checks
+Multiplying the three measured widths gives
 $13.5 \times 1.88 \times 1.04 = 26.5$, against the $24.8\times$ span the pooled
 cells actually show---so \cref{eq:widthfactor} holds to $7\%$, the residual
-being factor interaction. And it predicts the effect of a capability before that
-capability is introduced: pinning the format should set $w_\kappa = 1$ and leave
-$w_\alpha w_C = 1.96$, while the fp16 band above spans $2.00\times$. Two per
-cent. Both checks are on ratios, which is the level the factorisation lives at;
-what pinning the format is \emph{worth} needs that band's position too, and
-\cref{eq:slopebridge} is where the two meet.
-
-A separate fp16-only sweep corroborates $w_\alpha$ independently, reaching
-$1.83$ where this one reads $1.88$; its clock was governor-selected rather than
-matched, and $1.83$ sits below on exactly the side that confound predicts.
-\Cref{app:operands} reports it, alongside the construction of the six operand
-distributions and the resulting ordering of $\alpha$. Nothing in the floor reads
-it.
+being factor interaction. Similarly, among the fp16 cells the precision never varies, so
+the spread should be the product of the two remaining widths,
+$w_\alpha w_C = 1.96$; those cells span $[1.10,\,2.19]$\,pJ/op, a factor of
+$2.00$. \Cref{app:operands} performs a separate fp16-only sweep of the operand axis with a governor-selected clock and corroborates $w_\alpha$ independently, reaching $1.83$ compared to the quoted value here of $1.88$.
 
 \begin{figure}[t]
 	\centering
@@ -1396,7 +1263,8 @@ it.
 	\label{fig:overhead-affine}
 \end{figure}
 
-\paragraph{Experiment 2---the overhead band $\Delta E_0$ and the marginal rate.}
+\paragraph{Experiment 2---the overhead band $\Delta P_0$ (hence $\Delta E_0$),
+and the fitted rate $r$ as a diagnostic.}
 The \emph{rate ladder} is ten fp16 matmul shapes chosen to span the machine's
 sustained throughput: three small cubes ($256^3$ to $1024^3$) that are
 launch-bound, two skinny-$K$ shapes
@@ -1416,7 +1284,12 @@ the hottest ladder cell, and after a $60$\,s cooldown---supply the $F = 0$
 anchors.
 
 The idle range, widened by the adopted $\pm 5\%$ meter tolerance, pins the
-overhead band to $P_0 \in [59.8, 101.0]$\,W (width $\Delta P_0 = 41.2$\,W).
+overhead band to
+\begin{equation}
+	P_0 \in [59.8,\, 101.0]\;\mathrm{W}, \qquad
+	\Delta P_0 = 41.2\;\mathrm{W}.
+	\label{eq:measuredoverhead}
+\end{equation}
 This band is read directly off those five idle cells, not from a fitted
 intercept; no input to the floor comes from the fitted slope, which serves
 only as a diagnostic of the forward model.
@@ -1456,7 +1329,8 @@ needs is what Experiment~3 identifies.
 	\label{fig:marginal-dose}
 \end{figure}
 
-\paragraph{Experiment 3---the marginal covert cost.}
+\paragraph{Experiment 3---the marginal covert cost
+$r_{\mathrm{lo}}^{\mathrm{cov}}$.}
 The covert denominator, measured as the theorem defines it: the energy an
 \emph{added} covert operation costs, with everything else held fixed. Every
 measured window has the same fixed $10$\,s wall length and contains the
@@ -1476,8 +1350,13 @@ the slope by construction---the marginal cost sits $0.26$ (int8) to
 $0.39$\,pJ/op (fp16) below the corresponding total quotients, which
 amortise it in. The floor
 uses the one-sided $95\%$ \emph{lower} confidence limits,
-$r_{\mathrm{lo}}^{\mathrm{cov}} = 0.51$\,pJ/op (int8) and $0.76$\,pJ/op
-(fp16): the covert cost divides the slack, so under-pricing covert work
+\begin{equation}
+	r_{\mathrm{lo}}^{\mathrm{cov}} = 0.51\;\mathrm{pJ/op}\ \ (\text{int8}),
+	\qquad
+	0.76\;\mathrm{pJ/op}\ \ (\text{fp16}).
+	\label{eq:measuredcov}
+\end{equation}
+Because the covert cost divides the slack, under-pricing covert work
 is the security-safe direction.\footnote{One-sided in the statistical
 sense only: the limit controls sampling uncertainty in the fitted dose
 slope for this workload family, device, and driver state. It is not a
@@ -1689,7 +1568,7 @@ lower bound on the true full-hardware ambiguity, not a full-hardware worst
 case.} the triple takes its widest setting,
 $(r_{\mathrm{hi}}^{\mathrm{dec}}, r_{\mathrm{lo}}^{\mathrm{dec}},
 r_{\mathrm{lo}}^{\mathrm{cov}}) = (19.5,\,0.786,\,0.51)$\,pJ/op: the declared
-edges are fp32 at its dearest operands and int8 zeros, and the covert entry is
+edges are fp32 at its most expensive operands and int8 zeros, and the covert entry is
 where it always is, at the cheapest incremental operation the silicon admits.
 No precision is assumed on either declared edge ---
 reading the ceiling as the fp16 cell while opening the floor to int8 would
@@ -1757,10 +1636,11 @@ First, the capability does not exist: every route to it---attested clock
 telemetry, locked clocks by policy, or the EM side channel
 (\cref{sec:discussion})---is prospective, so there is no channel to price.
 Second, and independently, \emph{we have not measured $w_V$}. Neither
-Experiment~1 nor Experiment~5 sweeps the clock; the governor held both inside a
+Experiment~1 nor the operand sweep of \cref{app:operands} sweeps the clock; the
+governor held both inside a
 $\pm3\%$ window, so the ${\approx}1.5$ we carry for $w_V$ is
-\cref{subsec:factors}'s device-physics estimate and not a measurement
-(\cref{tab:inputs}). Pricing a security guarantee on the width a capability
+\cref{sec:empirical-measurements}'s device-physics estimate and not a
+measurement (\cref{tab:inputs}). Pricing a security guarantee on the width a capability
 removes requires knowing that width, and for this rung we do not. The
 sub-factor we \emph{can} measure, $w_C = 1.04$, would on its own buy almost
 nothing---four per cent of a band whose other factors run to $13.5$ and $1.88$.
@@ -1837,7 +1717,7 @@ nominal operations, prices genuinely useful covert work at a \emph{marginal}
 $2.54$--$3.21$\,pJ/op, both fits linear to $R^2 > 0.999$. We carry the one-sided
 $95\%$ lower limits, $r_{\mathrm{useful}} = [2.53, 3.16]$\,pJ/op, for the reason
 Experiment~3 gives: under-pricing covert work is the security-safe direction.
-The standalone total quotient $E/C$ is dearer, $[3.18, 4.22]$ (one-sided lower
+The standalone total quotient $E/C$ is more expensive, $[3.18, 4.22]$ (one-sided lower
 limits; point means $[3.26, 4.24]$), only because it
 amortises idle power the covert work does not draw. Restricting the adversary
 to work worth doing raises the covert edge to the bottom of that band,
@@ -1908,7 +1788,7 @@ feasible utilisation does not lower it at all.
 The second gap is the corner itself, and it admits a direct empirical probe.
 Matched-pair witnesses on one A100 hold the trusted declaration and the
 observation window fixed by construction: run~A executes $N$ declared fp16
-iterations on dear operands (the $r_{\mathrm{hi}}^{\mathrm{dec}}$ edge) and
+iterations on expensive operands (the $r_{\mathrm{hi}}^{\mathrm{dec}}$ edge) and
 idles to a fixed $T = 10$\,s window; run~B executes the \emph{same} $N$
 iterations on cheap operands (the $r_{\mathrm{lo}}^{\mathrm{dec}}$ edge) plus a
 covert int8 fill tuned to match A's energy, padded to the same window. At
@@ -1922,7 +1802,7 @@ lower bounds on the ambiguity (full protocol in \cref{app:witness}).
 
 They are lower witnesses, not corner attainment. At $h = 0.216$ the accepted
 load $0.41$ sits well below the model's $\beta(0.216) = 0.72$, and the achieved
-rates say why: $1.84$\,pJ/op on the dear declared arm against the band ceiling
+rates say why: $1.84$\,pJ/op on the expensive declared arm against the band ceiling
 $2.19$, and $0.54$ on the covert fill against the marginal edge $0.51$. The
 construction approaches every edge of the box and reaches none of them, which
 is the relaxation gap of \cref{eq:relaxation} measured rather than assumed.
@@ -2014,7 +1894,13 @@ accelerators, firmware, cooling) remains unmeasured. (iv) DVFS was never
 swept --- the platform denied clock-locking --- so the voltage factor
 rides on literature numbers rather than our own; persistence mode was
 likewise fixed on, so its contribution to the controllable idle range
-went unmeasured. (v) Energy was read from on-die telemetry in a
+went unmeasured. The declared band was therefore sampled with the governor
+holding the clock inside a $\pm 3\%$ window, whereas the threat model gives
+the prover the clock: a prover free to slide DVFS reaches a wider declared
+band and possibly a cheaper covert floor, raising both $s$ and $b$ in
+\cref{eq:betaen}. On this axis our reported $\beta$ understates the
+ambiguity---the opposite direction to the conservative choices of
+\cref{app:sensitivity}. (v) Energy was read from on-die telemetry in a
 non-adversarial lab characterisation (\cref{sec:empirical-measurements});
 the counter carries no published GA100 accuracy specification, so the
 $\pm 5\%$ tolerance we apply is adopted from NVML's documented
@@ -2291,7 +2177,7 @@ inside a single jointly feasible scenario---one declared format and one covert
 format sharing one window, with the declared band, $C_{\max}$ and $h$ all
 referring to the declared format, and the covert cost and covert peak to the
 covert format. Combining extrema that no single schedule attains, such as
-pricing one format's dearest cells against another's capacity, is excluded by
+pricing one format's most expensive cells against another's capacity, is excluded by
 construction. The prover may switch formats between the two streams at no
 cost, which is again the adversary-favorable direction.
 
@@ -2419,7 +2305,7 @@ safe direction for a worst case, and small next to the rung's dominant term.
 
 The matched-pair witnesses of \cref{sec:attained} hold the trusted
 declaration and the observation window fixed by construction: run~A
-executes $N$ declared fp16 iterations on dear operands and idles to a
+executes $N$ declared fp16 iterations on expensive operands and idles to a
 fixed $T = 10$\,s window; run~B executes the same $N$ iterations on cheap
 operands plus a covert int8 fill tuned to match A's energy, padded to the
 same window. This appendix records the protocol details and checks behind
@@ -2435,18 +2321,18 @@ the setup are conservative and one is thin. Clock locking is denied on the
 platform (\cref{sec:empirical-measurements}), so the arms are matched by
 cadence rather than by a held clock: both reach the same $1410$\,MHz compute
 clock, the per-window \emph{median} differing only through the idle-pad share,
-as in Experiment~3. Run~A's dear burst draws ${\approx}500$\,W against
+as in Experiment~3. Run~A's expensive burst draws ${\approx}500$\,W against
 run~B's ${\approx}245$\,W and so sits at the card's software power cap, which
 truncates A's measured honest energy; since the threshold is set from A's mean
 and the covert dose is tuned against it, the cap tightens the bar B must clear.
 The thin part is the topmost witness: at $h = 0.216$ the cheating arm's spread
-is $2.6\times$ the honest arm's, and its dearest repeat ($1969.5$\,J) lands
-above the honest arm's dearest ($1964.6$\,J), clearing the threshold by
+is $2.6\times$ the honest arm's, and its most expensive repeat ($1969.5$\,J) lands
+above the honest arm's most expensive ($1964.6$\,J), clearing the threshold by
 $0.86\%$ of the honest mean. The $0.41$ figure is the largest load we could get
 accepted, not a comfortable one.
 
 \paragraph{Achieved rates: lower witnesses, not corner attainment.}
-The achieved incremental rates are $1.84$\,pJ/op for the dear declared arm
+The achieved incremental rates are $1.84$\,pJ/op for the expensive declared arm
 (below the band ceiling $2.19$), $0.82$ for the cheap declared arm, and
 $0.54$ for the covert fill (above the marginal edge $0.51$): the witnesses
 meet the shared constraints of \cref{ass:corners} but do not jointly
@@ -2530,7 +2416,7 @@ stratified into $45$\,MHz clock strata, and no window was flagged with a
 \emph{harmful} throttle (thermal or hardware power brake). The densest
 operand bursts do sit at the card's software power cap by design, which
 truncates their measured power and is therefore conservative for a
-dearest-rate edge.
+most-expensive-rate edge.
 
 \paragraph{Meter accuracy and cadence.}
 \texttt{nvmlDeviceGetTotalEnergyConsumption} exposes a cumulative
@@ -2665,7 +2551,7 @@ low-entropy $<$ declared-typical $\approx$ dense-random $\approx$
 structured-sparse $<$ adversarial-toggle. The clock confounds the comparison:
 locking is privilege-denied (\cref{sec:empirical-measurements}) and the families
 did not run at a common clock---the cheapest (zeros, low-entropy) drew the
-highest clocks and the dearest the lowest, a monotone $1410 \to 1324$\,MHz slide
+highest clocks and the most expensive the lowest, a monotone $1410 \to 1324$\,MHz slide
 against operand cost. Experiment~1's operand families, by contrast, share a
 median $1410$\,MHz.
 
@@ -2855,7 +2741,7 @@ energy and nothing more: to it an operation is an operation, declared or
 covert. It therefore takes the widest setting of the triple \cref{eq:triple}:
 the declared edges
 $(r_{\mathrm{hi}}^{\mathrm{dec}}, r_{\mathrm{lo}}^{\mathrm{dec}})$ open to the
-dearest and cheapest per-operation costs the silicon reaches at all, and
+most expensive and cheapest per-operation costs the silicon reaches at all, and
 $r_{\mathrm{lo}}^{\mathrm{cov}}$ stays exactly where it is, because no channel
 ever reached it. The clip is also laxer than the $(1-h)\,\gamma$ of
 \cref{eq:capclip}, because a bare meter pins no format on the \emph{declared}
@@ -2926,10 +2812,10 @@ textbook number exists; we measure it directly in
 \cref{sec:empirical-measurements}); locality and kernel set
 $C_{\mathrm{eff}}$, for which we conservatively count no extra
 factor; and DVFS moves $V^2$ by a factor of about
-$1.5$. Multiplied, the dearest per-operation cost the
+$1.5$. Multiplied, the most expensive per-operation cost the
 silicon reaches sits conservatively in the tens times the cheapest---but
 that span crosses numeric formats, and no single declared workload can be
-honestly explained at one format's dearest cells while its capacity is
+honestly explained at one format's most expensive cells while its capacity is
 priced at another's (\cref{subsec:capclip}). So the widest declared band, the
 bare-meter setting, is a factor of tens; pin the format and the precision
 factor drops out, leaving operands and DVFS, for a declared band of a factor
