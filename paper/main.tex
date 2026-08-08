@@ -68,9 +68,9 @@
   \icmltitle{Can Power Draw Constrain Covert Compute?}
 
   \begin{icmlauthorlist}
-    \icmlauthor{Tom Kimpson}{unimelb}
+    \icmlauthor{Tom Kimpson}{unimelb,mats}
     \icmlauthor{Mauricio Baker}{rand}
-    \icmlauthor{Emlyn Graham}{tbd}
+    \icmlauthor{Emlyn Graham}{mats}
     \icmlauthor{Anjay Friedman}{rand}
     \icmlauthor{Maximus Rafla}{rand}
     \icmlauthor{Coby Joseph}{rand}
@@ -79,7 +79,7 @@
 
   \icmlaffiliation{unimelb}{School of Mathematics and Statistics, The University of Melbourne, Parkville, VIC, Australia}
   \icmlaffiliation{rand}{RAND Corporation}
-  \icmlaffiliation{tbd}{Affiliation TBD} % TODO: Emlyn Graham's affiliation
+  \icmlaffiliation{mats}{Machine Alignment, Transparency \& Security (MATS)}
 
   \icmlcorrespondingauthor{Tom Kimpson}{tom.kimpson@unimelb.edu.au}
 
@@ -1268,45 +1268,74 @@ idle states.}, pins the overhead band to
 \begin{figure}[t]
 	\centering
 	\includegraphics[width=\columnwidth]{marginal_dose}
-	\caption{The marginal covert cost (Experiment~3): window energy $E$ vs.\
-	covert dose $C_{\mathrm{cov}}$ for int8 and fp16 covert work, added to a
+	\caption{Experiment~3: window energy $E$ vs.\
+	covert operation count $C_{\mathrm{cov}}$ for int8 and fp16 covert work,
+	added to a
 	fixed fp16 declared burst inside a fixed $10$\,s window. \emph{Top:}
 	per-cell medians with $\pm1$\,SD error bars over each cell's four
 	untrimmed repeats (of five captured; the flagged high-tail repeat is
 	excluded),
-	against the dose fit $E = r_{\mathrm{cov}}\,C_{\mathrm{cov}} + E_0$; both
+	against the fit $E = r_{\mathrm{cov}}\,C_{\mathrm{cov}} + E_0$; both
 	slopes are linear to $R^2 > 0.999$ ($0.53$\,pJ/op int8, $0.77$\,pJ/op
-	fp16) and share a zero-dose intercept matching the directly measured
-	zero-dose windows to $0.02\%$. \emph{Bottom:} residuals. Because the
-	baseline burns identically at every dose, it cancels in the slope: unlike
-	a fit across kernel shapes, which moves the operand and locality factors
-	along with the rate, this within-cell slope is the incremental estimand
-	$\partial E/\partial C_{\mathrm{cov}}$ the floor's covert denominator
-	requires (\cref{app:estimands}).}
+	fp16) and share an intercept matching the directly measured covert-free
+	windows to $0.02\%$. \emph{Bottom:} fit residuals.}
 	\label{fig:marginal-dose}
 \end{figure}
 
 \paragraph{Experiment 3---the marginal covert cost
 $r_{\mathrm{lo}}^{\mathrm{cov}}$.}
-The covert denominator, measured as the theorem defines it: the energy an
-\emph{added} covert operation costs, with everything else held fixed. Every
-measured window has the same fixed $10$\,s wall length and contains the
-same calibrated fp16 declared burst (utilisation $0.30$ of the window,
-declared-typical operands); to it we add $N_{\mathrm{cov}}$ covert matmuls
-of one format (int8 or fp16, zero operands---the adversary's cheapest
-case), then idle-pad to the window. Sweeping the covert dose over six
-levels from zero to a $0.48$ busy fraction (randomised order,
-drift-reference splices, five repeats per cell) and regressing window
-energy on covert nominal operations gives the marginal cost as a slope
-(\cref{fig:marginal-dose}):
-$0.53$\,pJ/op for int8 and $0.77$\,pJ/op for fp16, both fits linear to
-$R^2 > 0.999$, with the fitted zero-dose intercept agreeing with the
-directly measured zero-dose windows to $0.02\%$. Because the fixed window
-burns the same baseline energy at every dose, baseline power cancels in
-the slope by construction---the marginal cost sits $0.26$ (int8) to
-$0.39$\,pJ/op (fp16) below the corresponding total quotients, which
-amortise it in. The floor
-uses the one-sided $95\%$ \emph{lower} confidence limits,
+We construct a $10$\,s observation window. Inside it we run a fixed fp16
+declared burst---a $2048^3$ matmul on declared-typical operands, repeated
+enough times to keep the device busy for $30\%$ of the window---then
+$N_{\mathrm{cov}}$ covert matmuls of a single format (int8 or fp16, each swept
+as its own arm), then an idle pad that
+fills out the remainder. The covert operands are zeros, the adversary's
+cheapest case. The two formats bracket what matters: int8 is the cheapest
+arithmetic the device offers, and fp16 matches the declared work, so covert
+operations are indistinguishable from declared ones by format alone. Only
+$N_{\mathrm{cov}}$ changes between windows: the declared
+burst, the shapes, the operand buffers, and the $10$\,s length are all held
+fixed.
+
+To see how this experiment determines $r_{\mathrm{lo}}^{\mathrm{cov}}$, write the window energy out. Let
+$e_{\mathrm{cov}}$ be the energy of one covert matmul, $t_{\mathrm{cov}}$ its
+duration, $c$ its nominal operation count, $t_{\mathrm{dec}}$ the declared
+burst's busy time, and $P_{\mathrm{idle}}$ the power drawn during the pad. Then
+\begin{equation}
+	E \;=\; E_{\mathrm{dec}}
+	\;+\; N_{\mathrm{cov}}\,e_{\mathrm{cov}}
+	\;+\; P_{\mathrm{idle}}\bigl(T - t_{\mathrm{dec}}
+	- N_{\mathrm{cov}} t_{\mathrm{cov}}\bigr),
+	\label{eq:dosewindow}
+\end{equation}
+which collects into a constant plus a term linear in $N_{\mathrm{cov}}$,
+\begin{equation}
+	E \;=\; \underbrace{E_{\mathrm{dec}} + P_{\mathrm{idle}}
+	\bigl(T - t_{\mathrm{dec}}\bigr)}_{\text{independent of }N_{\mathrm{cov}}}
+	\;+\; N_{\mathrm{cov}}
+	\underbrace{\bigl(e_{\mathrm{cov}}
+	- t_{\mathrm{cov}}P_{\mathrm{idle}}\bigr)}_{\text{the slope}} .
+	\label{eq:doseslope}
+\end{equation}
+The first bracket does not depend on $N_{\mathrm{cov}}$. The covert work
+amounts to $C_{\mathrm{cov}} = N_{\mathrm{cov}}\,c$ operations, so
+differentiating leaves only the second,
+\begin{equation}
+	\frac{\partial E}{\partial C_{\mathrm{cov}}}
+	\;=\; \frac{e_{\mathrm{cov}} - t_{\mathrm{cov}}P_{\mathrm{idle}}}{c}
+	\;\equiv\; r^{\mathrm{cov}} .
+	\label{eq:doserate}
+\end{equation}
+
+We sweep $N_{\mathrm{cov}}$ over six levels, from no covert work up to a covert
+busy fraction of $0.48$, with five repeats per level in randomised order with
+drift-reference splices. Regressing window energy on covert nominal operations
+then gives the marginal cost directly (\cref{fig:marginal-dose}):
+$0.53$\,pJ/op for int8 and $0.77$\,pJ/op for fp16, both linear to
+$R^2 > 0.999$. Pricing the same covert kernels the obvious way instead---total
+energy divided by total operations---gives $0.26$ (int8) to $0.39$\,pJ/op
+(fp16) more. That excess is baseline power charged to the covert operations,
+which is what the fixed window differences away. We take the one-sided $95\%$ lower confidence limits,
 \begin{equation}
 	r_{\mathrm{lo}}^{\mathrm{cov}} = 0.51\;\mathrm{pJ/op}\ \ (\text{int8}),
 	\qquad
@@ -1314,22 +1343,23 @@ uses the one-sided $95\%$ \emph{lower} confidence limits,
 	\label{eq:measuredcov}
 \end{equation}
 Because the covert cost divides the slack, under-pricing covert work
-is the security-safe direction.\footnote{One-sided in the statistical
-sense only: the limit controls sampling uncertainty in the fitted dose
-slope for this workload family, device, and driver state. It is not a
-uniform physical lower bound over every execution the threat model
-admits---unseen kernels, schedules, operand encodings, or thermal states
-could in principle sit below it. Every rung that divides by
-$r_{\mathrm{lo}}^{\mathrm{cov}}$ is therefore conditional on the measured
-covert families bracketing the adversary's cheapest edge; the same reading
-applies to the useful band of Experiment~4 (\cref{sec:decreasing-beta}),
-estimated from one trained transformer layer at two shapes.} Clock locking
-is denied on this platform,
-so the governor is a recorded, not controlled, axis here too; the
-window-median clock varies with the dose through the idle-pad share, and
-the identification rests on the dose-response linearity and the intercept
-anchor rather than on a common clock stratum---a stated limitation of the
-platform.
+is the security-safe direction.\footnote{One-sided in the statistical sense:
+the limit controls sampling uncertainty in the fitted slope, not physical
+variation across the executions the threat model admits.
+\Cref{app:estimands} states what the bound is therefore conditional on.}
+
+One caveat is that, similar to the other experiments, clock locking is denied on this platform, so the governor is
+recorded rather than controlled here too. More covert work leaves a shorter
+idle pad, and the window-median clock rises with the load accordingly, from
+$1275$\,MHz with no covert work to $1410$\,MHz at the heaviest. However what changes is
+the time spent at each clock frequency, not the operating point the kernels run at:
+every measured window, in both arms, records the same $1275$\,MHz minimum and
+$1410$\,MHz maximum. We would rather have locked the clock and compared every cell at one
+fixed setting. Two checks stand in for that. A clock inflating the cost of
+later operations would bend the response, and the fits show no systematic
+curvature; and the zero end of each fit lands on windows we measured directly
+with no covert work at all (\cref{fig:marginal-dose}). We record the missing
+clock control as a limitation of the platform (\cref{sec:discussion}).
 
 \paragraph{Assembling the floor.}
 The floor is evaluated inside a single jointly feasible fp16-declared scenario
@@ -2221,6 +2251,14 @@ rather than claim a single coverage guarantee over all of them. The covert
 denominator---the one quantity a lower bound is genuinely sensitive to---is a
 one-sided $95\%$ lower confidence limit on a regression slope (Experiments~3
 and~4, and the useful-band dose slope), coverage-controlled by construction.
+That coverage is statistical, not physical. It bounds sampling error in the
+fitted slope for the workload families we measured, on this device and driver
+state; it does not certify that no admissible execution---an unseen kernel,
+schedule, operand encoding, or thermal state---sits below it. Every rung that
+divides by $r_{\mathrm{lo}}^{\mathrm{cov}}$ is therefore conditional on the
+measured covert families bracketing the adversary's cheapest edge, and the
+same reading applies to Experiment~4's useful band, estimated from one trained
+transformer layer at two shapes.
 The declared band $[r_{\mathrm{lo}}^{\mathrm{dec}},
 r_{\mathrm{hi}}^{\mathrm{dec}}]$ enters only as a \emph{difference} of
 per-cell-median edges at a common saturated rate, so the amortised baseline

@@ -25,3 +25,31 @@
   is what the paper cites as licensing the one-factor-per-rung reading of the
   capability ladder (`tab:inputs` caption, and §5's opener), so the two
   percentages should not disagree.
+
+- [ ] **Pin down the reference for the marginal-vs-total-quotient gap in
+  Experiment 3.** §4.2 states that pricing the covert kernels as a total
+  quotient gives "$0.26$ (int8) to $0.39$\,pJ/op (fp16) more" than the
+  marginal cost. The two figures do not appear to be computed against the
+  same reference. From the zeros cells of `results/bench/exp1_exchange_*.jsonl`:
+
+  | | resident | streamed | median | median − marginal |
+  |---|---|---|---|---|
+  | fp16 (marginal 0.765) | 1.114 | 1.195 | 1.155 | **0.39** ✓ |
+  | int8 (marginal 0.529) | 0.805 | 0.835 | 0.820 | **0.29** ✗ |
+
+  So fp16's $0.39$ reproduces as the gap against the locality-median zeros
+  quotient, but int8's $0.26$ does not — that route gives $0.29$. The int8
+  figure does reproduce as $0.786 - 0.53 = 0.256$, i.e. against
+  $r_{\mathrm{lo}}^{\mathrm{dec}}$ (the Exp-1 band edge), which is a different
+  reference from the one fp16 uses.
+
+  Decide which reference is intended — locality-median standalone quotient, or
+  the band edge — and recompute both figures consistently. Note the covert
+  kernels run one operand set reused (`marginal.py` builds the covert
+  `MatmulSpec` without a locality arm), so *resident* may be the right
+  comparison for both, giving $0.28$ / $0.35$.
+
+  Why it matters: this is the only number in the body quantifying what the
+  marginal estimand buys over the total quotient, i.e. why Experiment 3 exists
+  at all (referee B2). It is recomputable from the released artifacts in a few
+  lines, so an inconsistency is likely to be found.
