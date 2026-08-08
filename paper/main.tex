@@ -1238,76 +1238,32 @@ the spread should be the product of the two remaining widths,
 $w_\alpha w_C = 1.96$; those cells span $[1.10,\,2.19]$\,pJ/op, a factor of
 $2.00$. \Cref{app:operands} performs a separate fp16-only sweep of the operand axis with a governor-selected clock and corroborates $w_\alpha$ independently, reaching $1.83$ compared to the quoted value here of $1.88$.
 
-\begin{figure}[t]
-	\centering
-	\includegraphics[width=\columnwidth]{overhead_affine}
-	\caption{The overhead band and the affine forward map (Experiment~2,
-	$n=65$ windows across a $15$-cell rate ladder). \emph{Top:} mean power
-	$P$ vs.\ nominal-op rate $F$, plotted as per-cell medians with
-	$\pm1$\,SD error bars over each cell's repeats. Markers give each cell's
-	shape class: idle anchors (black, $F = 0$), compute-bound cubes
-	($M = N = K \ge 2048$, blue), and the launch- and bandwidth-bound
-	mid-ladder shapes (orange). Two affine fits $P = rF + P_0$ are overlaid:
-	the like-for-like fit over the idle anchors and the cubes alone (blue,
-	$r = 1.65$\,pJ/op, $R^2 = 0.99$), and the pooled fit over all fifteen
-	cells (black dashed, $r = 1.60$\,pJ/op, $R^2 = 0.852$). The slope moves by
-	$4\%$ between them while the scatter grows sharply, so the off-class shapes
-	account for the residual and not for the rate. The shaded band is the
-	observed idle range across five idle variants,
-	$P_0 \in [59.8, 101.0]$\,W, read directly off those cells rather than from
-	either fitted intercept. \emph{Bottom:} residuals about the pooled fit,
-	which is what its $R^2$ measures; the orange shapes carry the scatter.
-	This is a \emph{between-shape} diagnostic of the affine map; the covert
-	denominator the floor actually uses is the \emph{within-cell} marginal cost
-	of \cref{fig:marginal-dose} (Experiment~3), not either fit here.}
-	\label{fig:overhead-affine}
-\end{figure}
-
-\paragraph{Experiment 2---the overhead band $\Delta P_0$ (hence $\Delta E_0$),
-and the fitted rate $r$ as a diagnostic.}
-The \emph{rate ladder} is ten fp16 matmul shapes chosen to span the machine's
-sustained throughput: three small cubes ($256^3$ to $1024^3$) that are
-launch-bound, two skinny-$K$ shapes
-($8192\!\times\!8192\!\times\!64$ and $\times\,256$) that are
-bandwidth-bound, and five large cubes ($2048^3$ to $8192^3$) that are
-compute-bound---a $60$--$90\times$ spread in sustained operation rate at a
-single numeric format. Each window runs $100\%$ busy at its shape's own
-natural rate. We deliberately do \emph{not} vary $F$ by duty-cycling one
-kernel against idle: averaging a fixed busy power against a fixed idle power
-is linear in the duty fraction by construction, so that design would
-manufacture the affine form rather than test it. Operation counts are
-analytic ($C = 2MNK$ per matmul, \cref{subsec:forward}), so the abscissa is
-an exact op count divided by the measured wall time of the window and the
-ordinate is metered mean power. Five idle variants---before any CUDA
-context, context up, context plus operand pool resident, immediately after
-the hottest ladder cell, and after a $60$\,s cooldown---supply the $F = 0$
-anchors.
-
-The idle range, widened by the adopted $\pm 5\%$ meter tolerance, pins the
-overhead band to
+\paragraph{Experiment 2---the overhead band $\Delta P_0$ (hence $\Delta E_0$).}
+The overhead is what the meter reads with no declared work running. We measure five
+variants chosen to bracket the plausible range: before any CUDA context,
+context up, context plus operand pool resident, immediately after a sustained
+heavy kernel, and after a $60$\,s cooldown. Each variant is measured over five
+repeated windows. The band is the lowest and highest of those $25$ windows, not
+a range over per-variant medians. The lowest is a cold card before any context,
+at $62.9$\,W. The highest is a window taken immediately after the heavy kernel,
+at $96.2$\,W. That variant is a transient rather than a steady state: its five
+consecutive windows decay from $96.2$ to $76.5$\,W as the card settles. We take its peak
+deliberately. An adversary can leave a device in that state, and the meter does
+not report which idle state it is reading, so the peak belongs in the envelope.
+Reducing each variant to a median instead would give $\Delta P_0 = 23.9$\,W.
+The observed range $[62.9,\,96.2]$\,W, stretched outward by the adopted $\pm 5\%$ meter
+tolerance\footnote{NVML publishes no accuracy specification for the total-energy
+counter \texttt{nvmlDeviceGetTotalEnergyConsumption} on GA100; the documented
+$\pm 5\%$ is for the power readings of the earlier Fermi and Kepler generations
+\citep{nvidia_nvml}. We adopt it as a working tolerance and apply it outward
+only, so it can only widen $\beta$ (\cref{app:bench}). It accounts for
+$7.9$\,W of the width below; the remaining $33.3$\,W is genuine spread between
+idle states.}, pins the overhead band to
 \begin{equation}
 	P_0 \in [59.8,\, 101.0]\;\mathrm{W}, \qquad
 	\Delta P_0 = 41.2\;\mathrm{W}.
 	\label{eq:measuredoverhead}
 \end{equation}
-This band is read directly off those five idle cells, not from a fitted
-intercept; no input to the floor comes from the fitted slope, which serves
-only as a diagnostic of the forward model.
-
-As that diagnostic, the affine map holds tightly within a kernel class and
-loosens across classes. A pooled $P$--$F$ line tests two things at
-once---that power is affine in the rate, and that $r$ is common across the
-shapes swept---and the model itself denies the second: the shape that sets a
-cell's rate also sets its $\alpha$ and $C/N_{\mathrm{op}}$, so each kernel
-class sits on its own line. Restricted to the idle anchors and the five
-compute-bound cubes---like compared with like---the fit gives $1.65$\,pJ/op
-at $R^2 = 0.99$ (blue in \cref{fig:overhead-affine}). Opened to all ten
-shapes it gives $1.60$\,pJ/op at
-$R^2 = 0.852$ (black dashed): the slope moves by $4\%$ while
-the scatter grows sharply, so the launch- and bandwidth-bound shapes account
-for the residual and not for the rate---the expected behaviour rather than a
-failure of the model (\cref{app:estimands}). The derivative the floor actually
-needs is what Experiment~3 identifies.
 
 \begin{figure}[t]
 	\centering
@@ -1323,9 +1279,10 @@ needs is what Experiment~3 identifies.
 	fp16) and share a zero-dose intercept matching the directly measured
 	zero-dose windows to $0.02\%$. \emph{Bottom:} residuals. Because the
 	baseline burns identically at every dose, it cancels in the slope: unlike
-	the between-shape fit of \cref{fig:overhead-affine}, this within-cell
-	slope is the incremental estimand $\partial E/\partial C_{\mathrm{cov}}$
-	the floor's covert denominator requires (\cref{app:estimands}).}
+	a fit across kernel shapes, which moves the operand and locality factors
+	along with the rate, this within-cell slope is the incremental estimand
+	$\partial E/\partial C_{\mathrm{cov}}$ the floor's covert denominator
+	requires (\cref{app:estimands}).}
 	\label{fig:marginal-dose}
 \end{figure}
 
@@ -2065,9 +2022,9 @@ is the intercept,
 	r = \frac{\partial P}{\partial F}, \qquad P_0 = P\big|_{F=0}.
 	\label{eq:marginal}
 \end{equation}
-Experiment~2 estimates \cref{eq:marginal} directly, regressing mean power
-on sustained nominal-op rate with idle cells as the $F = 0$ anchors
-(\cref{sec:empirical-measurements}).
+Experiment~2 measures the intercept of \cref{eq:marginal} directly from idle
+cells (\cref{sec:empirical-measurements}) and checks the slope against a
+sweep of sustained nominal-op rate (\cref{app:estimands}).
 
 \paragraph{The dynamic term gives $r$.}
 The operation rate is $F = N_{\mathrm{op}}\,f$, where $N_{\mathrm{op}}$ is
@@ -2088,7 +2045,8 @@ and the clock drops out: energy per operation does not depend on how fast
 the operations run, only on what each switching event costs and how many
 operations it delivers. The rate is constant in $F$, so $P_{\mathrm{dyn}} = rF$
 is linear through the origin, exactly the affine form the forward model
-\cref{eq:forward} assumes and Experiment~2 fits. The capacitance switched
+\cref{eq:forward} assumes and Experiment~2's rate ladder checks
+(\cref{app:estimands}). The capacitance switched
 per operation, $C/N_{\mathrm{op}}$, has two structural sources: the arithmetic
 datapath, whose width is set by the numeric format, and the data-movement
 path, set by where the operands reside and which kernel runs. Factoring it
@@ -2219,19 +2177,43 @@ edge), not by fitting a power--rate curve; a total-quotient covert edge is
 inadmissible here, and every covert edge the bound uses is a marginal dose
 slope.
 
-\paragraph{Why the between-shape slope is not that estimand.}
-Experiment~2's regression of power on rate across kernel shapes is a
-consistency diagnostic for the affine map, never an input to the bound, and the
-two roles above say why. Those shapes move $C_{\mathrm{eff}}$ and $\alpha$
-along with $F$, so the resulting spread in $r$ is the same physical variation
-Experiment~1 maps deliberately as the exchange-rate band---swept on purpose
-there, drifting as a side effect here. A slope fitted through them therefore
-averages over shapes whose non-covert factors vary together, where
-\cref{eq:incremental} needs the derivative at \emph{fixed} declared work. That
-is why the covert edge is identified by a dose--response intervention at a
-fixed declared burst rather than read off a power--rate curve, and why the fit
-loosening across kernel classes ($R^2 = 0.99$ within the compute-bound cubes,
-$0.852$ across all ten shapes) is expected rather than a failure of the model.
+\paragraph{The rate ladder, and why its slope is not that estimand.}
+Alongside the idle cells that give the overhead band, Experiment~2 sweeps a
+\emph{rate ladder}: ten fp16 matmul shapes spanning the machine's sustained
+throughput---three small cubes ($256^3$ to $1024^3$) that are launch-bound, two
+skinny-$K$ shapes ($8192\!\times\!8192\!\times\!64$ and $\times\,256$) that are
+bandwidth-bound, and five large cubes ($2048^3$ to $8192^3$) that are
+compute-bound, a $60$--$90\times$ spread in sustained operation rate at a single
+numeric format. Each window runs $100\%$ busy at its shape's own natural rate.
+We deliberately do \emph{not} vary $F$ by duty-cycling one kernel against idle:
+averaging a fixed busy power against a fixed idle power is linear in the duty
+fraction by construction, so that design would manufacture the affine form
+rather than test it. Operation counts are analytic ($C = 2MNK$ per matmul,
+\cref{subsec:forward}), so the abscissa is an exact op count divided by the
+measured wall time of the window and the ordinate is metered mean power, with
+the five idle variants as $F = 0$ anchors ($n = 65$ windows over $15$ cells in
+all).
+
+The resulting regression is a consistency diagnostic for the affine map, never
+an input to the bound, and the two roles above say why. The ladder's shapes move
+$C_{\mathrm{eff}}$ and $\alpha$ along with $F$, so the resulting spread in $r$
+is the same physical variation Experiment~1 maps deliberately as the
+exchange-rate band---swept on purpose there, drifting as a side effect here. A
+slope fitted through them therefore averages over shapes whose non-covert
+factors vary together, where \cref{eq:incremental} needs the derivative at
+\emph{fixed} declared work. That is why the covert edge is identified by a
+dose--response intervention at a fixed declared burst rather than read off a
+power--rate curve. It is also why a pooled fit tests two claims at once---that
+power is affine in the rate, and that $r$ is common across the shapes swept---of
+which the model itself denies the second. Read that way the ladder behaves as
+expected: restricted to the idle anchors and the five compute-bound cubes, like
+compared with like, the fit gives $1.65$\,pJ/op at $R^2 = 0.99$; opened to all
+ten shapes it gives $1.60$\,pJ/op at $R^2 = 0.852$. The slope moves by $4\%$
+while the scatter grows sharply, so the launch- and bandwidth-bound shapes
+account for the residual and not for the rate. The like-for-like slope also sits
+inside the fp16 span $[1.10,\,2.19]$\,pJ/op that Experiment~1 measures by total
+quotient in a separate sweep, which is the agreement two independent estimates
+of a common-format rate should show.
 
 \paragraph{Three kinds of quantity, three kinds of status.}
 The inputs to the bound do not share one statistical status, and we state each
@@ -2249,8 +2231,10 @@ observed operating envelope. Used as design-time security edges they remain
 sampled operating points, not certified physical extrema. The overhead width
 $\Delta P_0$ and the capacity and $\gamma$ inputs are conservative worst-case
 \emph{design} parameters, not sampled estimates at all: $\Delta P_0$ is the
-observed idle envelope stretched by the adopted $\pm 5\%$ meter tolerance
-(widening it only widens $\beta$), and $C_{\max}$ and $\gamma$ are published
+envelope of the extreme observed idle windows, stretched outward by the adopted
+$\pm 5\%$ meter tolerance (widening it only widens $\beta$), and it is taken
+over windows rather than per-variant medians for that reason---an envelope wants
+its outermost observation, where an estimate would want a central one. $C_{\max}$ and $\gamma$ are published
 hardware peaks. Nothing here claims simultaneous coverage over the rectangle
 these edges span; that rectangle is a deliberately conservative
 over-approximation, since no single schedule attains its combined extrema
@@ -2422,7 +2406,8 @@ most-expensive-rate edge.
 \texttt{nvmlDeviceGetTotalEnergyConsumption} exposes a cumulative
 millijoule register integrated in firmware. NVML publishes no accuracy
 specification for this counter on GA100; the documented $\pm 5\%$ applies
-to the power readings of the earlier Fermi and Kepler generations, and we
+to the power readings of the earlier Fermi and Kepler generations
+\citep{nvidia_nvml}, and we
 adopt that figure as a working meter tolerance wherever one is needed,
 always in the direction that widens the bound. The counter's underlying
 power telemetry updates on a ${\sim}100$\,ms cadence and samples only part
@@ -2715,6 +2700,40 @@ do zero operands mean no hardware bits switch); no security bound in the
 paper rests on it.
 
 \section{Scratch space} %for text we may want in the future
+
+% Cut from Sec 4.2 (Experiment 2) when the rate ladder moved to app:estimands,
+% which now carries both R^2 values in prose. The figure adds no number the
+% appendix lacks, but figures/overhead_affine.pdf is still built and on disk,
+% so this block can be dropped straight back into app:estimands if a referee
+% wants to see the scatter. Commented out rather than deleted for that reason.
+% If reinstated: the caption's "read directly off those cells" needs the same
+% correction the body got -- the band spans the extreme idle WINDOWS, not the
+% per-variant medians -- and \cref{fig:marginal-dose} must still resolve.
+%
+% \begin{figure}[t]
+% 	\centering
+% 	\includegraphics[width=\columnwidth]{overhead_affine}
+% 	\caption{The overhead band and the affine forward map (Experiment~2,
+% 	$n=65$ windows across a $15$-cell rate ladder). \emph{Top:} mean power
+% 	$P$ vs.\ nominal-op rate $F$, plotted as per-cell medians with
+% 	$\pm1$\,SD error bars over each cell's repeats. Markers give each cell's
+% 	shape class: idle anchors (black, $F = 0$), compute-bound cubes
+% 	($M = N = K \ge 2048$, blue), and the launch- and bandwidth-bound
+% 	mid-ladder shapes (orange). Two affine fits $P = rF + P_0$ are overlaid:
+% 	the like-for-like fit over the idle anchors and the cubes alone (blue,
+% 	$r = 1.65$\,pJ/op, $R^2 = 0.99$), and the pooled fit over all fifteen
+% 	cells (black dashed, $r = 1.60$\,pJ/op, $R^2 = 0.852$). The slope moves by
+% 	$4\%$ between them while the scatter grows sharply, so the off-class shapes
+% 	account for the residual and not for the rate. The shaded band is the
+% 	observed idle range across five idle variants,
+% 	$P_0 \in [59.8, 101.0]$\,W, read directly off those cells rather than from
+% 	either fitted intercept. \emph{Bottom:} residuals about the pooled fit,
+% 	which is what its $R^2$ measures; the orange shapes carry the scatter.
+% 	This is a \emph{between-shape} diagnostic of the affine map; the covert
+% 	denominator the floor actually uses is the \emph{within-cell} marginal cost
+% 	of \cref{fig:marginal-dose} (Experiment~3), not either fit here.}
+% 	\label{fig:overhead-affine}
+% \end{figure}
 
 % Cut from Sec 3.3 (the floor): energy creates ambiguity, capacity only caps
 % it. This is the licence for quoting beta_en alone as a diagnostic (the bold

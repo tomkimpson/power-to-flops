@@ -349,3 +349,16 @@
                   tf32, 312 TFLOP/s fp16/bf16, 624 TOPS int8},
   url          = {https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/nvidia-ampere-architecture-whitepaper.pdf}
 }
+
+@misc{nvidia_nvml,
+  author       = {{NVIDIA Corporation}},
+  title        = {{NVIDIA} Management Library ({NVML}) {API} Reference},
+  year         = {2026},
+  howpublished = {Online documentation, accessed 2026},
+  url          = {https://docs.nvidia.com/deploy/nvml-api/},
+  note         = {Device queries {\tt nvmlDeviceGetPowerUsage} and
+                  {\tt nvmlDeviceGetTotalEnergyConsumption}. The stated
+                  +/- 5\% accuracy is given for Fermi and Kepler power
+                  readings; no accuracy specification is given for the
+                  total-energy counter on GA100}
+}
