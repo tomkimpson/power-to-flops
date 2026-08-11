@@ -86,7 +86,7 @@ def main() -> None:
         kappa = res["case"].kappa
         ax.plot(h, b, color=col, lw=1.3, zorder=3,
                 label=rf"{res['case'].covert_format} covert "
-                      rf"($\kappa = {kappa:g}$)")
+                      rf"($\gamma = {kappa:g}$)")
         hs, bs = res["h_star"], res["beta_star"]
         ax.plot(hs, bs, "o", ms=4, color=col, zorder=4)
         ax.annotate(rf"$\beta = {bs:.2f}$ at $h = {hs:.2f}$", (hs, bs),
@@ -108,7 +108,7 @@ def main() -> None:
     ax.set_xlim(0.0, 1.0)
     ax.set_ylim(0.0, top)
     ax.set_xlabel(r"declared utilisation $h$")
-    ax.set_ylabel(r"clipped floor $\beta_{\mathrm{phys}}(h)$")
+    ax.set_ylabel(r"clipped floor $\beta(h)$")
     ax.legend(frameon=False, fontsize=6.5, loc="upper right", borderaxespad=1.2)
 
     fig.tight_layout(pad=0.4)

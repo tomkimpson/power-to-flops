@@ -810,13 +810,6 @@ interconnect---switches per operation
 capacitor-charging energy of the supply voltage, which DVFS slides along the
 voltage--frequency curve \citep{pallipadi2006ondemand}.
 
-\textcolor{red}{\textbf{Dev note:} revisit this factorisation passage once the
-rest of \cref{sec:howbig} has had a pass. Its framing---how much to motivate
-here, how much to defer to \cref{sec:decreasing-beta}---depends on how the
-measurement subsection and the ladder hand-off end up reading, and the notation
-defined here is what \cref{sec:empirical-measurements,sec:decreasing-beta} both
-lean on.}
-
 With the power meter as the only channel, every factor of \cref{eq:cmos} is
 conceded at once. If each ranges over an interval the verifier cannot narrow,
 and the factors can be extreme together, the declared band's edges are the
@@ -1236,7 +1229,9 @@ cells actually show---so \cref{eq:widthfactor} holds to $7\%$, the residual
 being factor interaction. Similarly, among the fp16 cells the precision never varies, so
 the spread should be the product of the two remaining widths,
 $w_\alpha w_C = 1.96$; those cells span $[1.10,\,2.19]$\,pJ/op, a factor of
-$2.00$. \Cref{app:operands} performs a separate fp16-only sweep of the operand axis with a governor-selected clock and corroborates $w_\alpha$ independently, reaching $1.83$ compared to the quoted value here of $1.88$.
+$2.00$. This fp16 sub-band reappears below as the declared band of the
+assembled floor, which is evaluated inside a single declared format so
+that the scenario stays jointly feasible (\cref{app:boundkind}). \Cref{app:operands} performs a separate fp16-only sweep of the operand axis with a governor-selected clock and corroborates $w_\alpha$ independently, reaching $1.83$ compared to the quoted value here of $1.88$.
 
 \paragraph{Experiment 2---the overhead band $\Delta P_0$ (hence $\Delta E_0$).}
 The overhead is what the meter reads with no declared work running. We measure five
@@ -1361,57 +1356,45 @@ curvature; and the zero end of each fit lands on windows we measured directly
 with no covert work at all (\cref{fig:marginal-dose}). We record the missing
 clock control as a limitation of the platform (\cref{sec:discussion}).
 
-\paragraph{Assembling the floor.}
-The floor is evaluated inside a single jointly feasible fp16-declared scenario
-(\cref{app:boundkind}): the declared band is the fp16 cells' own
-$[r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}] =
-[1.10,\,2.19]$\,pJ/op (Experiment~1), the covert cost is Experiment~3's
-marginal lower limit, the overhead width is $\Delta P_0 = 41.2$\,W
-(Experiment~2), and capacity and $\gamma$ (\cref{eq:capratio}) come from
-the two formats' published peaks rather than the rates our kernels achieve.
-Peaks give the covert stream more room than it can really use, so this is the
-adversary-favorable---and for an upper bound on the ambiguity,
-conservative---direction; \cref{app:sensitivity} quantifies the difference on
-our measured peaks. The set is format-consistent by construction---our
-analysis code rejects any cross-format combination of extrema---and joint
-attainability of its cheating corner within one observation window is
-\cref{ass:corners}, which \cref{sec:attained} probes directly. Reading the fp16
-cells as the declared band carries
-one further disclosed assumption: that the declared work is executed in
-its declared format. No off-site check enforces this; dropping it removes
-the format pin entirely, so both declared edges open to the full measured
-envelope and the worst case rises to
-$1.95$ (the bare-meter rung of \cref{sec:decreasing-beta}). With
-covert int8 ($\gamma = 2$,
-$r_{\mathrm{lo}}^{\mathrm{cov}} = 0.51$\,pJ/op) the energy-only width at
-full declared utilisation is
+\paragraph{Assembling $\beta$.}
+We now combine the three experiments into an estimate of $\beta$
+(cf.\ \cref{tab:inputs}):
+\begin{itemize}
+	\item the declared band, from Experiment~1's fp16 cells:
+	$[r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\mathrm{dec}}]
+	= [1.10,\,2.19]$\,pJ/op. This is narrower than the cross-format
+	envelope of \cref{tab:inputs}, which pins no format: we assume
+	proof-of-learning and zero-knowledge proof-of-training protocols
+	(\cref{ass:declaration}) let the verifier confirm the declared work
+	ran in its declared format, so the declared edges are the fp16 cells'
+	own;
+	\item the overhead width, from Experiment~2:
+	$\Delta P_0 = 41.2$\,W;
+	\item the covert cost, from Experiment~3's marginal lower limits:
+	$r_{\mathrm{lo}}^{\mathrm{cov}} = 0.51$\,pJ/op for covert int8
+	($\gamma = 2$) or $0.76$\,pJ/op for covert fp16 ($\gamma = 1$);
+	\item capacity $C_{\max}$ and $\gamma$ (\cref{eq:capratio}), from the
+	two formats' published peaks rather than the rates our kernels
+	achieve.
+\end{itemize}
+Together these give, with covert int8, a worst case over utilisation of
 \begin{equation}
-	\beta_{\mathrm{en}}(1) \;=\; \mathbf{2.39},
-	\label{eq:betaenmeasured}
-\end{equation}
-or $1.62$ with covert work held to fp16
-($r_{\mathrm{lo}}^{\mathrm{cov}} = 0.76$\,pJ/op). $\beta_{\mathrm{en}}(1)$ is an
-energy-only diagnostic, not a physical floor: at full declared
-utilisation the capacity clip $(1-h)\gamma$ is zero, so no covert work
-fits and $\beta(1) = 0$. The floor couples the slack to
-that clip through \cref{eq:betafloor}. \Cref{fig:betafloor} traces
-$\beta(h)$ for the two covert scenarios: with covert int8
-against declared fp16 the worst case over utilisation is
-\begin{equation}
-	\beta^{*} \;=\; \mathbf{1.16}
+	\beta^{*} \;=\; 1.16
 	\quad\text{at}\quad h^{*} = 0.42,
 	\label{eq:betafloormeasured}
 \end{equation}
-and with covert work held to fp16 ($\gamma = 1$) it is $0.66$ at
-$h^{*} = 0.34$. Energy is the binding constraint below the crossing,
-capacity above it, and both bind at $h^{*}$: the worst case sits at
-intermediate utilisation, where the declared work offers real cover but
-still leaves much of the machine free.
+and an energy-only width at full declared utilisation of
+$\beta_{\mathrm{en}}(1) = 2.39$. With covert work held to fp16 the pair
+is $\beta^{*} = 0.66$ at $h^{*} = 0.34$ and
+$\beta_{\mathrm{en}}(1) = 1.62$. \Cref{fig:betafloor} traces $\beta(h)$
+for both scenarios.
 
-Both figures are model bounds in the sense of \cref{eq:relaxation}: they
-price the cheating corner, and whether a schedule reaches it---or even
-reaches the utilisation $h^{*}$ at which the peak sits---is not something
-the formula settles. \Cref{sec:attained} takes that up.
+Two remarks. First, $\beta_{\mathrm{en}}(1)$ is an energy-only
+diagnostic, not a physical floor: at full declared utilisation the
+capacity clip $(1-h)\gamma$ is zero, so no covert work fits and
+$\beta(1) = 0$. Second, published peaks give the covert stream more room than it
+can really use, so this is the adversary-favorable direction;
+\cref{app:sensitivity} quantifies the difference on our measured peaks.
 
 \begin{figure}[t]
 	\centering
@@ -1467,7 +1450,12 @@ each rung adds one capability to all the rungs above it --- and their
 captions fix the accounting every priced rung shares: the quantity re-computed
 at each step, the joint model it is computed in, and the two disclosed
 conditions that thread the chain. Because a verifier that gains a capability
-can only shrink the set, the priced chain is monotone by construction. The rest of this section
+can only shrink the set, the priced chain is monotone by construction.
+The headline of \cref{sec:empirical-measurements} already sits one rung
+down this ladder: its declared band assumed the declared format was
+confirmed off-site (\cref{ass:declaration}), which is exactly the
+second rung's capability. The bare-meter rung above it prices what
+happens when even that assumption is withdrawn. The rest of this section
 takes the rungs in turn.
 
 \begin{table*}[t]
@@ -1506,8 +1494,9 @@ takes the rungs in turn.
 	the fp16 band $[1.10, 2.19]$ is Exp.~1's fp16 cells, the useful covert
 	edges $2.53$ and $3.16$ are Exp.~4's marginal lower limits, and
 	$\Delta P_0 = 41.2$\,W (Exp.~2) is common to every row. Disclosed conditions: $\dagger$ --- assumes the declared work
-	is executed in its declared format (an off-site check cannot enforce
-	this; \cref{sec:decreasing-beta}); $\ddagger$ --- additionally assumes
+	is executed in its declared format, discharged off-site by the
+	protocols of \cref{ass:declaration}
+	(\cref{sec:decreasing-beta}); $\ddagger$ --- additionally assumes
 	re-execution transfers at an observed operating point. Both are
 	inherited by every rung below their first appearance. The type column
 	says what kind of thing each rung is: D --- a declaration by the
@@ -1969,7 +1958,7 @@ is unknown and data-dependent---across the five formats we measured the
 envelope spans $24.8\times$ on an A100 ($0.79$--$19.5$\,pJ/op), with the
 hardware's unmeasured int4 and binary paths wider still, and even inside
 one jointly feasible declared format the band and the marginal covert cost
-leave an energy slack ($\beta_{\mathrm{en}}(1) = 2.39$, \cref{eq:betaenmeasured}, an
+leave an energy slack ($\beta_{\mathrm{en}}(1) = 2.39$, an
 energy-only diagnostic since no covert work fits at full utilisation).
 Coupling that slack to silicon capacity gives the clipped floor of
 \cref{eq:betafloor}. What we \emph{attain} and the sensor accepts is a
