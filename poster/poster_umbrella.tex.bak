@@ -1,0 +1,317 @@
+% ---------------------------------------------------------------------------
+% MATS research poster - LaTeX/beamer port of the MATS Google Slides template
+%
+% Page size: 24in x 36in portrait (same as the Slides template).
+% Compile:   latexmk -pdf poster.tex
+%
+% Umbrella poster over two projects:
+%   P1: Can Power Draw Constrain Covert Compute?        (power-to-flops)
+%   P2: What a Passive Power Meter Can Certify About AI Training
+%       (detecting-training-from-power-traces)
+% Figures live in ./figures/ (copied from the two repos).
+% ---------------------------------------------------------------------------
+\documentclass[final]{beamer}
+\usepackage[size=custom,width=60.96,height=91.44,scale=1.0]{beamerposter}
+
+\usepackage[T1]{fontenc}
+\usepackage{libertine}          % Linux Libertine (serif) + Biolinum (sans)
+\usepackage{tikz}
+\graphicspath{{figures/}}
+
+% --- colours (sampled from the Slides template; tweak here) ----------------
+\definecolor{matsmaroon}{HTML}{8A1B2E}   % sidebar / accent red
+\definecolor{sidebarmuted}{HTML}{C9909C} % small-caps labels in the sidebar
+\definecolor{maintext}{HTML}{1A1A1A}
+\definecolor{bodygray}{HTML}{333333}
+\definecolor{subtitlegray}{HTML}{595959}
+\definecolor{captiongray}{HTML}{6E6E6E}
+\definecolor{phbg}{HTML}{F4F2EC}         % figure-placeholder background
+\definecolor{phborder}{HTML}{B8B8B8}
+
+% --- geometry ---------------------------------------------------------------
+\newlength{\sidebarwidth}\setlength{\sidebarwidth}{0.325\paperwidth}
+\newlength{\sidebarpad}\setlength{\sidebarpad}{2.4cm}
+\newlength{\mainpad}\setlength{\mainpad}{2.8cm}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{footline}{}
+\setbeamersize{text margin left=0pt, text margin right=0pt}
+\setbeamercolor{normal text}{fg=bodygray, bg=white}
+
+% maroon sidebar painted as the frame background
+\setbeamertemplate{background}{%
+  \begin{tikzpicture}
+    \useasboundingbox (0,0) rectangle (\paperwidth,\paperheight);
+    \fill[matsmaroon] (0,0) rectangle (\sidebarwidth,\paperheight);
+  \end{tikzpicture}}
+
+% --- font sizes (absolute, independent of beamerposter scaling) ------------
+\newcommand{\titlefont}{\rmfamily\bfseries\fontsize{66}{78}\selectfont}
+\newcommand{\subtitlefont}{\sffamily\fontsize{27}{35}\selectfont}
+\newcommand{\sectionfont}{\rmfamily\bfseries\fontsize{36}{42}\selectfont}
+\newcommand{\bodyfont}{\sffamily\fontsize{21}{27}\selectfont}
+\newcommand{\sidebodyfont}{\sffamily\fontsize{23}{30}\selectfont}
+\newcommand{\sidelabelfont}{\rmfamily\fontsize{26}{32}\selectfont}
+\newcommand{\tldrfont}{\rmfamily\fontsize{28}{38}\selectfont}
+\newcommand{\captionfont}{\sffamily\fontsize{19}{25}\selectfont}
+\newcommand{\finefont}{\sffamily\fontsize{18}{24}\selectfont}
+\newcommand{\logofont}{\rmfamily\fontsize{90}{90}\selectfont}
+
+% --- building blocks --------------------------------------------------------
+% small-caps muted label in the sidebar, e.g. \sidebarlabel{Authors}
+\newcommand{\sidebarlabel}[1]{%
+  {\color{sidebarmuted}\sidelabelfont\scshape\MakeLowercase{#1}\par}%
+  \vspace{0.5cm}}
+
+% thin white separator rule in the sidebar
+\newcommand{\sidebarrule}{%
+  \vspace{0.8cm}{\color{white}\rule{\linewidth}{1.2pt}\par}\vspace{0.8cm}}
+
+% numbered contribution item, e.g. \contribution{1}{First contribution.}
+\newcommand{\contribution}[2]{%
+  \makebox[1.6em][l]{\bfseries #1.}%
+  \parbox[t]{\dimexpr\linewidth-1.6em\relax}{\raggedright #2}\par
+  \vspace{0.6cm}}
+
+% main-column section heading with maroon underline
+\newcommand{\postersection}[1]{%
+  \vspace{0.55cm}%
+  {\color{matsmaroon}\sectionfont #1\par}%
+  \vspace{0.12cm}%
+  {\color{matsmaroon}\rule{\linewidth}{2pt}\par}%
+  \vspace{0.35cm}}
+
+% maroon bullet item for the main column
+\newcommand{\bulletitem}[1]{%
+  \par\hangindent=1.2em\hangafter=1
+  \makebox[1.2em][l]{\color{matsmaroon}\textbullet}#1\par\vspace{0.2cm}}
+
+% figure caption, e.g. \postercaption{Figure 1. Description of the figure.}
+\newcommand{\postercaption}[1]{%
+  \vspace{0.25cm}{\color{captiongray}\captionfont #1\par}}
+
+% QR code image with a small label underneath
+\newcommand{\posterqr}[2]{% #1 = image file, #2 = label
+  \begin{minipage}[t]{6.5cm}
+    \centering
+    \includegraphics[width=6cm]{#1}\\[0.35cm]
+    {\finefont\color{white}#2}
+  \end{minipage}}
+
+% ===========================================================================
+\begin{document}
+\begin{frame}[t]
+\vspace{1.2cm}
+\begin{columns}[T]
+
+% ===================== SIDEBAR =============================================
+\begin{column}{\sidebarwidth}
+\centering
+\begin{minipage}[t][0.93\paperheight][t]{\dimexpr\sidebarwidth-2\sidebarpad\relax}
+\color{white}\sidebodyfont\raggedright
+
+% --- SIDEBAR: LOGO ---------------------------------------------------------
+% Replace with the MATS logo when available:
+%   \includegraphics[width=0.7\linewidth]{mats-logo-white.pdf}
+{\color{white}\logofont MATS\par}
+\vspace{2cm}
+
+% --- SIDEBAR: AUTHORS --------------------------------------------------------
+\sidebarlabel{Authors}
+Tom Kimpson\textsuperscript{1,2}\\[0.25cm]
+Mauricio Baker\textsuperscript{3}\\[0.25cm]
+Emlyn Graham\textsuperscript{2}\\[0.25cm]
+Anjay Friedman\textsuperscript{3}\\[0.25cm]
+Maximus Rafla\textsuperscript{3}\\[0.25cm]
+Coby Joseph\textsuperscript{3}\\[0.7cm]
+{\finefont
+\textsuperscript{1}University of Melbourne\\[0.15cm]
+\textsuperscript{2}MATS*\quad
+\textsuperscript{3}RAND Corporation\par}
+
+\sidebarrule
+
+% --- SIDEBAR: TLDR -----------------------------------------------------------
+\sidebarlabel{TL;DR}
+{\tldrfont An off-chip power meter is the one channel a verifier can read
+without trusting the operator's silicon. It cannot count operations ---
+cheating strategies hide 0.4 machines of covert compute behind an accepted
+trace --- but it can detect the cadence of synchronous training, even
+against an adaptive adversary.\par}
+
+\sidebarrule
+
+% --- SIDEBAR: CONTRIBUTIONS --------------------------------------------------
+\sidebarlabel{Contributions}
+\contribution{1}{A closed-form floor $\beta$ for the covert compute a power
+trace cannot rule out, with every input measured on NVIDIA A100s.}
+\contribution{2}{A capability ladder pricing what each added verifier
+capability buys, from a bare meter ($\beta^{*}{=}1.95$) to re-execution
+($0.34$).}
+\contribution{3}{A tracked cyclostationary detector that recovers the
+training cadence (AUC 1.00) and survives cheap de-periodicisation that
+defeats every fixed-frequency test.}
+\contribution{4}{Hard ceilings on the channel: a 1\,Hz integrating meter
+defeats all detectors, and gradient-discarding decoys score as training
+under every rule.}
+
+\vspace{0.5cm}
+
+% --- SIDEBAR: READ MORE ------------------------------------------------------
+\sidebarlabel{Read more}
+{\finefont
+Energy: github.com/tomkimpson/power-to-flops\\[0.2cm]
+Training: github.com/tomkimpson/\\
+\hspace*{1em}detecting-training-from-power-traces\\[0.2cm]
+Contact: tom.kimpson@unimelb.edu.au\par}
+
+\vspace{1cm}
+
+% --- SIDEBAR: ACKNOWLEDGMENTS ------------------------------------------------
+\sidebarlabel{Acknowledgments}
+{\finefont This work was carried out as part of the Machine Alignment,
+Transparency \& Security (MATS) program.\par}
+
+\vfill
+
+% --- SIDEBAR: QR CODE --------------------------------------------------------
+\posterqr{qr}{Read more}
+
+\end{minipage}
+\end{column}
+
+% ===================== MAIN COLUMN =========================================
+\begin{column}{\dimexpr\paperwidth-\sidebarwidth\relax}
+\centering
+\begin{minipage}[t][0.93\paperheight][t]{\dimexpr\paperwidth-\sidebarwidth-2\mainpad\relax}
+\bodyfont\color{bodygray}\raggedright
+
+% --- TITLE BLOCK -------------------------------------------------------------
+{\color{maintext}\titlefont What Can a Power Meter Certify About AI Compute?\par}
+\vspace{0.3cm}
+%{\color{subtitlegray}\subtitlefont Against an operator who knows the meter is watching: how much
+%compute was run, and was it training?\par}
+%\vspace{0.9cm}
+%{\color{matsmaroon}\rule{\linewidth}{2pt}\par}
+
+% --- MOTIVATION --------------------------------------------------------------
+\postersection{Motivation}
+Compute-governance agreements require \textit{verification}: an outside party must be
+able to check what an operator actually ran, against an operator who may
+cheat.
+
+Hardware mechanisms for verification typically rely on reading silicon
+the operator controls.
+
+Off-chip analogue sensors (e.g. a power meter) have been identified as a
+potential verification channel that is beyond the operator's reach.
+
+Prior work fits forward models under cooperative conditions --- we ask
+the inverse, adversarial question along the channel's two axes: total
+\textbf{energy} (how much compute?) and \textbf{time structure} (was it
+training?).
+
+% --- ENERGY CHANNEL ----------------------------------------------------------
+\postersection{Energy channel: counting operations}
+Chip power is affine in the operation rate, $P = r\,F + P_0$, and the
+exchange rate $r$ [J/op] is assembled from four physical factors ---
+every one chosen by the operator, invisible to the meter:
+
+\vspace{0.2cm}
+\begin{center}
+\includegraphics[width=0.85\linewidth]{exchange_scales}
+\end{center}
+\postercaption{Figure 1. The exchange rate, from transistors to the
+powered die: operand toggling $\alpha$, number format $\kappa$, memory
+locality $C_{\mathrm{eff}}$, voltage $V^2$; the clock cancels, and static
+draw leaves as the overhead $P_0$.}
+
+\vspace{0.25cm}
+On an A100 these factors span a measured $24.8\times$, so a trace
+identifies a \emph{set} of workloads, not a number. We derive the set's
+width in closed form --- the floor $\beta$, the largest covert computation
+the trace cannot rule out, in machines of declared capacity --- and
+measure every input.
+
+\vspace{0.5cm}
+\noindent
+\begin{minipage}[c]{0.59\linewidth}
+\bulletitem{Explicit cheating strategies hide \textbf{0.41 machines} of
+covert compute behind a trace the meter accepts.}
+\bulletitem{Worst case: $\beta^{*} = \textbf{1.16}$ with the declared
+number format checked; $\textbf{1.95}$ against a bare meter.}
+\bulletitem{``Power plus paperwork'' stalls at $\beta^{*} \approx 1$;
+re-execution at an observed operating point buys $\textbf{0.34}$.}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.37\linewidth}
+\centering
+\includegraphics[width=\linewidth]{capability_ladder}
+\end{minipage}
+\postercaption{Figure 2. The capability ladder: worst-case covert compute
+$\beta^{*}$ (machines of declared capacity) as the verifier gains
+capabilities. The dashed line marks one whole machine of conceded
+ambiguity.}
+
+% --- TIME CHANNEL ------------------------------------------------------------
+\postersection{Time channel: detecting training}
+Synchronous training alternates compute and communication at an iteration
+cadence of 0.5--1.5\,Hz, and a tracked cyclostationary detector recovers
+this line at \textbf{AUC 1.00} against a hard inference null. The contest
+is asymmetric: varying real work per iteration hides training from every
+fixed-frequency test at \textbf{zero measured throughput cost}, yet the
+tracking detector holds at detection rate 1.0 --- the best anchored attack
+buys hiding of only \textbf{0.16} at \textbf{159\%} overhead.
+
+\vspace{0.5cm}
+\noindent
+\begin{minipage}[c]{0.58\linewidth}
+\centering
+\includegraphics[width=\linewidth]{st2_cost_pareto}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.38\linewidth}
+\postercaption{Figure 3. The cost of hiding, priced with measured A100
+throughput anchors: essentially free against fixed-frequency tests, but
+the staircase never leaves the floor against the tracking class.}
+\vspace{0.5cm}
+\bulletitem{Minimum meter spec: $\geq 2$\,Hz sampling, $\leq 0.5$\,s
+integration --- a 1\,s-averaging, 1\,Hz meter defeats every detector on an
+honest workload.}
+\end{minipage}
+
+% --- LIMITATIONS -------------------------------------------------------------
+\postersection{Limitations}
+The energy floor is measured on one GPU model with the voltage axis
+unswept, and it prices a cheating corner, so it upper-bounds the set
+width. The detection results
+rest on a literature-parameterised scenario model: on a measured A100 the
+cadence modulates board power by only ${\sim}0.4\%$, some $75\times$
+shallower than the model assumes. And the meter certifies a physical
+schedule, not semantics: a decoy that computes gradients and discards them
+scores as training under every rule.
+
+% --- IMPLICATIONS ------------------------------------------------------------
+\postersection{Implications}
+The meter is an anchor, not an instrument: the one channel whose integrity
+requires no trust in the operator --- a cheap, deployable front line that
+prices the cheap evasions, not a proof of compliance. Each rung of the
+capability ladder is a protocol requirement a treaty could stipulate; the
+meter specification is procurement guidance. Escaping the ceilings means
+leaving the passive channel: active challenge protocols and multi-channel
+sensing are future work.
+
+\vfill
+
+% --- FOOTNOTE ----------------------------------------------------------------
+{\color{phborder}\rule{\linewidth}{0.8pt}\par}
+\vspace{0.4cm}
+{\color{captiongray}\finefont *Machine Alignment, Transparency \& Security
+(MATS). In collaboration with RAND Corporation and the University of
+Melbourne.\par}
+
+\end{minipage}
+\end{column}
+
+\end{columns}
+\end{frame}
+\end{document}
