@@ -72,6 +72,9 @@ def main() -> None:
     mb = load_measured_bands(bench_dir / "measured_bands.json")
     rungs = build_ladder(mb)
     check_monotone(rungs)
+    # The ladder starts at the precision-checked rung; the bare-meter setting
+    # is not plotted (it lives in the appendix, not the main-text ladder).
+    rungs = [r for r in rungs if r.name != "bare meter"]
 
     fig, ax = plt.subplots(figsize=(3.4, 2.9))
     ax.axhline(1.0, color=C["grey"], lw=0.8, ls="--", zorder=1)
@@ -99,7 +102,7 @@ def main() -> None:
     i_clock = next(i for i, r in enumerate(rungs) if not r.priced)
     ax.axvspan(i_clock - 0.18, i_clock + 0.18, color=C["grey"], alpha=0.15,
                zorder=0)
-    ax.text(i_clock, 0.028, "unpriced\n(prospective)", ha="center",
+    ax.text(i_clock, 0.048, "unpriced\n(prospective)", ha="center",
             va="bottom", fontsize=5.5, color=C["grey"], rotation=90)
 
     labels = []
