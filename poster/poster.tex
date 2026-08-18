@@ -137,8 +137,9 @@ Coby Joseph\textsuperscript{3}\\[0.7cm]
 % --- SIDEBAR: TLDR -----------------------------------------------------------
 \sidebarlabel{TL;DR}
 {\tldrfont How much compute can an operator hide from a power meter? We
-derive the answer in closed form and measure it on real GPUs: 0.4
-machines' worth, falling to 0.07 under reasonable assumptions.\par}
+derive the answer in closed form and measure every input on real GPUs:
+up to 1.16 machines' worth, falling to 0.07 under reasonable
+assumptions.\par}
 
 \sidebarrule
 
@@ -149,8 +150,9 @@ computation a power trace cannot rule out, in machines of declared
 capacity.}
 \contribution{2}{Every input of the closed form measured on NVIDIA A100s
 --- band edges, overhead, and the marginal cost of covert work.}
-\contribution{3}{Explicit cheating strategies that hide 0.41 machines of
-covert compute behind a trace the meter accepts.}
+\contribution{3}{The floor evaluated end-to-end: the trace concedes
+$\beta^{*} = 1.16$ machines --- more than one whole machine of
+ambiguity; cheating runs we execute attain 0.41 of it.}
 \contribution{4}{A ladder of verifier capabilities and assumptions that
 shrink the floor --- requiring covert work to be \emph{useful} pushes
 $\beta$ down to $0.07$.}
@@ -190,7 +192,7 @@ Contact: tom.kimpson@unimelb.edu.au\par}
 % --- MOTIVATION --------------------------------------------------------------
 \postersection{Motivation}
 \bulletitem{International agreements on frontier AI require \textit{verification}: an outside party must be
-able to check what an operator actually ran, against an operator who may
+able to check what an operator actually ran, even when that operator may
 cheat and try to hide their computation.}
 \bulletitem{Hardware mechanisms for verification typically rely on reading silicon
 the operator controls.}
@@ -208,7 +210,7 @@ $P_0$.}
 machine is run.}
 \bulletitem{Given $P(t)$ (or its integral $E = \int P(t) dt$) we want to know $F(t)$ (or its integral $C=\int F dt$); an inverse problem.}
 \bulletitem{\textbf{BUT} the equation is non-injective and so cannot be inverted.}
-\bulletitem{We instead bound the width of the covert compute interval, $\beta \propto C_{\rm high} - C_{\rm low}$}
+\bulletitem{We instead bound the width of the covert compute interval, $\beta \propto C_{\mathrm{hi}} - C_{\mathrm{lo}}$.}
 
 \vspace{0.25cm}
 \begin{center}
@@ -265,13 +267,15 @@ operand distribution (whiskers); dashed lines mark the band edges.}
 \vspace{0.2cm}
 \noindent
 \begin{minipage}[c]{0.59\linewidth}
-\bulletitem{Power alone concedes a lot: our cheating strategies
-demonstrably hide $\beta=$\textbf{0.41 machines}}
+\bulletitem{Even with the declared precision checked, the trace concedes
+$\beta^{*}=$\textbf{1.16 machines} --- more than one whole machine of
+ambiguity. Matched-energy cheating runs attain 0.41 of it, with every
+run accepted by the meter.}
 \bulletitem{Additional verifier capabilities push it down, e.g. re-executing the
-declared work at an observed operating point $\beta \to \textbf{0.34}$.}
+declared work at an observed operating point: $\beta \to \textbf{0.34}$.}
 \bulletitem{Reasonable assumptions push it down further, e.g. assuming
 the adversary needs \emph{useful} covert work (multiplying zero matrices
-is cheap and easy to hide, but useless) $\beta \to \textbf{0.07}$}
+is cheap and easy to hide, but useless): $\beta \to \textbf{0.07}$.}
 \end{minipage}\hfill
 \begin{minipage}[c]{0.35\linewidth}
 \centering
@@ -296,9 +300,9 @@ compute verification\redsep governance protocols should treat power as
 one layer in a suite of verification options.
 
 \vspace{0.25cm}
-\textbf{Companion work.} Reading time resolved power, rather than the integral, the same
-meter \emph{can} detect the cadence of synchronous training (WIP, repository
-in sidebar).
+\textbf{Companion work.} Reading time-resolved power rather than its
+integral, the same meter \emph{can} detect the cadence of synchronous
+training (WIP, repository in sidebar).
 
 \end{minipage}
 \end{column}
