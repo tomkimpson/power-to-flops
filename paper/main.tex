@@ -768,13 +768,12 @@ edges together, so $\beta$ upper-bounds the true identified-set width.
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
 
-We now estimate the typical value of $\beta$, \cref{eq:betafloor}, for real hardware. We focus on the $\beta_{\rm en}(h)$ component, \cref{eq:betaen}: it carries all
-the physics, whereas the clip \cref{eq:capclip} is a ratio of published peaks
-with nothing to measure.
-We first ask what physically drives each entry of the triple \cref{eq:triple}
+We now estimate the typical value of $\beta$, \cref{eq:betafloor}, for real hardware. We first ask what physically drives each entry of the triple \cref{eq:triple}
 (\cref{subsec:factors}), then measure them directly on an NVIDIA A100, where
 each experiment is built to pin one entry
-(\cref{sec:empirical-measurements}); the capacity clip \cref{eq:capclip}
+(\cref{sec:empirical-measurements}). We focus on the $\beta_{\rm en}(h)$ component, \cref{eq:betaen}: it carries all
+the physics, whereas the clip \cref{eq:capclip} is a ratio of published peaks
+with nothing to measure. The capacity clip \cref{eq:capclip}
 returns at the end, when the measured bands are assembled.
 
 \subsection{The two terms}
@@ -793,19 +792,22 @@ the overhead band against the same price. We take each term in turn.
 $r = \alpha\,(C/N_{\mathrm{op}})\,V^2$. Here we split the capacitance term in
 two, since the numeric format and the operand locality move independently:
 \begin{equation}
-	r \;\approx\; \kappa(\text{precision})\,\cdot\,\alpha(\text{operands})\,\cdot\,
-	C_{\mathrm{eff}}(\text{locality},\,\text{kernel})\,\cdot\, V^2.
+	r \;\approx\;
+	\underbrace{\kappa}_{\text{precision}} \,\cdot\,
+	\underbrace{\alpha}_{\text{operands}} \,\cdot\,
+	\underbrace{C_{\mathrm{eff}}}_{\text{locality, kernel}} \,\cdot\,
+	\underbrace{V^2}_{\text{DVFS}}.
 	\label{eq:cmos}
 \end{equation}
 \Cref{app:cmos} derives this factorisation. Each factor is set by a different physical scale of the
-machine (\cref{fig:exchange-scales}). The numeric-format scale $\kappa$ falls
+machine (\cref{fig:exchange-scales}). The numeric-format scale $\kappa$ decreases
 with datapath width at each precision step (fp32 $\to$ int8), tracking the
 pJ-scale energy hierarchy of arithmetic \citep{horowitz2014computing}; the
 activity factor $\alpha$ is the data-dependent fraction of transistors that
 toggle for the given operands; the effective capacitance $C_{\mathrm{eff}}$
 grows as operands become less local, because more of the memory
-hierarchy---storage arrays and peripheral logic, buffers and interfaces,
-interconnect---switches per operation
+hierarchy (e.g. storage arrays and peripheral logic, buffers and interfaces,
+interconnect) switches per operation
 \citep{horowitz2014computing,chatterjee2017architecting}; and $V^2$ is the
 capacitor-charging energy of the supply voltage, which DVFS slides along the
 voltage--frequency curve \citep{pallipadi2006ondemand}.
@@ -816,28 +818,25 @@ and the factors can be extreme together, the declared band's edges are the
 products of the factor edges,
 \begin{equation}
 	r_{\mathrm{hi}}^{\mathrm{dec}} =
-	\kappa_{\mathrm{hi}}\,\alpha_{\mathrm{hi}}\,C_{\mathrm{hi}}\,V_{\mathrm{hi}},
+	\kappa_{\mathrm{hi}}\,\alpha_{\mathrm{hi}}\,C_{\mathrm{hi}}\,V_{\mathrm{hi}}^2,
 	\qquad
 	r_{\mathrm{lo}}^{\mathrm{dec}} =
-	\kappa_{\mathrm{lo}}\,\alpha_{\mathrm{lo}}\,C_{\mathrm{lo}}\,V_{\mathrm{lo}},
+	\kappa_{\mathrm{lo}}\,\alpha_{\mathrm{lo}}\,C_{\mathrm{lo}}\,V_{\mathrm{lo}}^2,
 	\label{eq:edgefactor}
 \end{equation}
-writing $C$ for $C_{\mathrm{eff}}$ and $V$ for $V^2$ to keep the subscripts
-readable. Dividing, the band's ratio is the product of per-factor widths
+writing $C$ for $C_{\mathrm{eff}}$ to keep the subscripts readable. Dividing,
+the band's ratio is the product of per-factor widths
 \begin{equation}
 	\frac{r_{\mathrm{hi}}^{\mathrm{dec}}}{r_{\mathrm{lo}}^{\mathrm{dec}}}
 	\;=\; w_\kappa\,w_\alpha\,w_C\,w_V,
 	\qquad w_x \equiv \frac{x_{\mathrm{hi}}}{x_{\mathrm{lo}}}\,,
+	\qquad w_V \equiv \frac{V_{\mathrm{hi}}^2}{V_{\mathrm{lo}}^2}\,,
 	\label{eq:widthfactor}
 \end{equation}
 each $w_x \ge 1$. Taking the suprema together makes this an outer bound, for the
 same reason the caveat closing \cref{subsec:betafloor} gave for the floor's own
-corner; \cref{app:boundkind} treats both.
-
-These widths price nothing on their own. The factorisation returns the band's
-ratio, whereas the slope $s$ of \cref{eq:betaen} reads its difference, and one
-absolute edge bridges the two: writing
-$W \equiv w_\kappa w_\alpha w_C w_V$,
+corner; \cref{app:boundkind} treats both. Writing
+$W \equiv w_\kappa w_\alpha w_C w_V$ we can express the slope as 
 \begin{equation}
 	s \;=\;
 	\frac{r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}}
@@ -846,10 +845,7 @@ $W \equiv w_\kappa w_\alpha w_C w_V$,
 	      \,\bigl(W - 1\bigr).
 	\label{eq:slopebridge}
 \end{equation}
-$W$ fixes how far the band's ceiling sits above its own floor; the anchor
-$r_{\mathrm{lo}}^{\mathrm{dec}}$ turns that into joules, and only then does the
-covert floor price it. So the widths explain the band rather than price it, and
-we never evaluate $\beta$ from the factorisation: every number we report comes
+Note  we never evaluate $\beta$ from the factorisation; every number we report comes
 from measured band edges directly.
 
 \begin{figure*}[t]
@@ -941,8 +937,8 @@ from measured band edges directly.
 				node[tiny, black, right] {\(y\)};
 			\foreach \x in {1.12,1.29,1.46,2.16,2.33,2.50}
 				\fill[orange!85!black]
-					(\x-0.035,3.435) rectangle (\x+0.035,3.505);
-			\node[tiny, text=orange!85!black] at (1.82,3.58) {networks of CMOS cells};
+					(\x-0.035,3.405) rectangle (\x+0.035,3.475);
+			\node[tiny, text=orange!85!black] at (1.82,3.62) {networks of CMOS cells};
 
 			% A fixed-width fabric can hold one wide word or several narrow words.
 			% The partitions make the numeric encoding and packing explicit.
@@ -1096,11 +1092,10 @@ $r_{\mathrm{lo}}^{\mathrm{cov}}$. Results are summarised in Table \ref{tab:input
 The experiments below ran sequentially on one NVIDIA A100-SXM4-80GB in a single
 Slurm allocation. The platform denied clock locking and power capping, so DVFS is a
 recorded axis rather than a controlled one: each window logs the
-governor-selected SM clock and the bands are stratified into clock
-strata. That also puts $V^2$ beyond measurement here, so of the four factors of
+streaming-multiprocessor (SM) clock selected by the driver's frequency
+governor, and the bands are stratified into clock strata. That also puts $V^2$ beyond measurement here, so of the four factors of
 \cref{eq:cmos} we measure three and carry $w_V \approx 1.5$ from device physics
-throughout, flagged as an assumption wherever it appears and carried into the
-limitations of \cref{sec:discussion}.\footnote{Supply
+throughout; this is discussed as a limitation in \cref{sec:discussion}.\footnote{Supply
 voltages on modern accelerators sit near $1$\,V \citep{horowitz2014computing}
 and DVFS moves them by roughly $\pm 10\%$; energy per operation scales as the
 ratio squared, $(1.1/0.9)^2 \approx 1.5$.}
@@ -1229,9 +1224,7 @@ cells actually show---so \cref{eq:widthfactor} holds to $7\%$, the residual
 being factor interaction. Similarly, among the fp16 cells the precision never varies, so
 the spread should be the product of the two remaining widths,
 $w_\alpha w_C = 1.96$; those cells span $[1.10,\,2.19]$\,pJ/op, a factor of
-$2.00$. This fp16 sub-band reappears below as the declared band of the
-assembled floor, which is evaluated inside a single declared format so
-that the scenario stays jointly feasible (\cref{app:boundkind}). \Cref{app:operands} performs a separate fp16-only sweep of the operand axis with a governor-selected clock and corroborates $w_\alpha$ independently, reaching $1.83$ compared to the quoted value here of $1.88$.
+$2.00$. \Cref{app:operands} performs a separate fp16-only sweep of the operand axis with a governor-selected clock and corroborates $w_\alpha$ independently, reaching $1.83$ compared to the quoted value here of $1.88$.
 
 \paragraph{Experiment 2---the overhead band $\Delta P_0$ (hence $\Delta E_0$).}
 The overhead is what the meter reads with no declared work running. We measure five
@@ -1338,10 +1331,7 @@ which is what the fixed window differences away. We take the one-sided $95\%$ lo
 	\label{eq:measuredcov}
 \end{equation}
 Because the covert cost divides the slack, under-pricing covert work
-is the security-safe direction.\footnote{One-sided in the statistical sense:
-the limit controls sampling uncertainty in the fitted slope, not physical
-variation across the executions the threat model admits.
-\Cref{app:estimands} states what the bound is therefore conditional on.}
+is the security-safe direction. 
 
 One caveat is that, similar to the other experiments, clock locking is denied on this platform, so the governor is
 recorded rather than controlled here too. More covert work leaves a shorter
