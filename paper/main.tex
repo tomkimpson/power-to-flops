@@ -1425,19 +1425,7 @@ The headline of \cref{sec:empirical-measurements}, $\beta^{*} = 1.16$
 checks the declared precision, and nothing else. The check makes the
 declaration \emph{precise}, not \emph{enforced} ($\dagger$ in
 \cref{tab:ladder}); facility-local format enforcement is an open
-capability.
-
-
-In practice the verifier can make a series of reasonable checks and assumptions to remove ambiguity and push down $\beta^{*}$.
-
-The factorisation of \cref{eq:widthfactor} maps the moves the verifier can make.
-
-The precision is already declared and checked, so $w_\kappa = 1$, but the remaining nuisances $w_\alpha w_C w_V$ provide degrees of freedom that the verifier can remove.
-
-
-We work through these in turn: observations can remove the ($w_V$, $w_C$) freedom; re-executing the declared work on the verifier's own hardware measures $\bar r^{\mathrm{dec}}$ directly, bypassing $w_\alpha$ rather than pinning it. Additional assumptions on the nature of the covert work being carried out by the prover also push down $\beta^{*}$.
-
-The rest of this section takes the rungs in turn. \Cref{tab:ladder,fig:ladder} walk down the ladder cumulatively.  Because a verifier that gains a capability can only shrink the identified set, the
+capability. In practice the verifier can make a series of reasonable checks and assumptions to remove ambiguity and push down $\beta^{*}$. The factorisation of \cref{eq:widthfactor} maps the moves the verifier can make. The precision is already declared and checked, so $w_\kappa = 1$, but the remaining nuisances $w_\alpha w_C w_V$ provide degrees of freedom that the verifier can remove. We work through these in turn: observations can remove the ($w_V$, $w_C$) freedom; re-executing the declared work on the verifier's own hardware measures $\bar r^{\mathrm{dec}}$ directly, bypassing $w_\alpha$ rather than pinning it. Additional assumptions on the nature of the covert work being carried out by the prover also push down $\beta^{*}$. sThe rest of this section takes the rungs in turn. \Cref{tab:ladder,fig:ladder} walk down the ladder cumulatively.  Because a verifier that gains a capability can only shrink the identified set, the
 priced chain is monotone by construction. Every rung's $\beta^{*}$ is the
 same kind of object as the headline --- a model upper bound in the sense of
 \cref{app:witness} --- and inherits that calibration.

@@ -1,0 +1,23 @@
+\frametitle{End-to-End Workflow}
+\begin{lstlisting}[style=julia]
+using InferCell
+
+# 1. Define sub-model
+txl = TranscriptionTranslation()
+
+# 2. Build problem (orchestrator composes modules)
+prob = build_problem([txl]; tspan=(0.0, 100.0))
+
+# 3. Generate synthetic data
+true_sol = solve(prob, Tsit5())
+data = observe(true_sol, 0.0:5.0:100.0; sigma=0.1)
+
+# 4. Infer parameters (NUTS via Turing.jl)
+chain = infer(txl, data)
+
+# 5. Posterior predictive check
+ppc = posterior_predictive(txl, chain)
+	\end{lstlisting}
+
+	\medskip
+	{\small Same \texttt{infer()} call works for a single module or a composed multi-module model.}
