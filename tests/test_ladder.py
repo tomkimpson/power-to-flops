@@ -24,10 +24,12 @@ from powertoflops.config import A100_DENSE_PEAK_OPS
 from powertoflops.floor import beta_phys_worst_case, energy_slack
 from powertoflops.joint_model import headline
 from powertoflops.ladder import (
+    COND_COVERT_FORMAT,
     COND_FORMAT,
     COND_OPERATING_POINT,
     DVFS_FACTOR,
     LadderMonotonicityError,
+    build_covert_format_branch,
     build_ladder,
     check_monotone,
     power_and_paperwork_stall,
@@ -43,6 +45,9 @@ def _mb(**over) -> MeasuredBands:
     base = dict(
         r_lo=0.8e-12, r_hi=20.0e-12, r_lo_op=1.2e-12, w0=1.8,
         P0_lo=60.0, P0_hi=100.0, sigma_dec=1.0e-13,
+        # Resident-operand overhead band: narrower than [P0_lo, P0_hi] by the
+        # cold-card cells the priced window cannot be in (the pinned rung).
+        P0_lo_resident=70.0, P0_hi_resident=100.0, n_idle_resident=15,
         r_useful_lo=1.8e-12, r_useful_hi=2.4e-12,
         r_useful_marg_lo=2.0e-12, r_useful_marg_hi=2.9e-12,
         format_bands={
@@ -67,11 +72,13 @@ def _mb(**over) -> MeasuredBands:
     return MeasuredBands(**base)
 
 
-def _expected(mb: MeasuredBands, r_hi_dec, r_lo_dec, r_lo_cov, kappa_dec=1.0):
+def _expected(mb: MeasuredBands, r_hi_dec, r_lo_dec, r_lo_cov, kappa_dec=1.0,
+              dE0=None, covert_format="int8"):
     """Independent composition: what a priced rung must evaluate to."""
-    kappa = A100_DENSE_PEAK_OPS["int8"] / A100_DENSE_PEAK_OPS["fp16"]
+    kappa = A100_DENSE_PEAK_OPS[covert_format] / A100_DENSE_PEAK_OPS["fp16"]
     args = dict(r_hi_dec=r_hi_dec, r_lo_dec=r_lo_dec, r_lo_cov=r_lo_cov,
-                dE0=mb.P0_hi - mb.P0_lo, C_max=A100_DENSE_PEAK_OPS["fp16"])
+                dE0=mb.P0_hi - mb.P0_lo if dE0 is None else dE0,
+                C_max=A100_DENSE_PEAK_OPS["fp16"])
     h, b = beta_phys_worst_case(**args, kappa=kappa, kappa_dec=kappa_dec)
     return h, b, float(energy_slack(1.0, **args))
 
@@ -87,10 +94,10 @@ def test_ladder_has_six_rungs_in_order():
         "clock & locality observed",
         "declared work re-executed",
         "covert work on useful data",
-        "covert work at top of useful band",
+        "overhead band pinned to the window",
     ]
     assert [r.rung_type for r in rungs] == [
-        None, "D,C", "T", "C", "M", "A"]
+        None, "D,C", "T", "C", "M", "M"]
 
 
 def test_clock_rung_is_unpriced_and_prospective():
@@ -191,14 +198,102 @@ def test_useful_band_width_never_enters_declared_numerator():
     # moves only the covert edge.
     mb = _mb()
     gap = 0.05e-12
-    rungs = build_ladder(mb, gap=gap)
-    useful, top = rungs[4], rungs[5]
-    for r, edge in ((useful, mb.r_useful_marg_lo), (top, mb.r_useful_marg_hi)):
-        assert r.r_hi_dec - r.r_lo_dec == pytest.approx(gap)
+    useful = build_ladder(mb, gap=gap)[4]
+    assert useful.r_hi_dec - useful.r_lo_dec == pytest.approx(gap)
+    assert useful.r_lo_cov == mb.r_useful_marg_lo
+    h, b, s1 = _expected(mb, useful.r_hi_dec, useful.r_lo_dec, useful.r_lo_cov)
+    assert useful.beta_star == pytest.approx(b)
+    assert useful.S1 == pytest.approx(s1)
+
+
+def test_pinned_rung_moves_only_the_overhead_width():
+    # The bottom rung is the fourth dial of eq:betadials and nothing else: it
+    # narrows dE0 to the resident-operand band and inherits the useful-data
+    # rung's denominator and declared width unchanged.
+    mb = _mb()
+    gap = 0.05e-12
+    useful, pinned = build_ladder(mb, gap=gap)[4:6]
+    assert pinned.r_lo_cov == useful.r_lo_cov
+    assert pinned.r_hi_dec == useful.r_hi_dec
+    assert pinned.r_lo_dec == useful.r_lo_dec
+    dE0 = mb.P0_hi_resident - mb.P0_lo_resident
+    assert dE0 < mb.P0_hi - mb.P0_lo                       # a restriction
+    h, b, s1 = _expected(mb, pinned.r_hi_dec, pinned.r_lo_dec, pinned.r_lo_cov,
+                         dE0=dE0)
+    assert pinned.beta_star == pytest.approx(b)
+    assert pinned.h_star == pytest.approx(h)
+    assert pinned.S1 == pytest.approx(s1)
+
+
+def test_pinned_rung_never_falls_back_to_the_published_band():
+    # A pre-split artifact must fail loudly. Reusing [P0_lo, P0_hi] would price
+    # the rung at the published width and report a restriction never applied.
+    with pytest.raises(ValueError, match="P0_.*resident"):
+        build_ladder(_mb(P0_lo_resident=None, P0_hi_resident=None))
+
+
+# ---- the covert-format branch ----------------------------------------------
+
+
+def test_branch_reprices_two_rungs_at_the_fp16_covert_edge():
+    mb = _mb()
+    gap = 0.05e-12
+    at_precision, at_reexec = build_covert_format_branch(mb, gap=gap)
+    edge = covert_edge(mb, "fp16")
+    assert edge > covert_edge(mb, "int8")            # dearer denominator
+    for r in (at_precision, at_reexec):
         assert r.r_lo_cov == edge
-        h, b, s1 = _expected(mb, r.r_hi_dec, r.r_lo_dec, r.r_lo_cov)
+        assert COND_COVERT_FORMAT in r.conditions
+    # Its two anchors: the precision rung's full declared band, and the
+    # re-execution rung's residual gap.
+    dec_lo, dec_hi = mb.format_bands["fp16"]["r_lo"], mb.format_bands["fp16"]["r_hi"]
+    assert (at_precision.r_lo_dec, at_precision.r_hi_dec) == (dec_lo, dec_hi)
+    assert at_reexec.r_hi_dec - at_reexec.r_lo_dec == pytest.approx(gap)
+    for r in (at_precision, at_reexec):
+        h, b, s1 = _expected(mb, r.r_hi_dec, r.r_lo_dec, r.r_lo_cov,
+                             covert_format="fp16")
         assert r.beta_star == pytest.approx(b)
         assert r.S1 == pytest.approx(s1)
+
+
+def test_branch_halves_the_capacity_ceiling():
+    # The branch's distinctive half: kappa = F_max^fp16 / F_max^fp16 = 1, so
+    # beta* < 1 holds by capacity alone whatever the energy slack. Feeding an
+    # absurd declared band drives the chain rung to its ceiling of kappa = 2
+    # and the branch to 1.
+    mb = _mb(format_bands={"fp16": {"r_lo": 1.1e-12, "r_hi": 1.0e-6,
+                                    "n_cells": 12}})
+    chain = build_ladder(mb)[1]
+    branch = build_covert_format_branch(mb)[0]
+    assert chain.beta_star == pytest.approx(2.0, rel=1e-3)
+    assert branch.beta_star == pytest.approx(1.0, rel=1e-3)
+
+
+def test_branch_is_not_appended_to_the_chain():
+    # It reaches the SAME dial as the useful-data rung, so it must not be
+    # composed with the rungs below it: check_monotone governs the chain only,
+    # and the branch's names never appear in it.
+    mb = _mb()
+    names = {r.name for r in build_ladder(mb)}
+    for r in build_covert_format_branch(mb):
+        assert r.name not in names
+        assert r.name.startswith("branch:")
+
+
+def test_branch_sits_below_the_rungs_it_reprices():
+    # A dearer covert denominator and a halved ceiling can only narrow the set.
+    mb = _mb()
+    chain = {r.name: r for r in build_ladder(mb)}
+    at_precision, at_reexec = build_covert_format_branch(mb)
+    assert at_precision.beta_star < chain["precision declared & checked"].beta_star
+    assert at_reexec.beta_star < chain["declared work re-executed"].beta_star
+
+
+def test_branch_fails_loudly_without_an_fp16_covert_edge():
+    mb = _mb(r_marg_cov={"int8": {"r_marg": 0.60e-12,
+                                  "r_marg_lcb95": 0.55e-12}})
+    with pytest.raises(ValueError, match="fp16"):
+        build_covert_format_branch(mb)
 
 
 def test_exp2_quotients_do_not_price_any_rung():
@@ -244,7 +339,8 @@ def test_priced_chain_is_monotone_non_increasing():
 
 
 def test_useful_rung_below_reexec_rung():
-    # Pins the 0.16 -> 0.43 inversion as fixed.
+    # Pins the 0.16 -> 0.43 inversion as fixed; the pinned rung sits below the
+    # useful-data rung it narrows.
     rungs = build_ladder(_mb())
     assert rungs[4].beta_star < rungs[3].beta_star
     assert rungs[5].beta_star < rungs[4].beta_star
@@ -314,12 +410,33 @@ def test_committed_artifact_rung_values():
     assert betas["bare meter"] == pytest.approx(1.953, abs=5e-3)
     assert betas["precision declared & checked"] == pytest.approx(1.156, abs=5e-3)
     assert betas["declared work re-executed"] == pytest.approx(0.337, abs=5e-3)
-    # Rungs 4-5 price off the qblock-marginal MARGINAL useful edge (B5, third round):
-    # r_useful^marg [2.53, 3.16] pJ/op replaced the total-quotient [3.18, 4.22],
-    # so covert work is cheaper and the rungs RISE (0.057->0.071, 0.043->0.057).
+    # Rung 4 prices off the qblock-marginal MARGINAL useful edge (B5, third
+    # round): r_useful^marg [2.53, 3.16] pJ/op replaced the total-quotient
+    # [3.18, 4.22], so covert work is cheaper and the rung ROSE (0.057->0.071).
     assert betas["covert work on useful data"] == pytest.approx(0.071, abs=5e-3)
-    assert betas["covert work at top of useful band"] == pytest.approx(
-        0.057, abs=5e-3)
+    # Rung 5 narrows dE0 from the published 41.2 W to the resident-operand
+    # 31.3 W (15 of Exp-3's 25 idle windows), 0.76 of the published width.
+    assert betas["overhead band pinned to the window"] == pytest.approx(
+        0.059, abs=5e-3)
+
+
+def test_committed_artifact_branch_values():
+    # The branch rows of tab:ladder.
+    mb = load_measured_bands(ARTIFACT)
+    at_precision, at_reexec = build_covert_format_branch(mb)
+    assert at_precision.beta_star == pytest.approx(0.662, abs=5e-3)
+    assert at_precision.S1 == pytest.approx(1.620, abs=5e-3)
+    assert at_reexec.beta_star == pytest.approx(0.225, abs=5e-3)
+    assert at_reexec.S1 == pytest.approx(0.240, abs=5e-3)
+
+
+def test_committed_artifact_pinned_band_is_the_quoted_one():
+    # The manuscript quotes P0 in [69.7, 101.0] W, dP0 = 31.3 W.
+    from powertoflops.measured import resident_overhead_band
+    lo, hi = resident_overhead_band(load_measured_bands(ARTIFACT))
+    assert (lo, hi) == (pytest.approx(69.7, abs=0.05),
+                        pytest.approx(101.0, abs=0.05))
+    assert hi - lo == pytest.approx(31.3, abs=0.05)
 
 
 def test_committed_artifact_precision_rung_is_headline():

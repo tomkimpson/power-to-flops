@@ -2,9 +2,11 @@
   "P0_fit_intercept": 118.42779983217477,
   "P0_fit_se": 29.327137047664202,
   "P0_hi": 101.00288995901182,
+  "P0_hi_resident": 101.00288995901182,
   "P0_lo": 59.78442287874333,
+  "P0_lo_resident": 69.69725613882478,
   "affine_r2": 0.8523495268014046,
-  "analysis_git_commit": "818c38b7220742b3a3fa1c07974b45bc28779c81",
+  "analysis_git_commit": "5ed8990f7829630e14058106a506ddc29c897b09",
   "clock_strata": {
     "exp1": {
       "1350": {
@@ -133,6 +135,7 @@
   },
   "measured_utc": "2026-07-22T02:44:38.372989+00:00",
   "multi_device": false,
+  "n_idle_resident": 15,
   "n_records": {
     "exp1": 340,
     "exp2": 135,

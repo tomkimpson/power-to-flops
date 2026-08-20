@@ -58,6 +58,15 @@ class MeasuredBands:
     P0_hi: float
     sigma_dec: float
 
+    # Exp-3 overhead band restricted to the idle cells compatible with RESIDENT
+    # operands (bench.bands.RESIDENT_IDLE_VARIANTS) — the ladder's
+    # overhead-pinning rung. None on artifacts that predate the split; the rung
+    # then fails loudly rather than reusing the unrestricted band, which would
+    # silently price a corner the window cannot be in.
+    P0_lo_resident: float | None = None
+    P0_hi_resident: float | None = None
+    n_idle_resident: int = 0
+
     # Useful-operand band (R2.7 qblock; analyze_bands --qblock). None when the
     # artifact predates the measurement — consumers must fail loudly rather
     # than fall back to the retired hard-coded floor (review C6). Since the
@@ -174,6 +183,24 @@ def useful_marginal_edge(mb: MeasuredBands) -> tuple[float, float]:
             f"scripts/run_qblock_marginal.py and regenerate with "
             f"scripts/analyze_bands.py --qblock-marg (referee B5)")
     return float(mb.r_useful_marg_lo), float(mb.r_useful_marg_hi)
+
+
+def resident_overhead_band(mb: MeasuredBands) -> tuple[float, float]:
+    """The overhead band [W] over the resident-operand idle cells only.
+
+    The band the ladder's overhead-pinning rung prices: the priced window has
+    operations retiring throughout, so its operands are resident and the
+    cold-card idle cells are states it cannot be in. Fails loudly on artifacts
+    that predate the split rather than falling back to the unrestricted band —
+    the fallback would quietly price the pinned rung at the published width and
+    report a restriction it never applied.
+    """
+    if mb.P0_lo_resident is None or mb.P0_hi_resident is None:
+        raise ValueError(
+            f"artifact {mb.source_path or '<unknown>'} carries no "
+            f"resident-operand overhead band (P0_*_resident) — regenerate it "
+            f"with scripts/analyze_bands.py from this checkout")
+    return float(mb.P0_lo_resident), float(mb.P0_hi_resident)
 
 
 def config_with_measured(mb: MeasuredBands, base: Config = DEFAULT) -> Config:

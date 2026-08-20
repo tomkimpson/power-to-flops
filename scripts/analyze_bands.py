@@ -203,6 +203,12 @@ def main() -> None:
           f"(observed idle +/- tolerance); fit intercept "
           f"{payload['P0_fit_intercept']:.1f} +/- {payload['P0_fit_se']:.1f} W "
           f"(diagnostic)")
+    if payload.get("P0_lo_resident") is not None:
+        print(f"  P0 resident = [{payload['P0_lo_resident']:.1f}, "
+              f"{payload['P0_hi_resident']:.1f}] W  "
+              f"(resident-operand idle cells only, "
+              f"n = {payload['n_idle_resident']}) -- the ladder's "
+              f"overhead-pinning rung")
     print(f"  affine R^2  = {payload['affine_r2']:.4f}")
     print(f"  sigma_dec   = {payload['sigma_dec']:.3e} J/op")
     if "r_useful_lo" in payload:

@@ -14,6 +14,7 @@ from powertoflops.measured import (
     config_with_measured,
     covert_edge,
     load_measured_bands,
+    resident_overhead_band,
 )
 
 _FORMAT_BANDS = {"fp16": {"r_lo": 1.1e-12, "r_hi": 2.2e-12, "n_cells": 12}}
@@ -180,3 +181,16 @@ def test_new_fields_do_not_leak_into_config():
     assert cfg.floor.r_lo == mb.r_lo
     assert cfg.floor.F_max == DEFAULT.floor.F_max
     assert cfg.bench == DEFAULT.bench
+
+
+def test_resident_overhead_band_reads_the_restricted_edges():
+    lo, hi = resident_overhead_band(_mb(P0_lo_resident=70.0,
+                                        P0_hi_resident=101.0))
+    assert (lo, hi) == (70.0, 101.0)
+
+
+def test_resident_overhead_band_fails_loudly_on_pre_split_artifacts():
+    # Silently reusing [P0_lo, P0_hi] would price the ladder's pinned rung at
+    # the published width while reporting a restriction it never applied.
+    with pytest.raises(ValueError, match="P0_.*resident"):
+        resident_overhead_band(_mb())

@@ -34,10 +34,17 @@ Semantics fixed by the second-round review (user decisions 2026-07-23):
     from pricing a security-guarantee rung, and the trusted on-site observable
     it models is prospective. The row stays as the slot where attested
     telemetry would land; w0 remains descriptive prose.
-  * **The bottom rung is "covert at the top of the useful band"** — the top of
-    the MARGINAL useful band (qblock-marginal dose-response, :func:`powertoflops.measured.
-    useful_marginal_edge`), replacing the w0-derived dense rate; monotone below
-    the useful-data rung by construction.
+  * **The bottom rung pins the overhead band to the priced window** — the
+    Exp-3 idle cells compatible with resident operands
+    (:func:`powertoflops.measured.resident_overhead_band`), narrowing dE0 alone. It
+    replaced "covert at the top of the useful band", which moved the covert
+    denominator to the top of the marginal useful band: that rung read as a
+    strengthening but priced a *weaker* adversary than the rung above it, so it
+    said nothing the useful-data rung had not.
+  * **The covert-format branch is not a rung** (:func:`build_covert_format_branch`).
+    Assuming the covert format buys both a dearer denominator and kappa = 1,
+    but it acts on the same dial as the useful-data rung, so it is priced only
+    where its denominator is measured — see that function.
 
 The first-round defect this module retires: the old script fed the useful
 band's *width* into the declared-side numerator, so a rung where the verifier
@@ -66,6 +73,7 @@ from .measured import (
     MeasuredBands,
     covert_edge,
     format_band,
+    resident_overhead_band,
     useful_marginal_edge,
 )
 
@@ -92,8 +100,15 @@ COND_FORMAT = "declared-format execution"
 COND_OPERATING_POINT = "operating point observed"
 PROSPECTIVE = "prospective"
 
+# The covert-format branch's own disclosed condition: covert work is assumed to
+# run in a known format. Unlike COND_FORMAT this can never be checked — no
+# capability reaches work the meter does not resolve — so it rests on a
+# threat-model argument about what the stolen capacity is for.
+COND_COVERT_FORMAT = "covert-format assumption"
+
 DECLARED_FORMAT = "fp16"
 COVERT_FORMAT = "int8"
+BRANCH_COVERT_FORMAT = "fp16"
 
 
 class LadderMonotonicityError(ValueError):
@@ -132,10 +147,15 @@ def _priced(
     r_lo_dec: float,
     r_lo_cov: float,
     kappa_dec: float = 1.0,
+    dE0: float | None = None,
+    covert_format: str = COVERT_FORMAT,
 ) -> Rung:
-    kappa = A100_DENSE_PEAK_OPS[COVERT_FORMAT] / A100_DENSE_PEAK_OPS[DECLARED_FORMAT]
+    """Price one rung. ``dE0`` defaults to the unrestricted overhead width;
+    ``covert_format`` sets the capacity ratio kappa (the branch's only lever
+    besides its denominator)."""
+    kappa = A100_DENSE_PEAK_OPS[covert_format] / A100_DENSE_PEAK_OPS[DECLARED_FORMAT]
     args = dict(r_hi_dec=r_hi_dec, r_lo_dec=r_lo_dec, r_lo_cov=r_lo_cov,
-                dE0=mb.P0_hi - mb.P0_lo,
+                dE0=mb.P0_hi - mb.P0_lo if dE0 is None else dE0,
                 C_max=A100_DENSE_PEAK_OPS[DECLARED_FORMAT])
     h_star, beta_star = beta_phys_worst_case(**args, kappa=kappa,
                                              kappa_dec=kappa_dec)
@@ -154,7 +174,7 @@ def build_ladder(mb: MeasuredBands, *, gap: float = HW_GAP) -> list[Rung]:
     quotes the default and a sensitivity sweep around it.
     """
     edge = covert_edge(mb, COVERT_FORMAT)          # Exp-7 marginal LCB [J/op]
-    useful_lo, useful_hi = useful_marginal_edge(mb)  # qblock-marginal dose LCBs (B5)
+    useful_lo, _ = useful_marginal_edge(mb)        # qblock-marginal dose LCB (B5)
 
     # Rung 0 — bare meter, unconditional: the genuine power-only floor of
     # subsec:poweronly. A bare meter cannot separate declared from covert work,
@@ -210,11 +230,13 @@ def build_ladder(mb: MeasuredBands, *, gap: float = HW_GAP) -> list[Rung]:
 
     # Rungs 3-5 — the declared band collapses to the hardware gap once the
     # declared work is re-executed at a matched operating point; after that
-    # only the covert edge moves (the correct cumulative arithmetic — the
-    # useful band's width never re-enters the declared numerator). Rungs 4-5
-    # price the covert denominator at the MARGINAL useful edge (qblock-marginal
-    # dose-response, useful_lo/useful_hi), not the retired total-quotient
-    # useful band, so baseline power does not inflate the covert cost (B5).
+    # only the covert edge and the overhead width move (the correct cumulative
+    # arithmetic — the useful band's width never re-enters the declared
+    # numerator). Rungs 4-5 price the covert denominator at the low edge of the
+    # MARGINAL useful band (qblock-marginal dose-response, useful_lo), not the
+    # retired total-quotient useful band, so baseline power does not inflate
+    # the covert cost (B5). Its high edge prices nothing: a dearer covert
+    # option is a weaker adversary, and the bound takes the cheapest.
     #
     # The residual band is anchored at the DECLARED floor these rungs inherit
     # from the precision rung (fp16's own r_lo), not at the covert edge. Only
@@ -228,10 +250,54 @@ def build_ladder(mb: MeasuredBands, *, gap: float = HW_GAP) -> list[Rung]:
                      r_hi_dec=dec_floor + gap, r_lo_dec=dec_floor, r_lo_cov=edge)
     useful = _priced(mb, "covert work on useful data", "M", chain,
                      r_hi_dec=dec_floor + gap, r_lo_dec=dec_floor, r_lo_cov=useful_lo)
-    top = _priced(mb, "covert work at top of useful band", "A", chain,
-                  r_hi_dec=dec_floor + gap, r_lo_dec=dec_floor, r_lo_cov=useful_hi)
 
-    return [bare, precision, clock, reexec, useful, top]
+    # Rung 5 — the overhead band pinned to the window being priced. The fourth
+    # dial of the manuscript's eq:betadials, and like the useful-data rung it
+    # moves under a threat-model restriction rather than a gained capability:
+    # the corner being bounded has the card executing throughout, so its
+    # operands are resident and the cold-card idle cells (no CUDA context, or a
+    # context with no operand pool) are states that window cannot be in. Only
+    # dE0 moves; the covert denominator stays the useful edge inherited above.
+    P0_lo_res, P0_hi_res = resident_overhead_band(mb)
+    pinned = _priced(mb, "overhead band pinned to the window", "M", chain,
+                     r_hi_dec=dec_floor + gap, r_lo_dec=dec_floor,
+                     r_lo_cov=useful_lo, dE0=P0_hi_res - P0_lo_res)
+
+    return [bare, precision, clock, reexec, useful, pinned]
+
+
+def build_covert_format_branch(mb: MeasuredBands, *,
+                               gap: float = HW_GAP) -> list[Rung]:
+    """The covert-format branch of tab:ladder: covert work known to be fp16.
+
+    Priced apart from :func:`build_ladder`'s chain, and deliberately not
+    appended to it. Assuming the covert format moves two things at once — the
+    covert denominator rises from the int8 marginal edge to the fp16 one, and
+    the capacity ratio falls to kappa = 1, halving the ceiling rather than
+    narrowing the width beneath it — but it reaches the SAME dial as the
+    useful-data rung, so the two do not compose. Stacking them needs the
+    marginal cost of a *useful fp16* block, which is unmeasured: scaling the
+    measured int8 block by the ratio of silicon edges has no mechanism behind
+    it (the block sits ~5-6x above that edge, so its cost is data movement and
+    quantisation overhead, not arithmetic). The branch is therefore quoted at
+    the two rungs where its denominator is measured and no further.
+
+    Returned rungs are NOT part of the monotone chain :func:`check_monotone`
+    checks; they are re-pricings of the precision and re-execution rungs.
+    """
+    branch_edge = covert_edge(mb, BRANCH_COVERT_FORMAT)
+    dec_lo, dec_hi = format_band(mb, DECLARED_FORMAT)
+    at_precision = _priced(
+        mb, "branch: covert format known, at the precision rung",
+        "A", (COND_FORMAT, COND_COVERT_FORMAT),
+        r_hi_dec=dec_hi, r_lo_dec=dec_lo, r_lo_cov=branch_edge,
+        covert_format=BRANCH_COVERT_FORMAT)
+    at_reexec = _priced(
+        mb, "branch: covert format known, at the re-execution rung",
+        "A", (COND_FORMAT, COND_OPERATING_POINT, COND_COVERT_FORMAT),
+        r_hi_dec=dec_lo + gap, r_lo_dec=dec_lo, r_lo_cov=branch_edge,
+        covert_format=BRANCH_COVERT_FORMAT)
+    return [at_precision, at_reexec]
 
 
 def power_and_paperwork_stall(mb: MeasuredBands) -> float:

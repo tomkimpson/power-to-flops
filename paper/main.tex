@@ -119,8 +119,9 @@ meter.
 
 Additional verifier capabilities each buy a stated reduction ---
 re-executing the declared work at an observed operating point brings
-$\beta$ to $0.34$. However no capability reaches the covert side, which
-closes only by assumption on the adversary.
+$\beta$ to $0.34$. However no capability reaches the covert price or the
+overhead band; those close only under threat-model restrictions, which
+together bring $\beta$ to ${\approx}0.06$.
 
 A power-based verification regime can then be designed or
 rejected... etc.
@@ -586,7 +587,13 @@ Declarations and re-execution can narrow the declared band width
 $r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}$ in the
 numerator, but no declaration reaches the covert floor
 $r_{\mathrm{lo}}^{\mathrm{cov}}$ in the denominator; only hardware-wide
-observables (clock, voltage) can raise $r_{\mathrm{lo}}^{\mathrm{cov}}$.
+observables (clock, voltage) can raise $r_{\mathrm{lo}}^{\mathrm{cov}}$. The
+overhead width $\Delta E_0$ is a second numerator, and no declaration reaches
+it either: it is freedom the prover exercises inside the window rather than
+ignorance about a quantity fixed during it, so characterising it off-site
+measures it without shrinking it. It yields only to an on-site observable of
+the idle state, or to a restriction on which overhead states may accompany
+declared work (\cref{sec:decreasing-beta}).
 
 \subsection{The capacity clip}
 \label{subsec:capclip}
@@ -1422,75 +1429,99 @@ not quote it as a bound. \Cref{app:witness} records the protocol.
 The headline of \cref{sec:empirical-measurements}, $\beta^{*} = 1.16$
 (\cref{eq:betafloormeasured}), is a worst-case bound under
 \cref{ass:meter,ass:declaration} alone: the verifier reads the power and
-checks the declared precision, and nothing else. The check makes the
-declaration \emph{precise}, not \emph{enforced} ($\dagger$ in
-\cref{tab:ladder}); facility-local format enforcement is an open
-capability.
+checks the declared precision, and nothing else. In practice the verifier can
+make a series of reasonable checks and assumptions to remove ambiguity and push
+down $\beta^{*}$. What those checks act on is a short list. Writing the
+energy-only width of \cref{eq:betaen} with its inputs exposed,
+\begin{equation}
+	\beta_{\mathrm{en}}(h) \;=\;
+	\beta_{\mathrm{en}}\bigl(h;\;
+	r_{\mathrm{hi}}^{\mathrm{dec}},\,
+	r_{\mathrm{lo}}^{\mathrm{dec}},\,
+	r_{\mathrm{lo}}^{\mathrm{cov}},\,
+	\Delta E_0\bigr),
+	\label{eq:betadials}
+\end{equation}
+the triple of \cref{eq:triple} together with the overhead width are the only
+dials there are --- four numbers, and every rung below is one of them moving.
+The rest ($h$, $\gamma$, $C_{\max}$) belongs to the prover's schedule and to the
+machine, not to the verifier; only the closing branch of this section reaches
+$\gamma$, and it does so by assumption rather than by measurement. The four do
+not move for the same reasons, and this section is organised by which.
 
+\emph{The declared edges $r_{\mathrm{hi}}^{\mathrm{dec}}$ and
+$r_{\mathrm{lo}}^{\mathrm{dec}}$.} These are accessible to the verifier, at
+least in principle, because they price work the prover has declared and the
+verifier may re-run. The factorisation of \cref{eq:widthfactor} is the width of
+that band, and it maps the available moves: the declared precision is checked,
+so $w_\kappa = 1$, and the remaining nuisances $w_\alpha w_C w_V$ are degrees of
+freedom still open. Observations can remove the ($w_V$, $w_C$) freedom;
+re-executing the declared work on the verifier's own hardware measures
+$\bar r^{\mathrm{dec}}$ directly, bypassing $w_\alpha$ rather than pinning it.
 
-In practice the verifier can make a series of reasonable checks and assumptions to remove ambiguity and push down $\beta^{*}$.
+\emph{The covert price $r_{\mathrm{lo}}^{\mathrm{cov}}$.} No check of that kind
+reaches this dial, because \cref{ass:declaration} constrains only the declared
+work: the prover still chooses the covert format, operands and locality freely,
+and the meter never resolves them. Raising it takes a restriction on what the
+covert work can be --- a threat-model statement, or an assumption about what the
+adversary is trying to do, rather than a capability the verifier acquires. Two
+such restrictions are available, and this section prices both: that the covert
+work be useful, and that its format be known. The second reaches past the four
+dials of \cref{eq:betadials}, because naming the covert format fixes $\gamma$ as
+well as $r_{\mathrm{lo}}^{\mathrm{cov}}$ --- it is the one move here that lowers
+the capacity ceiling rather than the width beneath it --- so we price it as a
+branch off the chain rather than a rung in it.
 
-The factorisation of \cref{eq:widthfactor} maps the moves the verifier can make.
+\emph{The overhead width $\Delta E_0$.} This dial is out of the \emph{verifier's}
+reach for a related reason: it is not ignorance about a quantity fixed during
+the window but freedom the prover exercises inside it, so it too moves only
+under an assumption. One is available, and it is the last rung of the chain:
+the corner being bounded has the card executing throughout, and a card in that
+state cannot draw a cold card's overhead. It buys more than its size
+suggests, because the overhead term is where most of the width at the bottom of
+the ladder sits.
 
-The precision is already declared and checked, so $w_\kappa = 1$, but the remaining nuisances $w_\alpha w_C w_V$ provide degrees of freedom that the verifier can remove.
-
-
-We work through these in turn: observations can remove the ($w_V$, $w_C$) freedom; re-executing the declared work on the verifier's own hardware measures $\bar r^{\mathrm{dec}}$ directly, bypassing $w_\alpha$ rather than pinning it. Additional assumptions on the nature of the covert work being carried out by the prover also push down $\beta^{*}$.
-
-The rest of this section takes the rungs in turn. \Cref{tab:ladder,fig:ladder} walk down the ladder cumulatively.  Because a verifier that gains a capability can only shrink the identified set, the
-priced chain is monotone by construction. Every rung's $\beta^{*}$ is the
-same kind of object as the headline --- a model upper bound in the sense of
-\cref{app:witness} --- and inherits that calibration.
+The rest of this section takes the rungs in turn; \cref{tab:ladder,fig:ladder}
+walk down the ladder cumulatively, and the covert-format branch closes the
+section outside that chain. 
 
 
 
 \begin{table*}[t]
 	\centering
 	\small
-	\begin{tabular}{@{}lclcc@{}}
+	\begin{tabular}{@{}llcc@{}}
 		\toprule
-		verifier gains & type & factor acted on, and the edges it leaves & $\beta^{*}$ & $\beta_{\mathrm{en}}(1)$ \\
+		verifier gains & factor acted on, and the edges it leaves & $\beta^{*}$ & $\beta_{\mathrm{en}}(1)$ \\
 		\midrule
-		precision declared \& checked$^{\dagger}$ & D,\,C & $w_\kappa = 1$; band $[1.10, 2.19]$ & $1.16$ & $2.4$ \\
-		clock \& locality observed & T & $w_V, w_C \to 1$ \emph{(unpriced)} & --- & --- \\
-		declared work re-executed$^{\ddagger}$ & C & \emph{bypasses} $w_\alpha$: band $\to$ gap & $0.34$ & $0.35$ \\
-		covert work on useful data$^{\ddagger}$ & M & denominator: $0.51 \to 2.53$ & $0.071$ & $0.072$ \\
-		\emph{covert at top of useful band}$^{\ddagger}$ & A & denominator: $\to 3.16$ & $0.057$ & $0.058$ \\
+		precision declared \& checked$^{\dagger}$ & $w_\kappa = 1$; band $[1.10, 2.19]$ & $1.16$ & $2.4$ \\
+		clock \& locality observed & $w_V, w_C \to 1$ \emph{(unpriced)} & --- & --- \\
+		declared work re-executed$^{\ddagger}$ & \emph{bypasses} $w_\alpha$: band $\to$ gap & $0.34$ & $0.35$ \\
+		covert work on useful data$^{\ddagger}$ & denominator: $0.51 \to 2.53$ & $0.071$ & $0.072$ \\
+		overhead band pinned to the window$^{\ddagger}$ & $\Delta P_0$: $41.2 \to 31.3$\,W & $0.059$ & $0.059$ \\
+		\midrule
+		\multicolumn{4}{@{}l@{}}{\emph{branch --- covert format known to be fp16}$^{\S}$} \\
+		\quad at the precision rung & $\gamma$: $2 \to 1$; denominator $0.51 \to 0.76$ & $0.66$ & $1.6$ \\
+		\quad at the re-execution rung & \emph{as above}, band $\to$ gap & $0.23$ & $0.24$ \\
 		\bottomrule
 	\end{tabular}
-	\caption{The capability ladder. Each rung grants the verifier one more
-	capability (cumulative, top to bottom) and is re-priced as the clipped
-	physical worst case
-	$\beta^{*} = \max_h \beta(h)$
-	(\cref{eq:betaworst}) under the single jointly feasible scenario of \cref{app:boundkind}
-	(fp16-declared case study, int8 covert edge at the Exp.~3 marginal LCB,
-	$\gamma = 2$);
-	$\beta_{\mathrm{en}}(1)$ is the energy-only diagnostic, not a floor. Numeric band edges
-	in pJ/op.
-	%
-	The third column carries the edges as well as the factor, because a rung
-	that pins a factor fixes where the surviving band sits and only the two
-	together price it (\cref{eq:slopebridge}); each $\beta^{*}$ is recomputed
-	from the edges on its own row, not accumulated down the ladder. The top
-	rung is the headline case of \cref{eq:betafloormeasured}; each rung
-	below it moves one entry at a time and is measured no differently:
-	the fp16 band $[1.10, 2.19]$ is Exp.~1's fp16 cells, the useful covert
-	edges $2.53$ and $3.16$ are Exp.~4's marginal lower limits, and
-	$\Delta P_0 = 41.2$\,W (Exp.~2) is common to every row. Disclosed conditions: $\dagger$ --- assumes the declared work
-	is executed in its declared format, discharged off-site by the
-	protocols of \cref{ass:declaration}
-	(\cref{sec:decreasing-beta}); $\ddagger$ --- additionally assumes
-	re-execution transfers at an observed operating point. Both are
-	inherited by every rung below their first appearance. The type column
-	says what kind of thing each rung is: D --- a declaration by the
-	prover, checked off-site; C --- offline characterisation on the
-	verifier's own hardware, transferring to the facility only up to a
-	stated gap; T --- a trusted on-site observable, here left
-	\emph{unpriced} on two independent grounds: attested telemetry does not
-	yet exist, and $w_V$---the width such a channel would remove---is not
-	measured by any sweep of ours; M --- a threat-model restriction (hidden zero-ops
-	are no threat); A --- an assumption about the adversary's objective,
-	not a capability.}
+	\caption{The capability ladder. Each row grants the verifier one more
+	capability, cumulatively from the top, and moves one dial of
+	\cref{eq:betadials}; the top row is the headline of
+	\cref{eq:betafloormeasured}. Every row is priced as the clipped worst case
+	$\beta^{*} = \max_h \beta(h)$ (\cref{eq:betaworst}) for the fp16-declared,
+	int8-covert case study of \cref{sec:empirical-measurements}, recomputed
+	from the edges beside it rather than accumulated down the column; rate
+	edges are in pJ/op. $\beta_{\mathrm{en}}(1)$ is the energy-only diagnostic
+	of \cref{eq:betaen}, not a floor. The clock and locality row is left
+	unpriced, for the two reasons given in \cref{sec:decreasing-beta}.
+	Disclosed conditions, inherited by every row below their first appearance:
+	$\dagger$ --- the declared work is executed in its declared format;
+	$\ddagger$ --- re-execution transfers at an observed operating point.
+	$\S$ --- the branch restricts covert work to fp16 instead of int8, and is
+	quoted only at the two rungs where its denominator is measured: it acts on
+	the same dial as the useful-data row, so the two do not compose
+	(\cref{sec:decreasing-beta}).}
 	\label{tab:ladder}
 \end{table*}
 
@@ -1499,13 +1530,13 @@ same kind of object as the headline --- a model upper bound in the sense of
 	\includegraphics[width=\linewidth]{capability_ladder}
 	\caption{The capability ladder of \cref{tab:ladder} on a log scale;
 	every plotted value is the clipped worst case
-	$\beta^{*} = \max_h \beta(h)$.
-	Filled circles are verifier capabilities (types D, C); the square
-	rung is forced by the threat model (type M: hidden zero-ops are no
-	threat); the hollow rung is an assumption about the adversary, not a
-	capability (type A). The shaded slot is the unpriced prospective
-	clock/locality rung; daggered labels carry the disclosed conditions
-	of \cref{tab:ladder}. The $\beta^{*} = 1$ line marks one
+	$\beta^{*} = \max_h \beta(h)$. Filled circles are capabilities the
+	verifier gains; square rungs are forced by the threat model rather than
+	granted by a channel; the shaded slot is the unpriced prospective
+	clock/locality rung, and daggered labels carry the disclosed conditions of
+	\cref{tab:ladder}. Hollow diamonds are the covert-format branch, dropped
+	from the two rungs it re-prices: it is not a continuation of the chain, and
+	does not compose with the rungs below. The $\beta^{*} = 1$ line marks one
 	whole machine of conceded ambiguity; the precision-checked rung is a
 	model upper bound whose maximiser lies above the feasible window
 	(\cref{app:witness}), so where it falls relative to that line is not
@@ -1513,122 +1544,184 @@ same kind of object as the headline --- a model upper bound in the sense of
 	\label{fig:ladder}
 \end{figure}
 
-\paragraph{Observe the clock and locality (unpriced).}
+\paragraph{Observe the clock and locality (unpriced; dial $r_{\mathrm{hi}}^{\mathrm{dec}}$).}
 This rung would set $w_V \to 1$ and $w_C \to 1$, leaving the declared band at
 its activity core $w_\alpha$ alone. Both are hardware-wide observables the power
-meter does not measure. We deliberately quote no number for it, and the
-factorisation makes the two reasons crisper than a single ``prospective'' would.
+meter does not measure. We deliberately quote no number for it, for two
+reasons.
 
-First, the capability does not exist: every route to it---attested clock
-telemetry, locked clocks by policy, or the EM side channel
-(\cref{sec:discussion})---is prospective, so there is no channel to price.
-Second, and independently, \emph{we have not measured $w_V$}. Neither
-Experiment~1 nor the operand sweep of \cref{app:operands} sweeps the clock; the
-governor held both inside a
-$\pm3\%$ window, so the ${\approx}1.5$ we carry for $w_V$ is
-\cref{sec:empirical-measurements}'s device-physics estimate and not a
-measurement (\cref{tab:inputs}). Pricing a security guarantee on the width a capability
-removes requires knowing that width, and for this rung we do not. The
-sub-factor we \emph{can} measure, $w_C = 1.04$, would on its own buy almost
-nothing---four per cent of a band whose other factors run to $13.5$ and $1.88$.
-So the rung stays in the ladder as the slot a trusted on-site observable would
-fill, and the honest reading is that its value is unknown rather than small ---
-and the next rung depends on it.
+First, no verifier can do this today. Three routes might get there: the card
+could attest its own clock telemetry, the facility could lock its clocks by
+policy, or an external sensor could read the clock off the electromagnetic
+signature (\cref{sec:discussion}). None of the three is currently deployable.
 
-\paragraph{Re-execute the declared work ($1.16 \to 0.34$, conditional).}
-This is the rung that finally prices the activity factor, and it does so by
-leaving the factorisation behind. Re-executing to \emph{measure} the declared
-work's actual energy per operation, not merely confirm its format, reads the
-operands that actually ran; the prover's freedom to claim cheap data cancels, so
-$w_\alpha$ is disposed of without ever being pinned. The same stroke disposes of
-$w_C$ and $w_V$: a direct measurement of $\bar r^{\mathrm{dec}}$ does not care
-which factors were still open. So the step is not $w_\alpha \to 1$ but the
-collapse of the whole product,
-$r_{\mathrm{hi}}^{\mathrm{dec}} \to r_{\mathrm{lo}}^{\mathrm{dec}}$, and the
-numerator falls to a residual set instead by the \emph{hardware gap}:
-re-execution runs on the verifier's trusted cluster, not the monitored
-facility, and energy per operation is hardware-specific---different accelerators,
-firmware, cooling, operating point---so the measured $r^{\mathrm{dec}}$
-transfers only up to a gap. That gap, not zero, is the floor on how far
-re-execution can pin the declared band. We measured the easiest flavour of it
-directly: re-measuring every band edge on three further A100s of the same SKU,
-each agrees to $2$--$3\%$ across devices (\cref{app:bench}), so same-SKU
-re-execution transfers bands at the few-per-cent level. That is a lower bound
-on the difficulty; across different
-accelerators, firmware, and cooling the gap is larger and unmeasured. We
-take the residual gap at a few per cent of the declared rate,
-${\approx}0.05$\,pJ/op (an assumption informed by the same-SKU spread, not
-a cross-hardware measurement), giving $\beta^{*} = 0.34$
-at $h^{*} = 0.83$ --- at this depth the overhead band, not the declared
-residual, carries most of the width. Read the rung as a sensitivity
-analysis in the gap, not a measured bound: at the same-SKU spread itself
-(gap $0.02$--$0.04$\,pJ/op) the rung reads $0.29$--$0.32$; at our stated
-$0.05$\,pJ/op, $0.34$; a cross-vendor gap of $0.2$\,pJ/op would put it at
-${\approx}0.54$. Measuring that gap --- the same declared workload
-characterised across accelerator generations and vendors --- is the
-experiment this rung waits on.
+Second, and independently, we have not measured $w_V$. Neither
+Experiment~1 nor the operand sweep of \cref{app:operands} sweeps the clock. In
+both, the governor held it inside a $\pm3\%$ window. So the ${\approx}1.5$ we
+carry for $w_V$ is \cref{sec:empirical-measurements}'s device-physics estimate,
+not a measurement (\cref{tab:inputs}). 
 
-The rung also inherits a second condition ($\ddagger$ in
-\cref{tab:ladder}): \emph{re-execution only pays at an observed operating
-point}. Re-execution measures the declared work's energy per operation at
-the \emph{verifier's} operating point; if the prover's clock state is
-unobserved --- and the previous rung is exactly the one still unpriced ---
-the prover may run the declared work anywhere on the DVFS curve, and the
-transfer error is not the hardware gap but the full DVFS factor of
-${\sim}1.5$. A verifier with only ``power and paperwork'' (the power meter
-plus declarations and re-execution, but no on-site sensing) therefore
-stalls at $\beta^{*} \approx 1$: re-executing the declared
-work buys almost nothing that checking its precision had not already
-bought.
+\paragraph{Re-execute the declared work ($1.16 \to 0.34$, conditional; dial $r_{\mathrm{hi}}^{\mathrm{dec}}$).}
+The verifier re-runs the declared work on its own hardware and measures what
+it costs. That is more than checking the format: it reads the operands that
+actually ran, so the prover's freedom to claim cheap data cancels. The
+nuisance factors are not pinned, they are bypassed --- a direct measurement of
+$\bar r^{\mathrm{dec}}$ does not care whether $w_\alpha$, $w_C$ or $w_V$ was
+still open. So the declared band does not narrow one factor at a time. It
+collapses: $r_{\mathrm{hi}}^{\mathrm{dec}} \to r_{\mathrm{lo}}^{\mathrm{dec}}$.
 
-\paragraph{Restrict covert work to useful data ($0.34 \to 0.071$; Experiment~4).}
-This rung is forced by the threat model rather than granted by a channel,
-and the logic runs in steps. Covert work is unseeable \emph{by definition}:
-no declaration reaches it, so its floor $r_{\mathrm{lo}}^{\mathrm{cov}}$ is
-bounded only by the silicon --- the int8 marginal edge, $0.51$\,pJ/op. But
-the cheapest operations on that edge are operand zeros, and zeros compute
-nothing useful: hidden zero-ops are no threat.
+The collapse is not complete, because the re-run happens on the wrong machine.
+The verifier's trusted cluster is not the monitored facility, and energy per
+operation depends on the accelerator, its firmware, its cooling and its
+operating point. So the measured rate transfers only up to a \emph{hardware
+gap}, and that gap, not zero, is the residual declared width. We measured the
+easiest version of it: re-measuring every band edge on three further A100s of
+the same SKU, the edges agree to $2$--$3\%$ across devices (\cref{app:bench}).
+Same-SKU re-execution therefore transfers bands at the few-per-cent level. That
+is the easy case. Across accelerator generations, firmware and cooling the gap
+is larger, and we have not measured it.
 
-This rung therefore comes with a measurement of its own, and it is the one
-experiment \cref{sec:empirical-measurements} does not report, because no number
-above this rung reads it. We measured the \emph{incremental} cost of useful
-covert work directly: an int8-quantised
-transformer block built from one trained Pythia-6.9B layer, run on real text
-activations (not synthetic patterns), with the quantisation scales applied
-and every metered operation --- the int8 matmuls and the fp16 attention
-alike --- counted. Sweeping that block as the covert dose inside Experiment~3's
-construction --- a fixed declared burst inside a fixed window, so baseline power
-cancels in the dose slope (\cref{app:estimands}) --- at two shapes that bracket
-the attention share of the op count, and regressing window energy on covert
-nominal operations, prices genuinely useful covert work at a \emph{marginal}
-$2.54$--$3.21$\,pJ/op, both fits linear to $R^2 > 0.999$. We carry the one-sided
-$95\%$ lower limits, $r_{\mathrm{useful}} = [2.53, 3.16]$\,pJ/op, for the reason
-Experiment~3 gives: under-pricing covert work is the security-safe direction.
-The standalone total quotient $E/C$ is more expensive, $[3.18, 4.22]$ (one-sided lower
-limits; point means $[3.26, 4.24]$), only because it
-amortises idle power the covert work does not draw. Restricting the adversary
-to work worth doing raises the covert edge to the bottom of that band,
-$0.51 \to 2.53$\,pJ/op, while the declared-side residual stays at the
-hardware gap --- the covert band's own width prices nothing on the
-declared side --- and the rung drops to
-$\beta^{*} = 0.071$: every slack joule now buys the
-adversary ${\approx}4.9\times$ fewer useful operations than silicon-floor
-accounting would concede. Because this edge is an incremental dose slope, not
-a standalone total quotient, it is a genuine marginal lower bound on the
-covert cost --- the estimand the denominator requires
-(\cref{app:estimands}), measured the same way as Experiment~3's int8
+So the rung rests on an assumption: that the gap is a few per cent of the
+declared rate. We take ${\approx}0.05$\,pJ/op, informed by the same-SKU spread
+but not measured across hardware, which gives $\beta^{*} = 0.34$ at
+$h^{*} = 0.83$. Read the rung as a sensitivity analysis in that gap rather than
+a measured bound: at the same-SKU spread itself ($0.02$--$0.04$\,pJ/op) it
+reads $0.29$--$0.32$; at our stated $0.05$\,pJ/op, $0.34$; at a cross-vendor
+$0.2$\,pJ/op, ${\approx}0.54$. Two things follow. At this depth the overhead
+band, not the declared residual, carries most of the width. And the experiment
+this rung waits on is a measurement of the gap itself --- the same declared
+workload characterised across accelerator generations and vendors.
+
+The rung also inherits a second condition ($\ddagger$ in \cref{tab:ladder}):
+re-execution only pays at an observed operating point. The verifier measures
+the declared work at its \emph{own} clock. If the prover's clock is unobserved
+--- and the rung above is exactly the one still unpriced --- the prover may run
+the declared work anywhere on the DVFS curve. The transfer error is then not
+the hardware gap but the whole DVFS factor, ${\sim}1.5$. So a verifier with
+only ``power and paperwork'' --- the meter, declarations and re-execution, but
+no on-site sensing --- stalls at $\beta^{*} \approx 1$: re-executing the
+declared work buys it almost nothing that checking the precision had not
+already bought.
+
+\paragraph{Restrict covert work to useful data ($0.34 \to 0.071$; dial $r_{\mathrm{lo}}^{\mathrm{cov}}$; Experiment~4).}
+This rung is forced by the threat model, not granted by a channel. The argument
+runs in three steps. Covert work is unseeable \emph{by definition}: no
+declaration reaches it, so nothing but the silicon bounds its cost. That bound
+is the int8 marginal edge, $0.51$\,pJ/op. But the cheapest operations at that
+edge are operand zeros, and zeros compute nothing. Hidden zero-ops are no
+threat, so the adversary who matters pays more than the silicon floor.
+
+We measured how much more. This is the one experiment
+\cref{sec:empirical-measurements} does not report, because no number above this
+rung reads it. The workload is a transformer block: one trained Pythia-6.9B
+layer, quantised to int8, run on real text activations rather than synthetic
+patterns, with the quantisation scales applied. Every metered operation is
+counted --- the int8 matmuls and the fp16 attention alike. We swept that block
+as the covert dose inside Experiment~3's construction: a fixed declared burst
+inside a fixed window, so baseline power cancels in the dose slope
+(\cref{app:estimands}). Two block shapes bracket the attention share of the op
+count. Regressing window energy on covert nominal operations gives a
+\emph{marginal} cost of $2.54$--$3.21$\,pJ/op, both fits linear to
+$R^{2} > 0.999$.
+
+We carry the one-sided $95\%$ lower limits,
+$r_{\mathrm{useful}} = [2.53, 3.16]$\,pJ/op, for the reason Experiment~3 gives:
+under-pricing covert work is the security-safe direction. The standalone total
+quotient $E/C$ is dearer, $[3.18, 4.22]$ (one-sided lower limits; point means
+$[3.26, 4.24]$), but only because it amortises idle power the covert work does
+not draw. The dose slope is the estimand the denominator requires
+(\cref{app:estimands}), and it is measured the same way as Experiment~3's int8
 covert edge.
 
-\paragraph{Covert work at the top of the useful band ($0.071 \to 0.057$).}
-The final rung is an assumption, not a capability. Only by assuming the
-covert work forgoes all of its remaining freedom inside the useful band
-and pays that band's ceiling,
-$r_{\mathrm{lo}}^{\mathrm{cov}} \to 3.16$\,pJ/op, does the residual fall
-to ${\approx}0.057$. A bound of that order --- covert compute at several
-per cent of capacity --- exists only on this rung, conditional on an
-assumption about the adversary's objective rather than on any measurement; the
-distinction matters for the power-monitoring layers proposed in the
-verification literature \citep{baker2025verifying}.
+Restricting the adversary to work worth doing therefore raises the covert edge
+to the bottom of that band, $0.51 \to 2.53$\,pJ/op. Nothing moves on the
+declared side: the residual stays at the hardware gap, and the covert band's
+own width prices nothing there. The rung drops to $\beta^{*} = 0.071$. Every
+slack joule now buys the adversary ${\approx}4.9\times$ fewer useful operations
+than silicon-floor accounting would concede.
+
+\paragraph{Pin the overhead band to the window being priced
+($0.071 \to 0.059$; dial $\Delta E_0$; Experiment~2).}
+Like the useful-data rung, this one moves under an assumption rather than a
+gained capability. The band of \cref{eq:measuredoverhead} spans Experiment~2's
+twenty-five idle windows, and its low edge, $62.9$\,W, is the cold-card cell ---
+the device before any CUDA context exists. But in the corner that maximises
+$\beta_{\mathrm{en}}$ the declared burst occupies $h\,T$ and covert work fills
+the rest, so operations retire throughout the window and their operands stay
+resident. A card in that state cannot draw a cold card's overhead. Restricting
+the band to the fifteen windows compatible with resident operands --- the
+context-plus-pool, post-kernel and cooled cells, under the same
+lowest-and-highest rule --- lifts the low edge to $73.4$\,W. The high edge does
+not move: the $96.2$\,W peak is the post-heavy-kernel transient, and the priced
+window's declared burst \emph{is} a heavy kernel. With the same $\pm5\%$ meter
+tolerance,
+\begin{equation}
+	P_0 \in [69.7,\, 101.0]\;\mathrm{W}, \qquad
+	\Delta P_0 = 31.3\;\mathrm{W},
+	\label{eq:pinnedoverhead}
+\end{equation}
+which is $0.76$ of the published width, so the rung falls from $0.071$ to
+$0.059$. The restriction is not specific to the bottom of the ladder: at the
+re-execution rung it reads $0.28$ in place of $0.34$, and at the headline
+$1.12$ in place of $1.16$, where the declared band and not the overhead carries
+the width.
+
+Even pinned, this dial holds most of the width at the bottom. The overhead term
+$b = \Delta P_0/(r_{\mathrm{lo}}^{\mathrm{cov}}\,F_{\max}^{\mathrm{dec}})$ is
+about $70\%$ of both bottom rungs ($0.040$ of $0.059$; $0.195$ of $0.28$), and
+nothing further is available from the overhead itself. What would help is
+reporting $P_0$ rather than bracketing it --- the trusted on-site channel of the
+unpriced rung --- which leaves only the meter tolerance,
+$\Delta P_0 \approx 8.5$\,W, and a bottom rung of $0.030$. The dial therefore
+holds a factor of ${\approx}2.4$ down there, of which this restriction collects
+about a third. The largest single reduction in $\beta^{*}$ still available is on
+the overhead side, not the declared one.
+
+\paragraph{Branch: know the covert format ($1.16 \to 0.66$; dials $r_{\mathrm{lo}}^{\mathrm{cov}}$ and $\gamma$).}
+The covert dial admits one more restriction, and we price it apart from the
+chain because it does not stack onto the rungs above. Suppose the covert format
+is known. It cannot be checked: \cref{ass:declaration} reaches only the declared
+work. It is assumed instead, on threat-model grounds. If the capacity is being
+stolen to train a frontier model, that training runs in fp16 or bf16 with fp32
+accumulation, and int8 pre-training is not a viable route to the capability such
+an adversary wants.
+
+Restricting covert work to fp16 moves two things at once. First, the covert
+denominator rises from the int8 marginal edge to the fp16 one,
+$0.51 \to 0.76$\,pJ/op, both measured in Experiment~3
+(\cref{sec:empirical-measurements}). That is a factor $1.47$ on the declared and
+the overhead term alike, since both carry $r_{\mathrm{lo}}^{\mathrm{cov}}$ in
+their denominator. Second, the capacity ratio falls, $\gamma = 2 \to 1$: covert
+operations no longer retire at twice the declared rate, so the clip becomes
+$1-h$. At the headline rung the two together give $\beta^{*} = 0.66$, and
+neither half dominates --- the denominator alone would read $0.94$, the clip
+alone $0.76$. Carried down to the re-execution rung the branch reads $0.23$ in
+place of $0.34$. \Cref{fig:betafloor} traces both scenarios.
+
+What is distinctive here is the ceiling, not the value. Every other move in this
+section narrows the width beneath a fixed ceiling of $\gamma$ machines. This one
+halves the ceiling itself, so $\beta^{*} < 1$ holds by capacity alone, whatever
+the energy slack turns out to be. The same algebra says why the branch stops
+paying further down. By \cref{eq:betaworst}, once the energy slack falls well
+below the clip, $\beta^{*} = \gamma\,(s+b)/(s+\gamma) \approx s+b$ and $\gamma$
+drops out. At the useful-data rung ($s = 0.020$, $b = 0.052$) the capacity half
+of the branch is worth one per cent, and the whole gain would have to come from
+the denominator instead.
+
+But the useful-data rung has already moved that denominator, and moved it with
+an int8-quantised block. Covert work that is both useful \emph{and} fp16 prices
+at the marginal cost of a \emph{useful fp16} block, which we have not measured.
+Scaling the measured block by the ratio of silicon edges is no substitute,
+because no mechanism supports it: the int8 block costs $2.53$--$3.16$\,pJ/op,
+which is $4.9$--$6.1\times$ its own silicon edge, so its cost is dominated by
+data movement and quantisation overhead rather than by arithmetic. Moving its
+matmuls to fp16 would double the bytes it moves and halve its tensor-core
+throughput. So we quote the branch only at the two rungs where its denominator
+is measured, and leave the two restrictions uncomposed. The measurement that
+would compose them is a bf16 useful block --- the format the threat-model
+argument actually names, and one for which we have no covert edge at all. It
+would also price the covert work such an adversary would really run, rather than
+the cheapest useful work available to them.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -1697,8 +1790,8 @@ A100-specific, though the closed form is not.
 (int8, zero operands) is directly measured, but on synthetic operands;
 genuinely useful covert work prices at the measured marginal useful band
 $[2.53, 3.16]$\,pJ/op instead (Experiment~4's dose-response; the standalone
-total-quotient lower limits are $[3.18, 4.22]$), and the bottom rungs depend on that band's
-width. (iii) The hardware gap behind the
+total-quotient lower limits are $[3.18, 4.22]$), and the bottom rungs rest on
+that band's lower edge. (iii) The hardware gap behind the
 re-execution rung (${\approx}0.05$\,pJ/op) is an assumption. The same-SKU
 piece is grounded---band edges agree to $2$--$3\%$ across three A100s
 (\cref{sec:empirical-measurements})---but the cross-hardware gap (different
@@ -1833,8 +1926,8 @@ rests on a stated hardware-gap assumption, not a measurement
 observed operating point, so power plus paperwork stalls at
 ${\approx}1$ --- and no capability reaches the covert side: restricting
 covert work to the measured useful-operand band brings ${\approx}0.071$,
-and the final collapse to ${\approx}0.057$ closes only by assumption on
-the adversary. This paper prices each rung, with its conditions stated,
+and requiring the overhead band to be consistent with a window that is
+executing brings ${\approx}0.059$. This paper prices each rung, with its conditions stated,
 so that a verification regime can be designed --- or rejected --- on
 numbers rather than on the intuition that joules imply FLOPs.
 

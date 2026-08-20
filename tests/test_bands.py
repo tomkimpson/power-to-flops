@@ -385,6 +385,31 @@ def test_overhead_band_spans_idle_variants():
     assert ob.n_idle == 5
     assert ob.P0_lo == 62.0 * (1.0 - IDLE_TOL_FRAC)
     assert ob.P0_hi == 90.0 * (1.0 + IDLE_TOL_FRAC)
+    # The resident-operand band drops the two cold-card cells (no_ctx, ctx) —
+    # states the window the floor prices cannot be in — under the same rule.
+    assert ob.n_idle_resident == 3
+    assert ob.P0_lo_resident == 70.0 * (1.0 - IDLE_TOL_FRAC)
+    assert ob.P0_hi_resident == 90.0 * (1.0 + IDLE_TOL_FRAC)
+    assert ob.P0_hi_resident - ob.P0_lo_resident < ob.P0_hi - ob.P0_lo
+
+
+def test_resident_overhead_band_absent_without_resident_cells():
+    # No intercept fallback for the restricted band: a sweep that ran only the
+    # cold-card idle cells has no resident band, and the ladder must be told so
+    # rather than handed the unrestricted one.
+    exp3 = [_rec(experiment=3, M=0, N=0, K=0, iters=0, util_frac=0.0,
+                 ops_nominal=0, idle_variant=v, mean_power_w=p,
+                 r_j_per_op=float("nan"))
+            for v, p in (("no_ctx", 62.0), ("ctx", 66.0))]
+    for size in (2048, 4096):
+        F = size * 1.0e8
+        exp3.append(_rec(experiment=3, M=size, N=size, K=size, util_frac=1.0,
+                         ops_nominal=int(F), duration_s=1.0,
+                         mean_power_w=1.5e-9 * F + 70.0))
+    ob = overhead_band(exp3)
+    assert ob.n_idle == 2                    # the unrestricted band still lands
+    assert ob.P0_lo_resident is None and ob.P0_hi_resident is None
+    assert ob.n_idle_resident == 0
 
 
 def test_exchange_band_spans_operand_cells():

@@ -74,6 +74,13 @@ class BandResult:
     # Channel companion: re-execution declared-rate std [J/op].
     sigma_dec: float
 
+    # Exp 3, restricted: the same band over the idle cells compatible with
+    # RESIDENT operands (RESIDENT_IDLE_VARIANTS) — the overhead-pinning rung of
+    # powertoflops.ladder. None on sweeps that carried no such cell.
+    P0_lo_resident: float | None = None
+    P0_hi_resident: float | None = None
+    n_idle_resident: int = 0
+
 
 def _clean_r(records: Iterable[RunRecord]) -> list[RunRecord]:
     """Drop harmfully-throttled, drift-reference, trimmed, and non-physical-r rows.
@@ -825,6 +832,16 @@ def useful_marginal_band(
 # the observed idle extrema by it (widening only widens the bound).
 IDLE_TOL_FRAC = 0.05
 
+# Idle cells compatible with the corner the floor actually prices (the
+# overhead-pinning rung of powertoflops.ladder): there the declared burst occupies
+# h*T and covert work fills the rest, so operations retire across the whole
+# window and their operands are resident throughout. The cold-card cells are
+# states that window cannot be in — no_ctx has no CUDA context at all, ctx has a
+# context but no operand pool — so restricting the band to these three variants
+# is exactly what the rung buys. Reported alongside the full band, never instead
+# of it: powertoflops.ladder chooses, and the unrestricted band stays the default.
+RESIDENT_IDLE_VARIANTS = ("cached", "post_load", "cooled")
+
 
 @dataclass(frozen=True)
 class OverheadBand:
@@ -835,6 +852,10 @@ class OverheadBand:
     (``fit_intercept_w`` +/- ``fit_se_w``) — an extrapolation diagnostic, never
     the band itself; it becomes the band only as an explicit fallback when the
     sweep carried no idle rows at all (``n_idle == 0``).
+
+    ``P0_*_resident`` is the same band over RESIDENT_IDLE_VARIANTS only — the
+    idle states the priced window can actually be in — which the ladder's
+    overhead-pinning rung reads. It has no intercept fallback.
     """
 
     P0_lo: float               # overhead band lower edge [W]
@@ -844,6 +865,11 @@ class OverheadBand:
     r_marginal: float          # fitted dP/dF [J/op] (the theory's marginal r)
     affine_r2: float           # R^2 of the affine fit (convexity flag if < 1)
     n_idle: int                # observed idle rows the band rests on
+
+    # The same band over RESIDENT_IDLE_VARIANTS only (None if none were run).
+    P0_lo_resident: float | None = None
+    P0_hi_resident: float | None = None
+    n_idle_resident: int = 0
 
 
 def clean_overhead_records(records: Iterable[RunRecord]) -> list[RunRecord]:
@@ -885,7 +911,8 @@ def overhead_band(exp3: Sequence[RunRecord]) -> OverheadBand:
     fit = marginal_rate(clean)
 
     # Overhead band: the directly observed idle range + the stated tolerance.
-    idle = [r.mean_power_w for r in clean if r.util_frac == 0.0]
+    idle_rows = [r for r in clean if r.util_frac == 0.0]
+    idle = [r.mean_power_w for r in idle_rows]
     if idle:
         P0_lo = min(idle) * (1.0 - IDLE_TOL_FRAC)
         P0_hi = max(idle) * (1.0 + IDLE_TOL_FRAC)
@@ -893,10 +920,21 @@ def overhead_band(exp3: Sequence[RunRecord]) -> OverheadBand:
         P0_lo = fit.intercept_w - fit.se_intercept
         P0_hi = fit.intercept_w + fit.se_intercept
 
+    # Same rule, restricted to the resident-operand cells. No intercept
+    # fallback here: this band is an option the ladder may take, so absent
+    # cells mean an absent band, not a substituted one.
+    resident = [r.mean_power_w for r in idle_rows
+                if r.idle_variant in RESIDENT_IDLE_VARIANTS]
+    P0_lo_res = min(resident) * (1.0 - IDLE_TOL_FRAC) if resident else None
+    P0_hi_res = max(resident) * (1.0 + IDLE_TOL_FRAC) if resident else None
+
     return OverheadBand(
         P0_lo=float(P0_lo), P0_hi=float(P0_hi),
         fit_intercept_w=fit.intercept_w, fit_se_w=fit.se_intercept,
         r_marginal=fit.r_marginal, affine_r2=fit.r2, n_idle=len(idle),
+        P0_lo_resident=None if P0_lo_res is None else float(P0_lo_res),
+        P0_hi_resident=None if P0_hi_res is None else float(P0_hi_res),
+        n_idle_resident=len(resident),
     )
 
 
@@ -923,4 +961,7 @@ def extract_bands(
         r_marginal=ob.r_marginal,
         affine_r2=ob.affine_r2,
         sigma_dec=sigma_dec,
+        P0_lo_resident=ob.P0_lo_resident,
+        P0_hi_resident=ob.P0_hi_resident,
+        n_idle_resident=ob.n_idle_resident,
     )
