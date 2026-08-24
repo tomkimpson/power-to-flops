@@ -99,21 +99,19 @@ The chip's own telemetry reads silicon the operator controls, so analogue
 sensors placed off the chip have been proposed instead, e.g. a meter on the
 power feed, or an electromagnetic antenna or a thermal camera beside the
 rack. How tightly such sensors constrain compute against an operator who
-actively tries to hide computation is unknown. Here we derive a closed form
-for $\beta$, the largest hidden computation a power trace cannot rule out,
-in units of one machine's declared capacity. $\beta$ is set by how widely
-the energy cost of an operation can vary, how cheaply a hidden operation can
-run, and how much idle draw the meter must allow for; we measure each on
-NVIDIA A100 GPUs. A verifier that reads the power and checks the declared
-numeric format gets $\beta = 1.16$: more than a full machine of hidden
-compute survives an honest-looking trace. That is an upper bound. The lower
-bound is measured: on the same card, runs that hid $0.19$ to $0.41$ machines
-of undeclared work went undetected. Re-running the declared work,
-restricting hidden work to useful computation, and pinning the idle draw
-together lower $\beta$ to $0.059$. A power meter alone is therefore a weak
-bound on compute, and the closed form prices what each further capability
-buys. It gives a quantitative basis for what off-chip sensing can contribute
-to verifying agreements on AI compute.
+actively tries to hide computation is unknown. We derive a closed form for
+$\beta$, the largest hidden computation a power trace cannot exclude, in
+units of declared machine capacity. $\beta$ is set by how widely the energy
+cost of an operation can vary, how cheaply a hidden operation can run, and
+how much idle draw the meter must allow for; we measure each on NVIDIA A100
+GPUs. A verifier that reads the power and checks the declared numeric format
+gets $\beta = 1.16$: more than a full machine of hidden compute. That bound
+is loose. We hid $0.19$ to $0.41$ machines of undeclared work undetected.
+Re-running the declared work, restricting hidden work to useful computation,
+and pinning the idle draw together lower $\beta$ to $0.059$. A power meter
+alone is therefore a weak bound on compute, and the closed form prices what
+each further capability buys. It gives a quantitative basis for what
+off-chip sensing can contribute to verifying agreements on AI compute.
 \end{abstract}
 
 \section{Introduction}
@@ -1703,17 +1701,22 @@ the declared band would narrow to its activity core $w_\alpha$ alone. We defer t
 \section{Conclusion}
 \label{sec:conclusion}
 
-So, can power draw constrain covert compute? On its own, barely. A meter that
-reads the energy of a window, and knows the format the declared work ran in,
-still leaves room for more undeclared computation than the machine's entire
-declared capacity. The bound tightens only when the verifier gains something
-the meter cannot supply: the declared work re-run on trusted hardware, a
-threat model that rules out worthless hidden work, and an independent reading
-of the clock. The last of these does not exist today, and without it
-re-execution buys almost nothing: the bound stays near one machine. The work
-to do next follows from that. Read the clock on another channel, price a
-retrofitted meter on the power feed rather than an on-die counter, and carry
-the floor from one device to a whole facility.
+So, can power draw constrain covert compute? Not on its own. A meter that
+reads the energy of a window, and knows the numeric format the declared work
+ran in, leaves room for more undeclared computation than the machine's whole
+declared capacity: $\beta^{*} = 1.16$. But the meter is rarely all a verifier
+has. Re-running the declared work on trusted hardware, restricting hidden
+work to useful computation, and pinning the idle draw to a card known to be
+busy bring $\beta^{*}$ to $0.059$, six per cent of one machine. What
+separates the two numbers is information available to the verifier, and the
+closed form prices each piece of it.
+
+That is the case for reading power alongside other channels rather than by
+itself. The clock is the clearest example: the meter cannot see it, an
+antenna beside the rack might, and a verifier who reads it fixes the voltage
+too and narrows the declared band to its activity core. Pricing that rung,
+replacing the on-die counter with a retrofitted meter on the power feed, and
+carrying the floor from one device to a whole facility are natural next steps.
 
 
 \bibliography{references}
