@@ -1749,9 +1749,10 @@ carrying the floor from one device to a whole facility are natural next steps.
 This appendix derives the two models the body text adopts: the affine
 forward map \cref{eq:forward} sketched in \cref{subsec:forward}, and the
 factored exchange rate \cref{eq:cmos} of \cref{subsec:factors}. It closes
-by showing that the security bound needs less than the affine map---a
-weaker, one-sided condition---and what that condition demands of how each
-band edge is measured.
+by collecting the measurements that support the affine map, and by showing
+that the security bound needs less than it---a weaker, one-sided
+condition---and what that condition demands of how each band edge is
+measured.
 
 Resolving the
 static term of \cref{eq:cmoslaw}, total chip power separates into a dynamic
@@ -1775,24 +1776,20 @@ is the intercept,
 \end{equation}
 Note that one cannot simply plot measured power
 against measured rate and read $r$ off the slope. The card does not have one
-$r$: the cost per operation depends on what is executing---the format, the
-kernel, where the operands live---and the choices that move a workload's
-achieved rate move its cost per operation with it. Points collected across
+$r$: the cost per operation depends on what is executing (e.g. the format, the
+kernel, where the operands live) and the choices that move a workload's
+achieved rate $F$ move its cost per operation $r$ with it. Points collected across
 workloads therefore lie on different lines through a shared intercept, and a
 slope fitted through them averages over workloads rather than pricing any one
 of them (Experiment~2's rate ladder shows exactly this: opened beyond the
 compute-bound shapes, the fit's scatter grows sharply while its slope barely
 moves). At a fixed workload, power \emph{is} linear in the rate and its slope
-is $r$---\cref{eq:rdyn} below derives it---but each workload carries its own.
-Experiment~2 measures the intercept of \cref{eq:marginal} directly from idle
-cells and checks the slope against a sweep of sustained nominal-op rate, the
-rate ladder of \cref{sec:empirical-measurements}.
+is $r$ (cf. \cref{eq:rdyn} below) but each workload carries its own value of $r$.
 
 \paragraph{The dynamic term gives $r$.}
 The operation rate is $F = N_{\mathrm{op}}\,f$, where $N_{\mathrm{op}}$ is
-the number of nominal operations the datapath retires per cycle at the operating format
-(an idle unit lowers the activity $\alpha$, not the clock $f$). At a fixed
-format the clock is thus the knob through which the operation rate moves,
+the number of nominal operations the datapath retires per cycle at the operating format. At a fixed
+format
 $\partial f/\partial F = 1/N_{\mathrm{op}}$, and the marginal rate of
 \cref{eq:marginal} follows by the chain rule, holding $\alpha$, $C$, and $V$
 fixed,
@@ -1800,10 +1797,10 @@ fixed,
 	r \;=\; \frac{\partial P_{\mathrm{dyn}}}{\partial F}
 	\;=\; \frac{\partial P_{\mathrm{dyn}}}{\partial f}\,\frac{\partial f}{\partial F}
 	\;=\; \frac{\alpha\, C\, V^2}{N_{\mathrm{op}}}
-	\;=\; \alpha\,\Bigl(\tfrac{C}{N_{\mathrm{op}}}\Bigr)\,V^2 ,
+	\;=\; \alpha\,\Bigl(\tfrac{C}{N_{\mathrm{op}}}\Bigr)\,V^2 .
 	\label{eq:rdyn}
 \end{equation}
-and the clock drops out: energy per operation does not depend on how fast
+Note that the clock drops out: energy per operation does not depend on how fast
 the operations run, only on what each switching event costs and how many
 operations it delivers. The rate is constant in $F$, so $P_{\mathrm{dyn}} = rF$
 is linear through the origin, exactly the affine form the forward model
@@ -1820,10 +1817,10 @@ accordingly,
 with $\kappa$ collecting the format scale (datapath width and the operation
 packing $N_{\mathrm{op}}$) and $C_{\mathrm{eff}}$ the locality and kernel
 structure, and substituting into \cref{eq:rdyn}, gives the model
-\cref{eq:cmos}. This is a re-parameterisation by physical origin, not a
-unique factorisation: $\kappa$, $\alpha$, and $C_{\mathrm{eff}}$ are all
-switching quantities, grouped by cause---format, operand data, memory
-locality---so that each maps to a single verifier category.
+\cref{eq:cmos}. We emphasise this is not a unique factorisation. Instead it is a method to re-parameterise the contributions by physical origin; $\kappa$, $\alpha$, and $C_{\mathrm{eff}}$ are all
+switching quantities, grouped by cause so that each factor corresponds to
+one property of the workload that a verifier could separately check or
+constrain: the numeric format, the operand data, and the memory locality.
 
 \paragraph{Short-circuit sits in $r$, inside the switched capacitance.}
 \citet{chandrakasan1992lowpower} also carry a \emph{short-circuit} term for
@@ -1833,7 +1830,7 @@ switching events as $P_{\mathrm{dyn}}$, so it scales with the operation rate and
 survives the marginal derivative of \cref{eq:marginal}. In a well-designed
 circuit it is a small fraction of the switching power, so we fold it into
 the effective switched capacitance $C_{\mathrm{eff}}$ of \cref{eq:capfactor}:
-it lands in $r$, but introduces no new verifier category.
+it lands in $r$, but adds nothing new for a verifier to check.
 
 \paragraph{Leakage sits in $P_0$, not $r$.}
 The static power $P_{\mathrm{stat}}$ of \cref{eq:powertotal} flows whether
@@ -1843,50 +1840,73 @@ contributes nothing to the marginal rate $r$ and is entirely the intercept
 $P_0$, where the derivation of \cref{eq:integrated} already places it and
 carries it as a bounded nuisance band. A leakage-per-operation term
 $r_{\mathrm{leak}} = P_{\mathrm{stat}}/F$ would appear only if $r$ were
-defined as the \emph{average} energy per operation, $P/F$, which mixes in the
+defined as the average energy per operation, $P/F$, which mixes in the
 intercept and is operating-point dependent; we keep the marginal definition
 \cref{eq:marginal}, consistent with \cref{eq:forward}, and so carry no
 separate leakage term in $r$.
 
+\paragraph{Is the affine map true?}
+The derivation above gives the model theoretically; the measurements also
+support it directly, in three places. Experiment~2's rate ladder is the
+across-workload check: restricted to the compute-bound shapes, where like is
+compared with like, metered power against sustained operation rate is linear
+at $R^2 = 0.99$, and the fitted slope lands inside the fp16 exchange band
+$[1.10,\,2.19]$\,pJ/op that Experiment~1 measures independently by total
+quotient (\cref{sec:empirical-measurements}). Experiments~3 and~4 test the
+covert term at fixed declared work: window energy is linear in the covert
+dose to $R^2 > 0.999$ (\cref{fig:marginal-dose}), affinity in the one
+argument the security bound differentiates. And the idle cells of
+Experiment~2 pin the intercept directly (\cref{eq:measuredoverhead}). What
+no measurement certifies is one affine map across all workloads at once:
+as noted above, each workload carries its own slope, and the pooled ladder
+fit degrades accordingly. So \cref{eq:forward} holds workload by workload:
+within one workload power is a straight line in the rate, and different
+workloads have different slopes. As the next paragraph shows, that is all
+the bound needs.
+
 \paragraph{The bound needs less than the affine map.}
 \label{app:estimands}
-The security bound does not, in fact, require the affine forward map derived
-above; it needs one weaker, one-sided condition, and the distinction dictates
-how each band edge must be measured. The declared edges enter \cref{eq:covmax}
-only through their \emph{difference}
-$r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}$ at a common
-saturated rate, so any baseline amortised equally into both edges cancels and
-a measured total quotient $E/C$ is the correct estimand for the numerator (the
-overhead enters once, separately, as $\Delta E_0$). The covert cost enters as
-the \emph{denominator} $r_{\mathrm{lo}}^{\mathrm{cov}}$, where nothing
-cancels: the bound is a valid security guarantee only if
-$r_{\mathrm{lo}}^{\mathrm{cov}}$ is a genuine one-sided \emph{lower} bound on
-the \emph{incremental} covert energy. Write the true draw as
+Why is the workload-by-workload form enough? Because the security bound does
+not, in fact, require one affine map across all workloads; it needs one
+weaker, one-sided condition. To state it, write the true draw as
 $P = g_x(F_{\mathrm{dec}}, F_{\mathrm{cov}})$, some device-dependent function
 of what the silicon executes, with the subscript $x$ standing for the
-execution details the verifier never sees. The condition is then
+execution details the verifier never sees---no linearity assumed. The
+condition is then
 \begin{equation}
 	g_x(F_{\mathrm{dec}}, F_{\mathrm{cov}}) - g_x(F_{\mathrm{dec}}, 0)
 	\;\ge\; r_{\mathrm{lo}}^{\mathrm{cov}}\,F_{\mathrm{cov}},
 	\label{eq:incremental}
 \end{equation}
-for every admissible execution $g_x$. Under only this incremental condition
-the honest energy slack of \cref{eq:covmax} still divides by
-$r_{\mathrm{lo}}^{\mathrm{cov}}$, so the floor holds without the global affine
-map; the affine model is the special case
+for every admissible execution $g_x$: adding covert work at rate
+$F_{\mathrm{cov}}$ on top of the declared work costs at least
+$r_{\mathrm{lo}}^{\mathrm{cov}}$ joules per covert operation, however the
+silicon runs it. The derivation
+of \cref{eq:covmax} converts the honest energy slack into covert operations by
+dividing by $r_{\mathrm{lo}}^{\mathrm{cov}}$---so under \cref{eq:incremental}
+alone the floor holds, with no global affine map anywhere. The affine model is
+the special case
 $g_x = P_0 + r^{\mathrm{dec}}F_{\mathrm{dec}} + r^{\mathrm{cov}}F_{\mathrm{cov}}$,
-which additionally makes $\beta_{\mathrm{en}}(h)$ linear in $h$. This is why
-every covert edge the bound uses is identified by a dose--response
-intervention (Experiment~3 for the generic int8 edge, Experiment~4 for the
-useful-operand edge) and never by a total quotient: a quotient amortises
-baseline power---leakage, cooling, idle draw---that a marginal cost does not,
-and is therefore inadmissible as a covert lower bound. The same distinction is
-why \cref{tab:inputs} keeps $r_{\mathrm{lo}}^{\mathrm{dec}}$ and
-$r_{\mathrm{lo}}^{\mathrm{cov}}$ distinct even though they describe the same
-physical corner, int8 on zeros: each entry carries the estimand its algebraic
-role requires. The marginal figure is the cheaper of the two, and a cheaper
-covert denominator concedes the adversary more operations per slack joule, so
-carrying it widens the bound---the safe direction.
+which additionally makes $\beta_{\mathrm{en}}(h)$ linear in $h$.
+
+The condition Eq. \eqref{eq:incremental} dictates how each band edge must be measured. The declared edges
+enter \cref{eq:covmax} only through their difference
+$r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}$ at a common
+saturated rate, so any baseline amortised equally into both edges cancels and
+a measured total quotient $E/C$ is the correct estimand for the numerator (the
+overhead enters once, separately, as $\Delta E_0$). The covert edge is
+different: it must be a genuine one-sided lower bound on the incremental cost
+in \cref{eq:incremental}, and a total quotient cannot be one, because a
+quotient amortises baseline power (e.g. leakage, cooling, idle draw) that an
+added covert operation does not pay. Every covert edge the bound uses is
+therefore identified by a dose--response intervention (Experiment~3 for the
+generic int8 edge, Experiment~4 for the useful-operand edge), never by a
+quotient. The same distinction is why \cref{tab:inputs} keeps
+$r_{\mathrm{lo}}^{\mathrm{dec}}$ and $r_{\mathrm{lo}}^{\mathrm{cov}}$ distinct
+even though they describe the same physical corner, int8 on zeros.The marginal figure is the
+cheaper of the two, and a cheaper covert denominator concedes the adversary
+more operations per slack joule, so carrying it widens the bound---the safe
+direction.
 
 \section{The matched-energy witness protocol}
 \label{app:boundkind}
