@@ -753,7 +753,7 @@ One caveat is that the cheating strategy of \cref{subsec:derivation} pushed thre
 quantities to their edges at once---cheap declared work, idled overhead,
 cheap covert work---and no single schedule is guaranteed to reach all three
 edges together, so $\beta$ upper-bounds the true identified-set width.
-\Cref{app:boundkind} states this and discusses this corner assumption precisely.
+\Cref{app:boundkind} discusses this corner assumption.
 
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
@@ -1244,9 +1244,10 @@ idle states.}, pins the overhead band to
 \end{equation}
 Alongside the idle cells, Experiment~2 also sweeps a ladder of ten matmul
 shapes spanning a $60$--$90\times$ range of sustained rate, as a consistency
-check on the affine forward map \cref{eq:forward}; \cref{app:estimands}
-reports the ladder and why its fitted slope is a diagnostic rather than an
-input to the bound.
+check on the affine forward map \cref{eq:forward}: fitted like for like over
+the compute-bound shapes, the ladder's slope lands inside the fp16 exchange
+band of Experiment~1. The fitted slope is only ever a diagnostic, never an
+input to the bound (\cref{app:estimands}).
 
 \begin{figure}[t]
 	\centering
@@ -1745,12 +1746,12 @@ carrying the floor from one device to a whole facility are natural next steps.
 \section{From the CMOS power law to the exchange rate}
 \label{app:cmos}
 
-This appendix derives, in full, the two models the body adopts: the affine
+This appendix derives the two models the body text adopts: the affine
 forward map \cref{eq:forward} sketched in \cref{subsec:forward}, and the
-factored exchange rate \cref{eq:cmos} of \cref{subsec:factors}. It also
-locates the two terms of the CMOS power law that the factorisation drops:
-short-circuit power lands inside the exchange rate $r$, and leakage lands
-in the overhead $P_0$, so neither introduces a new verifier category.
+factored exchange rate \cref{eq:cmos} of \cref{subsec:factors}. It closes
+by showing that the security bound needs less than the affine map---a
+weaker, one-sided condition---and what that condition demands of how each
+band edge is measured.
 
 Resolving the
 static term of \cref{eq:cmoslaw}, total chip power separates into a dynamic
@@ -1765,16 +1766,27 @@ with $\alpha$ the activity factor, $C$ the total capacitance of the logic
 (so $\alpha C$ is the capacitance switched per cycle), $V$ the
 supply voltage, $f$ the clock, $V I_{\mathrm{leak}}$ the leakage power, and
 $P_{\mathrm{fixed}}$ the cooling, I/O, and idle draw. The forward model
-\cref{eq:forward}, $P = rF + P_0$, is slope--intercept in the operation rate $F$,
-so the exchange rate is the \emph{marginal} energy per operation and the overhead
+\cref{eq:forward}, $P = rF + P_0$, is a straight line in the operation rate $F$,
+so the exchange rate is its slope, i.e. the marginal energy per operation, and the overhead
 is the intercept,
 \begin{equation}
 	r = \frac{\partial P}{\partial F}, \qquad P_0 = P\big|_{F=0}.
 	\label{eq:marginal}
 \end{equation}
+Note that one cannot simply plot measured power
+against measured rate and read $r$ off the slope. The card does not have one
+$r$: the cost per operation depends on what is executing---the format, the
+kernel, where the operands live---and the choices that move a workload's
+achieved rate move its cost per operation with it. Points collected across
+workloads therefore lie on different lines through a shared intercept, and a
+slope fitted through them averages over workloads rather than pricing any one
+of them (Experiment~2's rate ladder shows exactly this: opened beyond the
+compute-bound shapes, the fit's scatter grows sharply while its slope barely
+moves). At a fixed workload, power \emph{is} linear in the rate and its slope
+is $r$---\cref{eq:rdyn} below derives it---but each workload carries its own.
 Experiment~2 measures the intercept of \cref{eq:marginal} directly from idle
-cells (\cref{sec:empirical-measurements}) and checks the slope against a
-sweep of sustained nominal-op rate (\cref{app:estimands}).
+cells and checks the slope against a sweep of sustained nominal-op rate, the
+rate ladder of \cref{sec:empirical-measurements}.
 
 \paragraph{The dynamic term gives $r$.}
 The operation rate is $F = N_{\mathrm{op}}\,f$, where $N_{\mathrm{op}}$ is
@@ -1796,7 +1808,7 @@ the operations run, only on what each switching event costs and how many
 operations it delivers. The rate is constant in $F$, so $P_{\mathrm{dyn}} = rF$
 is linear through the origin, exactly the affine form the forward model
 \cref{eq:forward} assumes and Experiment~2's rate ladder checks
-(\cref{app:estimands}). The capacitance switched
+(\cref{sec:empirical-measurements}). The capacitance switched
 per operation, $C/N_{\mathrm{op}}$, has two structural sources: the arithmetic
 datapath, whose width is set by the numeric format, and the data-movement
 path, set by where the operands reside and which kernel runs. Factoring it
@@ -1836,6 +1848,46 @@ intercept and is operating-point dependent; we keep the marginal definition
 \cref{eq:marginal}, consistent with \cref{eq:forward}, and so carry no
 separate leakage term in $r$.
 
+\paragraph{The bound needs less than the affine map.}
+\label{app:estimands}
+The security bound does not, in fact, require the affine forward map derived
+above; it needs one weaker, one-sided condition, and the distinction dictates
+how each band edge must be measured. The declared edges enter \cref{eq:covmax}
+only through their \emph{difference}
+$r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}$ at a common
+saturated rate, so any baseline amortised equally into both edges cancels and
+a measured total quotient $E/C$ is the correct estimand for the numerator (the
+overhead enters once, separately, as $\Delta E_0$). The covert cost enters as
+the \emph{denominator} $r_{\mathrm{lo}}^{\mathrm{cov}}$, where nothing
+cancels: the bound is a valid security guarantee only if
+$r_{\mathrm{lo}}^{\mathrm{cov}}$ is a genuine one-sided \emph{lower} bound on
+the \emph{incremental} covert energy. Write the true draw as
+$P = g_x(F_{\mathrm{dec}}, F_{\mathrm{cov}})$, some device-dependent function
+of what the silicon executes, with the subscript $x$ standing for the
+execution details the verifier never sees. The condition is then
+\begin{equation}
+	g_x(F_{\mathrm{dec}}, F_{\mathrm{cov}}) - g_x(F_{\mathrm{dec}}, 0)
+	\;\ge\; r_{\mathrm{lo}}^{\mathrm{cov}}\,F_{\mathrm{cov}},
+	\label{eq:incremental}
+\end{equation}
+for every admissible execution $g_x$. Under only this incremental condition
+the honest energy slack of \cref{eq:covmax} still divides by
+$r_{\mathrm{lo}}^{\mathrm{cov}}$, so the floor holds without the global affine
+map; the affine model is the special case
+$g_x = P_0 + r^{\mathrm{dec}}F_{\mathrm{dec}} + r^{\mathrm{cov}}F_{\mathrm{cov}}$,
+which additionally makes $\beta_{\mathrm{en}}(h)$ linear in $h$. This is why
+every covert edge the bound uses is identified by a dose--response
+intervention (Experiment~3 for the generic int8 edge, Experiment~4 for the
+useful-operand edge) and never by a total quotient: a quotient amortises
+baseline power---leakage, cooling, idle draw---that a marginal cost does not,
+and is therefore inadmissible as a covert lower bound. The same distinction is
+why \cref{tab:inputs} keeps $r_{\mathrm{lo}}^{\mathrm{dec}}$ and
+$r_{\mathrm{lo}}^{\mathrm{cov}}$ distinct even though they describe the same
+physical corner, int8 on zeros: each entry carries the estimand its algebraic
+role requires. The marginal figure is the cheaper of the two, and a cheaper
+covert denominator concedes the adversary more operations per slack joule, so
+carrying it widens the bound---the safe direction.
+
 \section{The matched-energy witness protocol}
 \label{app:boundkind}
 \label{app:witness}
@@ -1854,20 +1906,16 @@ The maximisation that produced \cref{eq:betafloor} lets each of the three
 bands range freely, so the prover may sit at
 $r_{\mathrm{lo}}^{\mathrm{dec}}$, $E_{0,\mathrm{lo}}$ and
 $r_{\mathrm{lo}}^{\mathrm{cov}}$ all at once. Nothing in the derivation
-guarantees a single schedule reaches that corner; equality requires:
-
-\begin{assumption}[Joint feasibility of band corners]
-\label{ass:corners}
-There exist admissible workloads attaining
+guarantees a single schedule reaches that corner. For equality we must
+assume that there exist admissible workloads attaining
 $(\bar r^{\mathrm{dec}}, E_0, \bar r^{\mathrm{cov}}) =
 (r_{\mathrm{lo}}^{\mathrm{dec}}, E_{0,\mathrm{lo}}, r_{\mathrm{lo}}^{\mathrm{cov}})$
 jointly and under shared constraints: the \emph{same} observation window $T$,
 the \emph{same} declared work $C_{\mathrm{dec}}$, and one device in a
 \emph{common thermal and clock state} whose resource-time the two streams
 multiplex at their \emph{achieved} throughputs.
-\end{assumption}
 
-The assumption is not free. Our $E_{0,\mathrm{lo}}$ is measured on an
+This assumption is not free. Our $E_{0,\mathrm{lo}}$ is measured on an
 idle card (\cref{sec:empirical-measurements}), whereas the priced window
 is running a declared burst and a covert fill back to back and does not
 draw an idle card's overhead; and the bands are coupled through the clock
@@ -1877,7 +1925,7 @@ an outer relaxation of what a device can schedule, and
 	\text{true identified-set width} \;\le\; \beta(h),
 	\label{eq:relaxation}
 \end{equation}
-with equality only under \cref{ass:corners}. Conceding the adversary more
+with equality only if the corner is jointly feasible. Conceding the adversary more
 than the silicon may allow is the safe direction for a security claim,
 but it leaves the gap in \cref{eq:relaxation} unquantified. (One piece of
 bookkeeping keeps the box honest: the floor is always evaluated inside a
@@ -1906,7 +1954,8 @@ repeat clears the threshold by $0.86\%$ of the honest mean, so $0.41$ is
 the largest load we could get accepted, not a comfortable one.
 
 \paragraph{Why the two ends do not meet.}
-The witnesses meet the shared constraints of \cref{ass:corners} but reach
+The witnesses meet the shared constraints above---one window, one
+declaration, one device---but reach
 none of the box's edges: the achieved rates are $1.84$\,pJ/op for the
 expensive declared arm (band ceiling $2.19$), $0.82$ for the cheap arm,
 and $0.54$ for the covert fill (marginal edge $0.51$). That is why the
@@ -1923,152 +1972,6 @@ rates rather than the adversary's best. The general lesson survives the
 caveat: a verifier reading \emph{time} as well as energy constrains more
 than the energy channel alone prices, and joint energy--time inversion is
 future work.
-
-\section{What the bound requires of the measurements}
-\label{app:estimands}
-
-The security bound does not need the affine forward map \cref{eq:forward}
-that \cref{app:cmos} derives. This appendix states the weaker condition it
-does need, and draws out its consequence for measurement: the declared
-edges may be estimated as total quotients, but the covert edge must be a
-marginal cost, and the gap between the two estimands is worth a third of
-the covert denominator. It also reports Experiment~2's rate ladder, the
-consistency check on the affine map, and closes with the statistical
-status of each input to the bound.
-
-Two roles, two estimands. The declared edges enter \cref{eq:covmax} only
-through their \emph{difference} $r_{\mathrm{hi}}^{\mathrm{dec}} -
-r_{\mathrm{lo}}^{\mathrm{dec}}$ at a common saturated rate, so any baseline
-amortised equally into both edges cancels and a measured total quotient
-$E/C$ is the correct estimand for the numerator (the overhead enters once,
-separately, as $\Delta E_0$). The covert cost enters as the
-\emph{denominator} $r_{\mathrm{lo}}^{\mathrm{cov}}$, where nothing cancels:
-the bound is a valid security guarantee only if $r_{\mathrm{lo}}^{\mathrm{cov}}$
-is a genuine one-sided \emph{lower} bound on the \emph{incremental} covert
-energy. Write the true draw as $P = g_x(F_{\mathrm{dec}},
-F_{\mathrm{cov}})$, some device-dependent function of what the silicon
-executes, with the subscript $x$ standing for the execution details the
-verifier never sees. The condition is then
-\begin{equation}
-	g_x(F_{\mathrm{dec}}, F_{\mathrm{cov}}) - g_x(F_{\mathrm{dec}}, 0)
-	\;\ge\; r_{\mathrm{lo}}^{\mathrm{cov}}\,F_{\mathrm{cov}},
-	\label{eq:incremental}
-\end{equation}
-for every admissible execution $g_x$. Under only this incremental
-condition the honest energy slack of \cref{eq:covmax} still divides by
-$r_{\mathrm{lo}}^{\mathrm{cov}}$, so the floor holds without the global
-affine map of \cref{eq:forward}; the affine model is the special case
-$g_x = P_0 + r^{\mathrm{dec}}F_{\mathrm{dec}} + r^{\mathrm{cov}}F_{\mathrm{cov}}$,
-which additionally makes $\beta_{\mathrm{en}}(h)$ linear in $h$. We therefore identify
-$r_{\mathrm{lo}}^{\mathrm{cov}}$ by a dose--response intervention
-(Experiment~3 for the generic int8 edge, Experiment~4 for the useful-operand
-edge), not by fitting a power--rate curve; a total-quotient covert edge is
-inadmissible here, and every covert edge the bound uses is a marginal dose
-slope.
-
-\paragraph{The two estimands, quantified.}
-Both roles carry measured numbers, and the gap between them is not small.
-The useful-data rung of \cref{sec:decreasing-beta} prices covert work at the
-\emph{marginal} cost of an added covert block, one-sided $95\%$ lower limits
-$[2.53, 3.16]$\,pJ/op. Pricing the same blocks as total quotients---window
-energy divided by covert operations, with baseline power amortised in---gives
-$[3.18, 4.22]$\,pJ/op instead. The marginal figure is the cheaper of the two,
-and a cheaper covert denominator concedes the adversary more operations per
-slack joule, so carrying it widens the bound. It is also the estimand the
-algebra asks for: the denominator of \cref{eq:betaen} prices work added on top
-of a window whose overhead is already charged in its own term.
-
-The same logic is why the no-format-pinned triple of \cref{tab:inputs} keeps
-$r_{\mathrm{lo}}^{\mathrm{dec}}$ and $r_{\mathrm{lo}}^{\mathrm{cov}}$ distinct
-even though they describe the same physical corner, int8 on zeros. Each entry
-carries the estimand its algebraic role requires: the declared pair
-$(r_{\mathrm{hi}}^{\mathrm{dec}}, r_{\mathrm{lo}}^{\mathrm{dec}}) =
-(19.5,\,0.786)$\,pJ/op as total quotients entering through their difference,
-the covert entry a one-sided marginal lower bound ($0.515$\,pJ/op). They are a
-third apart precisely because a total quotient amortises baseline
-power---leakage, cooling, idle draw---that a marginal cost does not, so a
-single number could satisfy at most one of the two roles, and getting the
-denominator's role wrong understates $\beta$. Keeping them distinct costs
-little in the numerator, where the ceiling dominates the difference, but it
-matters in the denominator: the overhead term
-$\Delta P_0 / (r_{\mathrm{lo}}^{\mathrm{cov}} F_{\mathrm{max}}) \approx 0.26$
-is half again the $0.168$ a total-quotient covert edge would give. One
-conservatism survives this bookkeeping: baseline power is charged twice, once
-amortised inside the total-quotient ceiling $r_{\mathrm{hi}}^{\mathrm{dec}}$
-and again as the overhead band $\Delta E_0$ in its own term. Both charges
-widen the bound---the safe direction for a worst case, and small next to the
-dominant term.
-
-\paragraph{The rate ladder, and why its slope is not that estimand.}
-Alongside the idle cells that give the overhead band, Experiment~2 sweeps a
-\emph{rate ladder}: ten fp16 matmul shapes spanning the machine's sustained
-throughput---three small cubes ($256^3$ to $1024^3$) that are launch-bound, two
-skinny-$K$ shapes ($8192\!\times\!8192\!\times\!64$ and $\times\,256$) that are
-bandwidth-bound, and five large cubes ($2048^3$ to $8192^3$) that are
-compute-bound, a $60$--$90\times$ spread in sustained operation rate at a single
-numeric format. Each window runs $100\%$ busy at its shape's own natural rate.
-We deliberately do \emph{not} vary $F$ by duty-cycling one kernel against idle:
-averaging a fixed busy power against a fixed idle power is linear in the duty
-fraction by construction, so that design would manufacture the affine form
-rather than test it. Operation counts are analytic ($C = 2MNK$ per matmul,
-\cref{subsec:forward}), so the abscissa is an exact op count divided by the
-measured wall time of the window and the ordinate is metered mean power, with
-the five idle variants as $F = 0$ anchors ($n = 65$ windows over $15$ cells in
-all).
-
-The resulting regression is a consistency diagnostic for the affine map, never
-an input to the bound, and the two roles above say why. The ladder's shapes move
-$C_{\mathrm{eff}}$ and $\alpha$ along with $F$, so the resulting spread in $r$
-is the same physical variation Experiment~1 maps deliberately as the
-exchange-rate band---swept on purpose there, drifting as a side effect here. A
-slope fitted through them therefore averages over shapes whose non-covert
-factors vary together, where \cref{eq:incremental} needs the derivative at
-\emph{fixed} declared work. That is why the covert edge is identified by a
-dose--response intervention at a fixed declared burst rather than read off a
-power--rate curve. It is also why a pooled fit tests two claims at once---that
-power is affine in the rate, and that $r$ is common across the shapes swept---of
-which the model itself denies the second. Read that way the ladder behaves as
-expected: restricted to the idle anchors and the five compute-bound cubes, like
-compared with like, the fit gives $1.65$\,pJ/op at $R^2 = 0.99$; opened to all
-ten shapes it gives $1.60$\,pJ/op at $R^2 = 0.852$. The slope moves by $4\%$
-while the scatter grows sharply, so the launch- and bandwidth-bound shapes
-account for the residual and not for the rate. The like-for-like slope also sits
-inside the fp16 span $[1.10,\,2.19]$\,pJ/op that Experiment~1 measures by total
-quotient in a separate sweep, which is the agreement two independent estimates
-of a common-format rate should show.
-
-\paragraph{Three kinds of quantity, three kinds of status.}
-The inputs to the bound do not share one statistical status, and we state each
-rather than claim a single coverage guarantee over all of them. The covert
-denominator---the one quantity a lower bound is genuinely sensitive to---is a
-one-sided $95\%$ lower confidence limit on a regression slope (Experiments~3
-and~4, and the useful-band dose slope), coverage-controlled by construction.
-That coverage is statistical, not physical. It bounds sampling error in the
-fitted slope for the workload families we measured, on this device and driver
-state; it does not certify that no admissible execution---an unseen kernel,
-schedule, operand encoding, or thermal state---sits below it. Every rung that
-divides by $r_{\mathrm{lo}}^{\mathrm{cov}}$ is therefore conditional on the
-measured covert families bracketing the adversary's cheapest edge, and the
-same reading applies to Experiment~4's useful band, estimated from one trained
-transformer layer at two shapes.
-The declared band $[r_{\mathrm{lo}}^{\mathrm{dec}},
-r_{\mathrm{hi}}^{\mathrm{dec}}]$ enters only as a \emph{difference} of
-per-cell-median edges at a common saturated rate, so the amortised baseline
-cancels and it acts as a band \emph{width} rather than a point estimate needing
-its own coverage; its target population is the achievable per-shape operating
-points of the declared format on the audited A100 SKU, and the edges are that
-observed operating envelope. Used as design-time security edges they remain
-sampled operating points, not certified physical extrema. The overhead width
-$\Delta P_0$ and the capacity and $\gamma$ inputs are conservative worst-case
-\emph{design} parameters, not sampled estimates at all: $\Delta P_0$ is the
-envelope of the extreme observed idle windows, stretched outward by the adopted
-$\pm 5\%$ meter tolerance (widening it only widens $\beta$), and it is taken
-over windows rather than per-variant medians for that reason---an envelope wants
-its outermost observation, where an estimate would want a central one. $C_{\max}$ and $\gamma$ are published
-hardware peaks. Nothing here claims simultaneous coverage over the rectangle
-these edges span; that rectangle is a deliberately conservative
-over-approximation, since no single schedule attains its combined extrema
-(\cref{ass:corners}).
 
 \section{Benchmark protocol, hardware, and provenance}
 \label{app:bench}
@@ -2093,26 +1996,9 @@ small residual, which widens the slack conservatively.
 
 \paragraph{Hardware and provenance.}
 Experiments~1--3 and~5 ran sequentially on one NVIDIA A100-SXM4-80GB (driver
-595.84), in a single Slurm allocation on the OzSTAR facility on
+595.84), in a single Slurm allocation on
 22~July 2026 ($340$, $85$, $70$, and $135$ recorded windows respectively).
-The released records and capture scripts index experiments by
-capture identifier, which does \emph{not} match the numbering used here: the
-captures are named in the order they were written, the experiments in the order
-the argument needs them. The mapping is
-Experiment~1 $\to$ \texttt{exp1\_exchange},
-Experiment~2 $\to$ \texttt{exp3\_overhead},
-Experiment~3 $\to$ \texttt{exp7\_marginal},
-Experiment~4 $\to$ \texttt{qblock\_marginal}, and
-Experiment~5 $\to$ \texttt{exp2\_operand}.
-Two identifiers carry no experiment number at all: \texttt{exp4\_core} is the
-cross-device sweep and \texttt{qblock} the trained-weight total quotient
-reported only as a contrast to Experiment~4's marginal edge. Read the
-identifiers, not the digits in them; the repository's \texttt{README} carries
-the same table. Every record carries the device
-UUID, sweep id, configuration snapshot, and git commit, and the
-band-extraction code refuses to mix devices silently; because
-Experiment~3's marginal cost and Experiment~1's declared band price the
-same floor, the guard requires them to share one device. Seven cards of
+Seven cards of
 one SKU appear in total, by UUID prefix: \texttt{GPU-ac1cbae9}
 (Experiments~1--3 and~5); \texttt{GPU-4bb93dfb}, \texttt{GPU-617f2717},
 \texttt{GPU-aa412071} (cross-device sweep); \texttt{GPU-757ff02a} (the
