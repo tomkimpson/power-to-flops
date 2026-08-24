@@ -1644,159 +1644,76 @@ place of $0.34$. \Cref{fig:betafloor} traces both scenarios.
 
 \section{Discussion}
 \label{sec:discussion}
-
-\paragraph{The meter is an anchor, not an instrument.}
-The result reads pessimistic --- against a bare power meter a
-matched-energy witness demonstrably hides four-tenths of a machine of
-covert compute, and the model worst case runs higher still, to
-$\beta^{*} = 1.95$ against a bare meter --- a figure that
-rests on the joint feasibility of the band corners (\cref{ass:corners}) ---
-but the ladder inverts the reading. The
-meter's role in a verification regime is not to count operations by itself; it
-is to be the one channel whose integrity needs no trust in the prover, the
-anchor against which declarations, attested clocks, and re-execution are
-checked. Power plus checked declarations reaches
-$\beta^{*} \approx 1.2$; adding an observed operating
-point and re-execution of the declared work reaches ${\approx}0.34$, and
-restricting covert work to useful data ${\approx}0.071$ of capacity. Every
-rung is a protocol requirement a treaty could stipulate, together with a
-disclosed condition it rests on, and \cref{eq:betaworst} states
-exactly which band each requirement moves and by how much. The negative
-result is equally operational: because re-execution transfers only at the
-verifier's operating point, ``power plus paperwork'' --- declarations and
-re-execution with no on-site sensing --- stalls at
-$\beta^{*} \approx 1$, a regime design worth ruling out
-before it is proposed.
-
-\paragraph{What no verifier capability reaches.}
-The denominator of \cref{eq:betaen} is a statement about the adversary, not
-the instrumentation. Covert work is by definition undeclared, so its
-exchange rate is bounded only by the silicon and by what the threat model
-says the adversary wants: excluding zero operands (which compute nothing)
-raises the covert floor from the int8 marginal edge to the cheapest
-\emph{useful} rate --- a measured $4.9\times$ step, $0.51$ to
-$2.53$\,pJ/op --- and the remaining $1.25\times$, the useful band's own
-width, closes only by assuming the adversary declines cheap-but-useful
-work --- sparse activations, quantised weights --- that our own
-measurements show exists. Any bound quoted for power-based verification
-should state which side of that assumption it stands on.
-
-\paragraph{From one device to a facility.}
-Our bands are device physics, measured on one A100; a facility is a sum of
-devices behind shared power delivery and cooling, and we deliberately do
-not offer a fleet-average version of \cref{eq:betaen}. Scaling the floor up
-is a \emph{multi-resource allocation problem}, not a change of units: each
-device carries its own capacity clip and utilisation, the prover chooses
-how declared work is spread across devices (and formats) to maximise
-cover, and the facility meter adds cooling and conversion overheads that
-the prover partially controls. The identified set is then the projection
-of a per-device product of constraints, and its width depends on the
-allocation the prover is free to pick; treating $h$ as a single fleet
-average can under- or overstate it. What does carry over qualitatively:
-overhead bands widen at facility scale, and cheaper datapaths widen the
-precision envelope beyond our $24.8\times$ and raise the capacity ratio
-$\gamma$ of the cheapest format---int4 and binary tensor-core paths on the
-A100 itself (unmeasured here; \cref{sec:decreasing-beta}), FP8 and FP4 on
-newer parts. Making the multi-device
-floor precise---including which per-device telemetry restores the
-single-device analysis---is open.
+We have shown how a power meter can restrict hidden compute to an interval, $\beta$. For a meter that also checks the declared precision, the worst case is
+$\beta^{*} = 1.16$ machines of covert compute.  A set of reasonable assumptions made by the verifier push $\beta^{*}$ down, to a lowest value of $\beta^{*} = 0.059$, with every additional assumption of \cref{sec:decreasing-beta} in place. 
 
 \paragraph{Limitations.}
-Eight caveats bound the claims. (i) The bands come from one vendor, one
-GPU model, one driver, and one cluster; the ladder's numbers are
-A100-specific, though the closed form is not.
-(ii) The band edges are read from a factorial sweep whose corner cell
-(int8, zero operands) is directly measured, but on synthetic operands;
-genuinely useful covert work prices at the measured marginal useful band
-$[2.53, 3.16]$\,pJ/op instead (Experiment~4's dose-response; the standalone
-total-quotient lower limits are $[3.18, 4.22]$), and the bottom rungs rest on
-that band's lower edge. (iii) The hardware gap behind the
+The above claim on the value of $\beta$ has a series of caveats as follows. (i) The empirical values of  \cref{sec:decreasing-beta} come from one vendor, one
+GPU model, one driver, and one cluster. Consequently the quoted values of $\beta$ are
+A100-specific, though the framework and closed form of Section \ref{sec:floor} is general.
+(ii) The covert denominator behind the headline,
+$r_{\mathrm{lo}}^{\mathrm{cov}} = 0.51$\,pJ/op, is measured, but on synthetic
+operands: its corner cell is int8 on zeros, which compute nothing.
+Experiment~4 prices genuinely useful covert work instead, and the bottom rungs
+rest on the lower edge of that measurement. (iii) The hardware gap behind the
 re-execution rung (${\approx}0.05$\,pJ/op) is an assumption. The same-SKU
-piece is grounded---band edges agree to $2$--$3\%$ across three A100s
-(\cref{sec:empirical-measurements})---but the cross-hardware gap (different
-accelerators, firmware, cooling) remains unmeasured. (iv) DVFS was never
-swept --- the platform denied clock-locking --- so the voltage factor
-rides on literature numbers rather than our own; persistence mode was
-likewise fixed on, so its contribution to the controllable idle range
-went unmeasured. The declared band was therefore sampled with the governor
+piece is grounded - band edges agree to $2$--$3\%$ across three A100s
+(\cref{sec:empirical-measurements}). However the cross-hardware gap (different
+accelerators, firmware, cooling) remains unmeasured. (iv) The platform denied clock-locking and so DVFS was never
+swept. Accordingly the voltage factor $w_V \approx 1.5$ of
+\cref{eq:widthfactor} rides on literature numbers rather than our own. The
+declared band was therefore sampled with the governor
 holding the clock inside a $\pm 3\%$ window, whereas the threat model gives
 the prover the clock: a prover free to slide DVFS reaches a wider declared
 band and possibly a cheaper covert floor, raising both $s$ and $b$ in
-\cref{eq:betaen}. On this axis our reported $\beta$ understates the
-ambiguity---the opposite direction to the conservative choices of
-\cref{app:sensitivity}. (v) Energy was read from on-die telemetry in a
-non-adversarial lab characterisation (\cref{sec:empirical-measurements});
-the counter carries no published GA100 accuracy specification, so the
-$\pm 5\%$ tolerance we apply is adopted from NVML's documented
-Fermi/Kepler figure, and the ${\sim}100$\,ms telemetry cadence is an
-empirical characterisation \citep{yang2023parttime}, not a vendor
-specification;
-an off-chip meter would add its own calibration band, which only widens
-$\beta$. (vi) On shared nodes, windows stalled by co-tenants were dropped
-by a pre-specified power guard, and high-tail windows are flagged rather
-than deleted; all raw rows remain on disk. The flagged rows are excluded
-from the published bands and regressions---including the fp16 declared
-band and the marginal-dose fits, not only the descriptive medians---and
-with five repeats per cell the $20\%$ trim always removes one repeat,
-excursion or not. The sensitivity is small: restoring every positive
-flagged record moves the fp16 band to $[1.10, 2.20]$\,pJ/op, the int8
-marginal lower limit to $0.510$, and the headline to
-$\beta^{*} = 1.162$. We claim no single statistical coverage guarantee over
-all the quantities that enter the bound: they are of three different kinds ---
-a coverage-controlled confidence limit, a band width, and conservative design
-parameters --- and \cref{app:estimands} states the status of each.
-(vii) The locality contrast is
-attenuated in the fp32/tf32 cache-resident cells, whose operands
-marginally spill L2. (viii) The floor prices the cheating corner of
-\cref{subsec:derivation}---cheap declared work, idled overhead, cheap
-covert work, all at their edges at once (\cref{ass:corners}).
-\Cref{sec:attained} probes attainability with constructed schedules, but
-accurately quantifying the true restrictions on reaching all three edges
-jointly---and how much they tighten $\beta$---we defer to future work.
+\cref{eq:betaen}. (v) Energy was read from on-die telemetry, whereas in
+practice the verifier reads a retrofitted meter on the power feed. The on-die
+counter carries no published GA100 accuracy specification, so the $\pm 5\%$
+tolerance we apply is adopted from NVML's documented Fermi/Kepler figure, and
+the ${\sim}100$\,ms telemetry cadence is an empirical characterisation
+\citep{yang2023parttime}, not a vendor specification. That retrofitted meter
+carries its own calibration band, and it also sees conversion and cooling draw
+the die counter never reports. Both widen $\Delta P_0$, and so widen $\beta$. (vi) We measured one device, whereas a facility is
+many devices behind shared power delivery and cooling. We do not offer a
+facility-level, multi-device version of \cref{eq:betaen}. Each
+device carries its own capacity clip and its own utilisation. The
+prover chooses how the declared work is spread across devices and formats, so
+the width of the identified set depends on an allocation the prover is free to
+pick. How to make the multi-device floor precise is an open question.
+(vii) The floor is a worst case in a strong sense. It
+prices a window in which the declared work is at its cheapest, the overhead at
+its lowest, and the covert work at its cheapest --- all three at the same time.
+We do not show that any single schedule can do all three at once. If none can, the true ambiguity is narrower than the
+$\beta$ we quote (\cref{eq:relaxation}), and we have conceded the adversary
+more than the silicon allows.
 
-\paragraph{What richer telemetry adds.}
-Everything here is time-integrated, and the sufficiency of total energy
-for a question about totals is a consequence of our \emph{free-variation}
-model: because $r(t)$ and $P_0(t)$ may vary arbitrarily within their
-bands, the trace's shape carries no information about totals beyond its
-integral. Real hardware is not perfectly free---power-ramp limits, DVFS
+\paragraph{Richer telemetry}
+Throughout this work we have dealt exclusively with time-integrated power, i.e. energy. Because $r(t)$ and $P_0(t)$ may vary arbitrarily within their
+bands, the time-resolved power trace carries no information about total compute beyond the integral. However real hardware is not perfectly free and does not vary arbitrarily. Instead power-ramp limits, DVFS
 governor dynamics, the instantaneous clip $F(t) \le F_{\max}$, and any
-\emph{declared schedule} the prover commits to all constrain how the trace
-can move, and a verifier who models them can extract more from the
-resolved trace than from its integral. Conditional on the free-variation
-model, then, the time \emph{profile} adds nothing about how much compute
-ran; unconditionally, that is an open modelling question, not a theorem.
-The profile also carries different information --- workload cadence,
-training-step periodicity --- that bears on what \emph{kind} of compute
-ran rather than how much; that question needs different machinery and we
+declared schedule the prover commits to all constrain how the trace
+can move. A verifier who models these constraints can likely extract more from the
+resolved trace than from its integral. The time-resolved trace also carries different information such as workload cadence or 
+training-step periodicity. This could be useful for attacking different questions about what kind of compute
+ran (e.g. training vs. inference) rather than how much; that question needs different machinery and we
 do not treat it here.
 
-The same caveat applies beyond the time axis. Our result prices the
-integrated-energy channel under free variation; a verifier with richer
-instrumentation is outside the model. Multiple simultaneous channels
-(per-rail power, electromagnetic, thermal), cryptographically
+Moreover, we have focused exclusively on a single analogue measurement channel: power. A verifier with richer
+instrumentation or multiple simultaneous channels
+(e.g. per-rail power, electromagnetic, thermal), cryptographically
 authenticated telemetry (the proof-of-learning and zero-knowledge
 proof-of-training protocols of \cref{ass:declaration}), or independently
 controlled measurements the prover cannot shape (locked clocks,
-tamper-resistant attested counters) each carry constraints the integral
-does not, and any of them may narrow the identified set below the widths
-reported here. The impossibility we state is for total-energy sensing
-under the free-variation threat model, not for analogue sensing in
-general.
+tamper-resistant attested counters) would likely be able to further constrain the total covert compute. For example, take the clock. The power meter cannot see it, which is why
+\cref{sec:decreasing-beta} leaves the clock-and-locality rung unpriced. An
+antenna beside the rack might see it instead. A circuit switching at frequency
+$f$ radiates at $f$ and its harmonics, and magnetic emanations from a GPU's
+power delivery are measurable in practice \citep{maia2022magnetic}. A verifier
+who could read the clock this way would get the voltage too, since that follows
+from the hardware's $V$--$f$ table. The DVFS factor $w_V$ would fall to $1$, and
+the declared band would narrow to its activity core $w_\alpha$ alone. We defer the study of multiple measurement channels to a future work. 
 
-That none of these channels is available yet is what leaves the
-clock-and-locality rung of \cref{sec:decreasing-beta} unpriced. Every route to
-it is prospective: firmware-reported clocks count only over a tamper-resistant
-read path that does not yet exist, locked clocks are a policy the prover must
-accept, and the EM side channel is unproven for this purpose---switching at $f$
-radiates at $f$ and its harmonics, and magnetic emanations from a GPU's power
-delivery are measurable in practice \citep{maia2022magnetic}, but clock-line
-radiation itself has not been demonstrated, and the voltage would then have to
-follow from the hardware's $V$--$f$ table. The locality half is more
-speculative still---per-rail metering (core vs.\ HBM regulators) or
-interconnect telemetry might resolve it---though Experiment~1 found locality
-moves $r$ little for compute-bound work. Pricing that rung is the
-instrumentation question the ladder leaves open.
+
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -2115,10 +2032,10 @@ these edges span; that rectangle is a deliberately conservative
 over-approximation, since no single schedule attains its combined extrema
 (\cref{ass:corners}).
 
-\section{Two conservative accounting choices, quantified}
+\section{Conservative accounting choices, quantified}
 \label{app:sensitivity}
 
-Two accounting choices in the model bound are deliberately
+Three accounting choices in the model bound are deliberately
 adversary-favorable; this appendix quantifies what each concedes.
 
 \paragraph{Published peaks vs.\ achieved rates.}
@@ -2133,6 +2050,18 @@ $1.95$ to $1.22$ and the precision rung from $1.16$ to $0.91$.
 particular \emph{witness} is realisable in one window, and the
 matched-energy witnesses are checked that way (\cref{app:witness});
 the model bound itself is deliberately evaluated at peaks.
+
+\paragraph{Marginal vs.\ total-quotient pricing of useful covert work.}
+The useful-data rung of \cref{sec:decreasing-beta} prices covert work at the
+\emph{marginal} cost of an added covert block, one-sided $95\%$ lower limits
+$[2.53, 3.16]$\,pJ/op. Pricing the same blocks as total quotients---window
+energy divided by covert operations, with baseline power amortised in---gives
+$[3.18, 4.22]$\,pJ/op instead. The marginal figure is the cheaper of the two,
+and a cheaper covert denominator concedes the adversary more operations per
+slack joule, so carrying it widens the rung. It is also the estimand the
+algebra asks for: the denominator of \cref{eq:betaen} prices work added on top
+of a window whose overhead is already charged in its own term
+(\cref{app:estimands}).
 
 \paragraph{Baseline power charged twice on the bare-meter rung.}
 Every entry of the bare-meter triple carries the estimand its algebraic role
@@ -2387,7 +2316,11 @@ in particular.
 	arms---a $2048^3$ matmul is high arithmetic intensity---so streaming
 	raises $C_{\mathrm{eff}}$ without making the workload memory-bound, and
 	\cref{fig:exchange-band} accordingly shows locality moves $r$ only
-	slightly.
+	slightly. The residency margin is comfortable only for the two-byte
+	formats. An fp32 or tf32 operand set stores four bytes per element, so it
+	is twice the size, ${\sim}34$\,MB against the $40$\,MB L2: its resident arm
+	marginally spills, and the locality contrast we measure for those two
+	formats is attenuated accordingly.
 \end{itemize}
 The third driver, supply voltage $V^2$ (DVFS), we could not sweep: the
 platform denied user clock-locking, so the clock was left to the governor
