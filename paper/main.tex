@@ -60,12 +60,12 @@
 \usepackage[textsize=tiny]{todonotes}
 
 % Short form of the title for the running header:
-\icmltitlerunning{Can Power Draw Constrain Covert Compute?}
+\icmltitlerunning{Bounding Covert AI Compute with a Power Meter}
 
 \begin{document}
 
 \twocolumn[
-  \icmltitle{Can Power Draw Constrain Covert Compute?}
+  \icmltitle{Bounding Covert AI Compute with a Power Meter: A Capability Ladder}
 
   \begin{icmlauthorlist}
     \icmlauthor{Tom Kimpson}{unimelb,mats}
@@ -105,13 +105,16 @@ units of declared machine capacity. $\beta$ is set by how widely the energy
 cost of an operation can vary, how cheaply a hidden operation can run, and
 how much idle draw the meter must allow for; we measure each on NVIDIA A100
 GPUs. A verifier that reads the power and checks the declared numeric format
-gets $\beta = 1.16$: more than a full machine of hidden compute. That bound
-is loose. We hid $0.19$ to $0.41$ machines of undeclared work undetected.
+gets $\beta = 1.16$: more than a full machine of hidden compute. We bound
+the ambiguity from below as well, constructing an attack the meter accepts
+that hides $0.41$ machines of undeclared work, so what a format-checked
+meter concedes is at least $0.41$ and at most $1.16$ machines wide.
 Re-running the declared work, restricting hidden work to useful computation,
-and pinning the idle draw together lower $\beta$ to $0.059$. A power meter
-alone is therefore a weak bound on compute, and the closed form prices what
-each further capability buys. It gives a quantitative basis for what
-off-chip sensing can contribute to verifying agreements on AI compute.
+and pinning the idle draw together lower $\beta$ to $0.059$: a twentyfold
+reduction bought by three nameable capabilities. Power alone is therefore a
+weak bound on compute. The value of the closed form is that it prices what
+each further capability buys, in a unit that lets a verification scheme be
+costed before it is built.
 \end{abstract}
 
 \section{Introduction}
@@ -153,6 +156,19 @@ through any silicon or software the operator controls. Such sensors could
 be retrofitted to existing data centres and physically secured against
 tampering by the adversary.
 
+\citet{baker2025verifying} also set out what such a sensor would have to do.
+Their Appendix~A.6 lists three ways an analogue measurement might be turned
+into a compute account---count chip-hours and assume efficient execution,
+estimate hardware operations from the measurement and cap the hardware
+operations allowed per declared operation, or match fine-grained physical
+signatures---and then names the blocker: there is no simple way to deduce a
+chip's rate of computation, even with analogue measurements. None of the three
+stands alone either, and each needs a separate mechanism, such as partial
+re-execution of the declared workload (their Appendix~A.4), to verify what was
+declared. This paper is a quantitative feasibility study of the second option
+for one channel. We ask what a power measurement bounds, given a declaration
+whose execution is verified by other means.
+
 % prior work: emissions leak workload information
 There are reasons for optimism: in non-adversarial settings, physical
 emissions are known to leak workload information. Emissions let an observer recover
@@ -170,9 +186,25 @@ workloads to their emissions. Verification poses the inverse
 problem (i.e. emissions to workload) against an operator actively trying to
 evade the sensor. It is an open question how well analogue-sensor
 measurements can constrain compute in that setting. This paper addresses that
-question for one channel: power, the channel most directly linked to
-computation, since every operation costs energy and total energy therefore
-budgets total work. We defer the study of other channels to a future work.
+question for one channel: power. Power is the principled place to start,
+because it is the only channel tied to computation by a conservation law.
+Electromagnetic and acoustic emissions are correlates of computing:
+informative, but with no quantity the operations must add up to. Energy is
+spent by computing. Every operation costs joules, so the joules the meter
+integrates over a window are a budget that all the window's work, declared and
+otherwise, has to fit inside. That is what makes a bound on total compute
+derivable here rather than merely fittable, and it is why we expect the other
+channels to be harder. Thermal emission is not a third correlate but the same
+budget seen through the package's thermal time constant. We defer the study of
+other channels to a future work.
+
+Those classifiers also answer a different question from the one a compute
+threshold asks. What kind of computation ran and how much of it ran are
+different projections of the same set of workloads a trace admits, and the two
+are not in tension: a classifier that separates training from inference almost
+perfectly is entirely consistent with a total operation count the same trace
+barely constrains. Nothing here rests on those results, and nothing here
+contradicts them.
 
 This paper is organised as follows. \Cref{sec:setup} sets up the problem mathematically.
 \cref{sec:floor} derives a floor on the covert compute a power trace admits, in closed
@@ -255,8 +287,9 @@ multiply--adds are ops, not FLOPs.
 \label{subsec:threat}
 
 There are two parties. The \emph{prover} is the monitored operator: it controls the
-workload, the operand values, the numeric formats, the clocks, and the idle
-states of the machine, and it may wish to run compute it does not declare.
+workload, the operand values, the numeric formats, the clocks, the idle
+states of the machine, and how much of the machine's capacity the declared work
+occupies, and it may wish to run compute it does not declare.
 The \emph{verifier} is the inspecting party: it reads $P_{\mathrm{obs}}$ from
 an off-chip meter it trusts, and it never sees $r$, $F$, or $P_0$ separately.
 The prover declares a workload of $C_{\mathrm{dec}}$ operations. The verifier wants to know if  $C_{\mathrm{dec}}$ is consistent with $P_{\mathrm{obs}}$. The verifier makes two assumptions:
@@ -335,6 +368,18 @@ The width $C_{\mathrm{hi}} - C_{\mathrm{dec}} = C_{\mathrm{cov}}^{\max}$ is
 exactly the covert operations a cheater could hide. A wider interval means a larger
 $\beta$ and more room for undeclared work; $\beta \gg 1$ means the ambiguity
 exceeds the entire machine.
+
+Note what \cref{eq:betadef} does not mention. $\beta$ is a property of the
+identified set, not of the instrument that produced it: it prices ambiguity
+about total compute in machines of declared capacity, so any channel that
+bounds the same projection can be quoted in the same units and placed on the
+same ladder of verifier capabilities we build in \cref{sec:decreasing-beta}.
+What is specific to power is the closed form we derive next. Energy is additive
+over operations, which is what lets covert work enter the budget as a separate
+term with a price of its own; a channel carrying its own budget law inherits
+the same structure, whereas a channel that merely correlates with computation
+would need a different derivation to reach a number in these units. This paper
+is the power instantiation.
 
 
 
@@ -1461,7 +1506,13 @@ The rest of this section takes these restrictions in turn. They compound. Each
 one keeps everything granted above it and turns one more dial, so the bound can
 only fall as we descend: from the headline $\beta^{*} = 1.16$, where the meter
 and the declared format are all the verifier has, to $\beta^{*} = 0.059$ at the
-bottom, with every restriction in place.  \cref{tab:ladder,fig:ladder} walk down that ladder. 
+bottom, with every restriction in place.  \cref{tab:ladder,fig:ladder} walk down that ladder.
+
+The ladder is not a menu we assembled. Its rungs are the mechanisms
+\citet{baker2025verifying} pair with analogue compute accounting---re-execution
+of the declared work, a threat model that restricts what covert work can be, an
+observable for the machine's idle state---priced one at a time on a common
+scale. 
 
 
 
@@ -1641,6 +1692,25 @@ place of $0.34$. \Cref{fig:betafloor} traces both scenarios.
 We have shown how a power meter can restrict hidden compute to an interval, $\beta$. For a meter that also checks the declared precision, the worst case is
 $\beta^{*} = 1.16$ machines of covert compute.  A set of reasonable assumptions made by the verifier push $\beta^{*}$ down, to a lowest value of $\beta^{*} = 0.059$, with every additional assumption of \cref{sec:decreasing-beta} in place. 
 
+\paragraph{What the meter is priced against.}
+\Cref{ass:declaration} does a great deal of work throughout, and now that the
+numbers are in hand we can say plainly how much. It means we have priced the
+power meter as an addition to a declaration-checking scheme, not as a
+substitute for one: the question we answered is what a meter contributes to a
+regime that already has some way of confirming that the declared work ran,
+which is where a layered scheme would put it \citep{baker2025verifying}. It is
+a load-bearing assumption rather than a technicality, and it is worth saying
+what it bears. Drop it and the prover may claim work it never ran,
+so the numerator of \cref{eq:betaen} carries the whole declared cost
+$r_{\mathrm{hi}}^{\mathrm{dec}}$ rather than the width of its band. The slope
+rises from $s = 2.14$ to $4.29$, the energy budget no longer binds anywhere
+above $h = 0.41$, and the worst case degenerates to the capacity clip itself,
+$\beta^{*} = \gamma = 2$. A meter without a trusted declaration therefore says
+nothing the machine's published peak rate did not already say. Even granting
+that the declared work ran but not what it cost, the bound reads
+$\beta^{*} = 1.45$. The declaration layer is a prerequisite for reading a power
+meter at all, not an optional companion to it.
+
 \paragraph{Limitations.}
 The above claim on the value of $\beta$ has a series of caveats as follows. (i) The empirical values of  \cref{sec:decreasing-beta} come from one vendor, one
 GPU model, one driver, and one cluster. Consequently the quoted values of $\beta$ are
@@ -1705,17 +1775,35 @@ $f$ radiates at $f$ and its harmonics, and magnetic emanations from a GPU's
 power delivery are measurable in practice \citep{maia2022magnetic}. A verifier
 who could read the clock this way would get the voltage too, since that follows
 from the hardware's $V$--$f$ table. The DVFS factor $w_V$ would fall to $1$, and
-the declared band would narrow to its activity core $w_\alpha$ alone. We defer the study of multiple measurement channels to a future work. 
+the declared band would narrow to its activity core $w_\alpha$ alone. We defer the study of multiple measurement channels to a future work.
+
+\paragraph{Resolution buys constraint and leaks architecture together.}
+The attacks we cited as evidence that this channel carries information recover
+architectures and hyperparameters from traces sampled at kHz rates
+\citep{gao2023deeptheft,chaudhuri2025energon}. A referee may reasonably ask
+whether a meter fine enough to bound compute is also fine enough to leak the
+workload, which would undercut the appeal of off-chip sensing as a mechanism
+that reveals nothing the operator has not declared. Our result answers that in
+the verifier's favour, at the price of the bound's own strength. Every quantity
+in \cref{eq:betaen} is a functional of the window's total energy: one number
+per window, which can hardly encode a network. The energy integral is coarse,
+so it leaks little and bounds little, and the richer telemetry above would
+tighten the bound only by reading structure in the trace---the same structure
+those attacks read. We have not measured how leakage grows with sampling rate,
+but the two plainly move together, which makes trace resolution a term an
+inspection agreement should set deliberately rather than an unpriced
+consequence of choosing a meter. 
 
 
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-So, can power draw constrain covert compute? Not on its own. A meter that
+So, can a power meter bound covert AI compute? Not on its own. A meter that
 reads the energy of a window, and knows the numeric format the declared work
 ran in, leaves room for more undeclared computation than the machine's whole
-declared capacity: $\beta^{*} = 1.16$. But the meter is rarely all a verifier
+declared capacity: $\beta^{*} = 1.16$, and a constructed attack it accepts
+occupies $0.41$ of that. But the meter is rarely all a verifier
 has. Re-running the declared work on trusted hardware, restricting hidden
 work to useful computation, and pinning the idle draw to a card known to be
 busy bring $\beta^{*}$ to $0.059$, six per cent of one machine. What
@@ -1725,7 +1813,9 @@ closed form prices each piece of it.
 That is the case for reading power alongside other channels rather than by
 itself. The clock is the clearest example: the meter cannot see it, an
 antenna beside the rack might, and a verifier who reads it fixes the voltage
-too and narrows the declared band to its activity core. Pricing that rung,
+too and narrows the declared band to its activity core. $\beta$ is the unit in
+which such a channel can be compared with this one, because it prices the
+ambiguity rather than the instrument. Pricing that rung,
 replacing the on-die counter with a retrofitted meter on the power feed, and
 carrying the floor from one device to a whole facility are natural next steps.
 
