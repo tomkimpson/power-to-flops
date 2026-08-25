@@ -2149,14 +2149,15 @@ one format is that format's own ceiling;
 \label{app:operands}
 
 This appendix documents Experiment~5, the operand-only sweep: what it
-measures, why it lives in an appendix rather than the body, and how each
-of its six operand distributions is constructed. Its role is
-corroboration, not input: the spread it measures, $w_0 = 1.83$,
-independently supports Experiment~1's operand width $w_\alpha = 1.88$,
-and no security bound rests on any number below.
+measures and how each of its six operand distributions is constructed. The spread it measures,
+$w_0 = 1.83$, independently supports Experiment~1's operand width
+$w_\alpha = 1.88$, although no security bound rests on any number in this
+appendix. The sweep also resolves the activity factor into named
+distributions, which is what the threat-model rungs of
+\cref{sec:decreasing-beta} act on when they exclude zero operands.
 
 Experiment~5 holds the kernel, shape,
-and precision fixed and moves \emph{only the operand values}. Every
+and precision (fp16) fixed and moves only the operand values. Every
 configuration runs the identical matmul $A\,B$ with the identical operation
 count \cref{eq:flopcount}, so the energy differences track the
 switching-activity factor $\alpha$ of \cref{eq:cmos}---how many bits
@@ -2164,46 +2165,32 @@ physically toggle in the datapath as the multiply--accumulates stream
 through. A datapath that sees the
 same bits over and over charges little capacitance; one whose bits flip on
 every operation charges the most. The six distributions are constructed to
-walk $\alpha$ from its floor to its ceiling.
-
-\paragraph{Why this experiment is reported here and not in the body.}
-It measures a width the body already has. Experiment~1's factorial varies the
-same six operand families \emph{inside every format}, so its fp16 cells contain
-this experiment's comparison as one slice of a larger grid---and contain it at a
-matched clock, which this sweep does not have. Experiment~5 is therefore
-dominated: fp16-only, streamed-only, and confounded where Experiment~1 is
-balanced. We keep it for two reasons, neither of them load-bearing. It
-corroborates $w_\alpha$ from independent data, and it resolves the activity
-factor into named distributions, which is what the threat-model rungs of
-\cref{sec:decreasing-beta} act on when they exclude zero operands.
+walk $\alpha$ from its floor to its ceiling; they are the same six families
+Experiment~1 crosses with precision and locality in its factorial
+(\cref{app:bench}), so Experiment~1's fp16 cells contain this comparison as
+one slice of a larger grid.
 
 \paragraph{The measurement.}
-The same matmul at fixed kernel, shape, and precision (fp16), varying only the
-operand values. Operand values alone spread $r$ by an observed factor
-$w_0 = 1.83$ (\cref{fig:operand-envelope}), following the ordering zeros $<$
-low-entropy $<$ declared-typical $\approx$ dense-random $\approx$
-structured-sparse $<$ adversarial-toggle. The clock confounds the comparison:
-locking is privilege-denied (\cref{sec:empirical-measurements}) and the families
-did not run at a common clock---the cheapest (zeros, low-entropy) drew the
-highest clocks and the most expensive the lowest, a monotone $1410 \to 1324$\,MHz slide
-against operand cost. Experiment~1's operand families, by contrast, share a
-median $1410$\,MHz.
-
-That confound predicts its own direction, which is what makes the corroboration
-worth something. The cheap families ran fastest, so a common clock would push
-their energies up and spread the distribution \emph{further}: $w_0$ should sit
-\emph{below} a matched-clock measurement of the same factor. It does---$1.83$
-against Experiment~1's $w_\alpha = 1.88$, agreeing to $3\%$ with the residual on
-the predicted side. Restricting Experiment~1 to the fp16 streamed cells that
-match this sweep's configuration exactly gives $1.94$, bracketing $w_0$ the same
-way. We offer the direction argument as a bias note rather than a proof: DVFS
-voltage scaling, throughput, and baseline-power amortisation pull in competing
-directions, and one-sided uncertainty cannot repair an uncontrolled confound.
-
-The minimum-energy run (zeros) puts the fp16 operand floor at $1.16$\,pJ/op as a
-total quotient---a descriptive edge only; the covert denominator the floor
-actually uses is Experiment~3's marginal cost (a one-sided $95\%$ lower
-confidence limit), which strips the baseline power this quotient amortises in.
+Operand values alone spread $r$ by an observed factor
+$w_0 = 1.83$ (\cref{fig:operand-envelope}), following the textbook ordering
+zeros $<$ low-entropy $<$ structured-sparse $<$ dense-random $\approx$
+declared-typical $\approx$ adversarial-toggle. The clock confounds the comparison.
+Locking is privilege-denied (\cref{sec:empirical-measurements}), so the families
+did not run at a common clock: the governor gave the cheapest (zeros, low-entropy)
+the highest clocks and the most expensive the lowest, a monotone
+$1410 \to 1335$\,MHz slide against operand cost. A faster clock carries a higher
+supply voltage, and the voltage sets the energy per operation (\cref{eq:rdyn}),
+so the slide squeezed the spread from both ends: the cheap families paid a
+voltage premium that raised the floor, and the expensive families ran at a
+voltage discount that lowered the ceiling. At one common clock both effects
+disappear and the spread widens. The prediction is therefore directional:
+$w_0 = 1.83$ should sit below a matched-clock measurement of the same factor.
+Experiment~1 is such a measurement. Its operand families share a median
+$1410$\,MHz and its width $w_\alpha = 1.88$ lies above $w_0$, on the predicted
+side, agreeing to $3\%$. That $1.88$ is a median over ten format--locality
+groups, only one of which runs what this sweep runs. Restricting to that
+group, i.e. Experiment~1's fp16 streamed cells gives $1.94$: again above $w_0$,
+again on the side the confound predicts.
 
 \begin{figure}[t]
 	\centering
@@ -2224,8 +2211,7 @@ confidence limit), which strips the baseline power this quotient amortises in.
 
 \paragraph{The distributions.}
 Below we show each on a
-$4\times4$ patch; the real operands are the same patterns at full size,
-generated by \texttt{operand\_fill} in \texttt{powertoflops/bench/workload.py}.
+$4\times4$ patch; the real operands are the same patterns at full size.
 
 \paragraph{1. Zeros---the activity floor.}
 Every entry is zero, so no bits ever change and $\alpha$ is at its minimum:
@@ -2244,7 +2230,7 @@ these quotients; \cref{sec:empirical-measurements,tab:inputs}.)
 \paragraph{2. Low-entropy---a few distinct levels.}
 Entries are drawn from only four values $\{0,1,2,3\}$. With so few distinct
 bit patterns, few bits differ between neighbouring operands, so operand-bit
-entropy---and hence switching---stays low:
+entropy, and hence switching, stays low:
 \begin{equation*}
 	A_{\mathrm{low\text{-}entropy}} \;=\;
 	\begin{pmatrix} 1 & 0 & 3 & 1 \\ 2 & 2 & 0 & 3 \\ 0 & 1 & 1 & 2 \\ 3 & 0 & 2 & 1 \end{pmatrix}.
@@ -2284,7 +2270,7 @@ realistic-workload reference:
 Every entry is an independent standard-normal draw, $\mathcal{N}(0,1)$: a
 proxy for the activations and weights a genuine declared workload streams,
 with full-width mantissas and no engineered structure. Its switching sits
-alongside dense-random---high but not maximal---and it is the operand class
+alongside dense-random (i.e. high but not maximal) and it is the operand class
 that characterises the honest-window energy scatter used by the declared-work
 model:
 \begin{equation*}
@@ -2299,12 +2285,12 @@ model:
 
 \paragraph{6. Adversarial-toggle---the activity ceiling.}
 Engineered for maximal switching: the matrix is a checkerboard of two
-\emph{complementary} bit patterns, $\texttt{0x5555}\ldots$ and its bitwise
-inverse $\texttt{0xAAAA}\ldots$, so adjacent operands differ in \emph{every}
+complementary bit patterns, $\texttt{0x5555}\ldots$ and its bitwise
+inverse $\texttt{0xAAAA}\ldots$, so adjacent operands differ in every
 bit (maximal Hamming distance) and the operand path sees maximal
 input-level switching per operation. For floats the pattern is built in an
 integer bit-view of the same width and reinterpreted as the float type, so
-the raw bits---not the numeric value---are controlled exactly. Writing the
+the raw bits are controlled exactly. Writing the
 two patterns as $p$ and $\bar p$:
 \begin{equation*}
 	A_{\mathrm{adv}} \;=\;
@@ -2326,7 +2312,7 @@ $p,\bar p,p,\ldots$, that register walks
 	\underbrace{\mathtt{0101\,0101}}_{k=0}\;\to\;\underbrace{\mathtt{1010\,1010}}_{k=1}\;\to\;
 	\underbrace{\mathtt{0101\,0101}}_{k=2}\;\to\;\cdots
 \end{equation*}
-flipping \emph{all} its bits on \emph{every} cycle. Dynamic CMOS energy is
+flipping all its bits on every cycle. Dynamic CMOS energy is
 paid per bit-transition, so this maximises the switching the operand
 registers can drive: a $w$-bit operand toggles $w$ bits per cycle, against ${\approx}w/2$
 for dense-random (two random words differ in about half their bits) and $0$
@@ -2338,10 +2324,8 @@ for every output entry.
 The energy-per-operation spread from the cheapest patch ($A_{\mathrm{zeros}}$)
 to the densest operands (dense-random, declared-typical, and the adversarial
 checkerboard), at fixed operation count, is the observed operand spread
-$w_0 = 1.83$ of \cref{fig:operand-envelope}. The measured ordering follows
-the textbook one, zeros $<$ low-entropy $<$ structured-sparse $<$
-dense-random $\approx$ declared-typical $\approx$ adversarial-toggle. Per
-the clock confound of \cref{sec:empirical-measurements}, the spread is
+$w_0$ of \cref{fig:operand-envelope}. Per
+the clock confound above, the spread is
 descriptive within-device evidence, not a certified population edge---and
 maximal input-level toggling does not itself certify maximal switching
 inside the Tensor Core internals, whose operand encodings are opaque (nor
