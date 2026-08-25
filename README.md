@@ -1,6 +1,6 @@
 # power-to-flops
 
-**Can power draw constrain covert compute?**
+**Can power draw constrain covert AI compute?**
 
 A verifier wants to constrain the total compute that an adversarial prover is running, given only an off-chip power meter.
 

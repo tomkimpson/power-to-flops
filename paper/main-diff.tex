@@ -1,4 +1,7 @@
 %%%%%%%% ICML 2026 two-column format, [preprint] mode for arXiv %%%%%%%%
+%DIF LATEXDIFF DIFFERENCE FILE
+%DIF DEL /private/tmp/claude-501/-Users-tomkimpson-projects-power-to-flops/5618ebc0-d93a-4817-871e-f29a1c2c7075/scratchpad/main-old.tex   Tue Aug 25 13:38:51 2026
+%DIF ADD main.tex                                                                                                                         Tue Aug 25 13:38:43 2026
 
 \documentclass{article}
 
@@ -60,12 +63,132 @@
 \usepackage[textsize=tiny]{todonotes}
 
 % Short form of the title for the running header:
-\icmltitlerunning{Can Power Draw Constrain Covert AI Compute?}
+%DIF < \icmltitlerunning{Can Power Draw Constrain Covert Compute?}
+%DIF -------
+\icmltitlerunning{Bounding Covert AI Compute with a Power Meter} %DIF > 
+%DIF PREAMBLE EXTENSION ADDED BY LATEXDIFF
+%DIF UNDERLINE PREAMBLE %DIF PREAMBLE
+\RequirePackage[normalem]{ulem} %DIF PREAMBLE
+\RequirePackage{color}\definecolor{RED}{rgb}{1,0,0}\definecolor{BLUE}{rgb}{0,0,1} %DIF PREAMBLE
+\providecommand{\DIFaddtex}[1]{{\protect\color{blue}\uwave{#1}}} %DIF PREAMBLE
+\providecommand{\DIFdeltex}[1]{{\protect\color{red}\sout{#1}}} %DIF PREAMBLE
+%DIF SAFE PREAMBLE %DIF PREAMBLE
+\providecommand{\DIFaddbegin}{} %DIF PREAMBLE
+\providecommand{\DIFaddend}{} %DIF PREAMBLE
+\providecommand{\DIFdelbegin}{} %DIF PREAMBLE
+\providecommand{\DIFdelend}{} %DIF PREAMBLE
+\providecommand{\DIFmodbegin}{} %DIF PREAMBLE
+\providecommand{\DIFmodend}{} %DIF PREAMBLE
+%DIF FLOATSAFE PREAMBLE %DIF PREAMBLE
+\providecommand{\DIFaddFL}[1]{\DIFadd{#1}} %DIF PREAMBLE
+\providecommand{\DIFdelFL}[1]{\DIFdel{#1}} %DIF PREAMBLE
+\providecommand{\DIFaddbeginFL}{} %DIF PREAMBLE
+\providecommand{\DIFaddendFL}{} %DIF PREAMBLE
+\providecommand{\DIFdelbeginFL}{} %DIF PREAMBLE
+\providecommand{\DIFdelendFL}{} %DIF PREAMBLE
+%DIF HYPERREF PREAMBLE %DIF PREAMBLE
+\providecommand{\DIFadd}[1]{\texorpdfstring{\DIFaddtex{#1}}{#1}} %DIF PREAMBLE
+\providecommand{\DIFdel}[1]{\texorpdfstring{\DIFdeltex{#1}}{}} %DIF PREAMBLE
+\providecommand{\DIFscaledelfig}{0.5}
+%DIF HIGHLIGHTGRAPHICS PREAMBLE %DIF PREAMBLE
+\RequirePackage{settobox} %DIF PREAMBLE
+\RequirePackage{letltxmacro} %DIF PREAMBLE
+\newsavebox{\DIFdelgraphicsbox} %DIF PREAMBLE
+\newlength{\DIFdelgraphicswidth} %DIF PREAMBLE
+\newlength{\DIFdelgraphicsheight} %DIF PREAMBLE
+% store original definition of \includegraphics %DIF PREAMBLE
+\LetLtxMacro{\DIFOincludegraphics}{\includegraphics} %DIF PREAMBLE
+\providecommand{\DIFaddincludegraphics}[2][]{{\color{blue}\fbox{\DIFOincludegraphics[#1]{#2}}}} %DIF PREAMBLE
+\providecommand{\DIFdelincludegraphics}[2][]{% %DIF PREAMBLE
+\sbox{\DIFdelgraphicsbox}{\DIFOincludegraphics[#1]{#2}}% %DIF PREAMBLE
+\settoboxwidth{\DIFdelgraphicswidth}{\DIFdelgraphicsbox} %DIF PREAMBLE
+\settoboxtotalheight{\DIFdelgraphicsheight}{\DIFdelgraphicsbox} %DIF PREAMBLE
+\scalebox{\DIFscaledelfig}{% %DIF PREAMBLE
+\parbox[b]{\DIFdelgraphicswidth}{\usebox{\DIFdelgraphicsbox}\\[-\baselineskip] \rule{\DIFdelgraphicswidth}{0em}}\llap{\resizebox{\DIFdelgraphicswidth}{\DIFdelgraphicsheight}{% %DIF PREAMBLE
+\setlength{\unitlength}{\DIFdelgraphicswidth}% %DIF PREAMBLE
+\begin{picture}(1,1)% %DIF PREAMBLE
+\thicklines\linethickness{2pt} %DIF PREAMBLE
+{\color[rgb]{1,0,0}\put(0,0){\framebox(1,1){}}}% %DIF PREAMBLE
+{\color[rgb]{1,0,0}\put(0,0){\line( 1,1){1}}}% %DIF PREAMBLE
+{\color[rgb]{1,0,0}\put(0,1){\line(1,-1){1}}}% %DIF PREAMBLE
+\end{picture}% %DIF PREAMBLE
+}\hspace*{3pt}}} %DIF PREAMBLE
+} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddbegin}{\DIFaddbegin} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddend}{\DIFaddend} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelbegin}{\DIFdelbegin} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelend}{\DIFdelend} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddbegin}{\DIFOaddbegin \let\includegraphics\DIFaddincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddend}{\DIFOaddend \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelbegin}{\DIFOdelbegin \let\includegraphics\DIFdelincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelend}{\DIFOaddend \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddbeginFL}{\DIFaddbeginFL} %DIF PREAMBLE
+\LetLtxMacro{\DIFOaddendFL}{\DIFaddendFL} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelbeginFL}{\DIFdelbeginFL} %DIF PREAMBLE
+\LetLtxMacro{\DIFOdelendFL}{\DIFdelendFL} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddbeginFL}{\DIFOaddbeginFL \let\includegraphics\DIFaddincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFaddendFL}{\DIFOaddendFL \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelbeginFL}{\DIFOdelbeginFL \let\includegraphics\DIFdelincludegraphics} %DIF PREAMBLE
+\DeclareRobustCommand{\DIFdelendFL}{\DIFOaddendFL \let\includegraphics\DIFOincludegraphics} %DIF PREAMBLE
+%DIF AMSMATHULEM PREAMBLE %DIF PREAMBLE
+\makeatletter %DIF PREAMBLE
+\let\sout@orig\sout %DIF PREAMBLE
+\renewcommand{\sout}[1]{\ifmmode\text{\sout@orig{\ensuremath{#1}}}\else\sout@orig{#1}\fi} %DIF PREAMBLE
+\makeatother %DIF PREAMBLE
+%DIF COLORLISTINGS PREAMBLE %DIF PREAMBLE
+\RequirePackage{listings} %DIF PREAMBLE
+\RequirePackage{color} %DIF PREAMBLE
+\lstdefinelanguage{DIFcode}{ %DIF PREAMBLE
+%DIF DIFCODE_UNDERLINE %DIF PREAMBLE
+  moredelim=[il][\color{red}\sout]{\%DIF\ <\ }, %DIF PREAMBLE
+  moredelim=[il][\color{blue}\uwave]{\%DIF\ >\ } %DIF PREAMBLE
+} %DIF PREAMBLE
+\lstdefinestyle{DIFverbatimstyle}{ %DIF PREAMBLE
+	language=DIFcode, %DIF PREAMBLE
+	basicstyle=\ttfamily, %DIF PREAMBLE
+	columns=fullflexible, %DIF PREAMBLE
+	keepspaces=true %DIF PREAMBLE
+} %DIF PREAMBLE
+\lstnewenvironment{DIFverbatim}[1][]{\lstset{style=DIFverbatimstyle}}{} %DIF PREAMBLE
+\lstnewenvironment{DIFverbatim*}[1][]{\lstset{style=DIFverbatimstyle,showspaces=true}}{} %DIF PREAMBLE
+\lstset{extendedchars=\true,inputencoding=utf8}
+
+%DIF END PREAMBLE EXTENSION ADDED BY LATEXDIFF
 
 \begin{document}
 
-\twocolumn[
-  \icmltitle{Can Power Draw Constrain Covert AI Compute?}
+\DIFdelbegin %DIFDELCMD < \twocolumn[
+%DIFDELCMD <   \icmltitle{Can Power Draw Constrain Covert Compute?}
+%DIFDELCMD < 
+
+%DIFDELCMD <   \begin{icmlauthorlist}
+%DIFDELCMD <     \icmlauthor{Tom Kimpson}{unimelb,mats}
+%DIFDELCMD <     \icmlauthor{Mauricio Baker}{rand}
+%DIFDELCMD <     \icmlauthor{Emlyn Graham}{mats}
+%DIFDELCMD <     \icmlauthor{Anjay Friedman}{rand}
+%DIFDELCMD <     \icmlauthor{Maximus Rafla}{rand}
+%DIFDELCMD <     \icmlauthor{Coby Joseph}{rand}
+%DIFDELCMD <     % Placeholder: further authors to be added here.
+%DIFDELCMD <   \end{icmlauthorlist}
+%DIFDELCMD < 
+
+%DIFDELCMD <   \icmlaffiliation{unimelb}{School of Mathematics and Statistics, The University of Melbourne, Parkville, VIC, Australia}
+%DIFDELCMD <   \icmlaffiliation{rand}{RAND Corporation}
+%DIFDELCMD <   \icmlaffiliation{mats}{Machine Alignment, Transparency \& Security (MATS)}
+%DIFDELCMD < 
+
+%DIFDELCMD <   \icmlcorrespondingauthor{Tom Kimpson}{tom.kimpson@unimelb.edu.au}
+%DIFDELCMD < 
+
+%DIFDELCMD <   % Keywords populate the PDF metadata; they are not shown in the document.
+%DIFDELCMD <   \icmlkeywords{AI governance, compute verification, power side channel, identifiability, covert compute}
+%DIFDELCMD < 
+
+%DIFDELCMD <   \vskip 0.3in
+%DIFDELCMD < ]
+%DIFDELCMD < %%%
+\DIFdelend \DIFaddbegin \twocolumn[
+  \icmltitle{Bounding Covert AI Compute with a Power Meter: A Capability Ladder}
 
   \begin{icmlauthorlist}
     \icmlauthor{Tom Kimpson}{unimelb,mats}
@@ -88,6 +211,7 @@
 
   \vskip 0.3in
 ]
+\DIFaddend 
 
 % Creates the first-column footnote with affiliations; required even if empty.
 \printAffiliationsAndNotice{}
@@ -105,8 +229,9 @@ units of declared machine capacity. $\beta$ is set by how widely the energy
 cost of an operation can vary, how cheaply a hidden operation can run, and
 how much idle draw the meter must allow for; we measure each on NVIDIA A100
 GPUs. A verifier that reads the power and checks the declared numeric format
-gets $\beta = 1.16$: more than a full machine of hidden compute. That bound
-is loose. We hid $0.19$ to $0.41$ machines of undeclared work undetected.
+gets $\beta = 1.16$: more than a full machine of hidden compute. \DIFdelbegin \DIFdel{That bound
+is loose. }\DIFdelend We hid
+$0.19$ to $0.41$ machines of undeclared work undetected.
 Re-running the declared work, restricting hidden work to useful computation,
 and pinning the idle draw together lower $\beta$ to $0.059$. A power meter
 alone is therefore a weak bound on compute, and the closed form prices what
@@ -151,7 +276,11 @@ reads a physical side channel such as power, electromagnetic, acoustic, or
 thermal emissions and so its measurements reach the verifier without passing
 through any silicon or software the operator controls. Such sensors could
 be retrofitted to existing data centres and physically secured against
-tampering by the adversary.
+tampering by the adversary. \DIFaddbegin \DIFadd{That work also sets out three ways such a
+measurement might be turned into a compute account, and names the blocker each
+one runs into (its Appendix~A.6); this paper is a quantitative feasibility
+study of the second of them, for one channel.
+}\DIFaddend 
 
 % prior work: emissions leak workload information
 There are reasons for optimism: in non-adversarial settings, physical
@@ -161,7 +290,8 @@ model architectures and hyperparameters
 and software-visible counters and timing let a co-resident process do the
 same \citep{naghibijouybari2018rendered,wei2020leaky}. On-node telemetry
 and on-chip counters classify workloads
-\citep{tang2022supercloud,xu2026wave,gangwal2019cryptomining}, and power
+\citep{tang2022supercloud,xu2026wave,gangwal2019cryptomining}\DIFdelbegin \DIFdel{, and }\DIFdelend \DIFaddbegin \DIFadd{---what kind of
+computation ran, a different question from how much of it ran---and }\DIFaddend power
 draw betrays anomalous computation \citep{clark2013wattsupdoc} and running
 GPU activity \citep{arefin2024hdmi}; a related body of work characterises
 power draw for GPUs and data centres
@@ -172,7 +302,10 @@ evade the sensor. It is an open question how well analogue-sensor
 measurements can constrain compute in that setting. This paper addresses that
 question for one channel: power, the channel most directly linked to
 computation, since every operation costs energy and total energy therefore
-budgets total work. We defer the study of other channels to a future work.
+budgets total work. \DIFaddbegin \DIFadd{Electromagnetic and acoustic emissions are correlates of
+computing; energy is the only channel tied to it by a conservation law, which
+is why a bound is derivable here and will be harder to come by elsewhere. }\DIFaddend We
+defer the study of other channels to a future work.
 
 This paper is organised as follows. \Cref{sec:setup} sets up the problem mathematically.
 \cref{sec:floor} derives a floor on the covert compute a power trace admits, in closed
@@ -255,8 +388,9 @@ multiply--adds are ops, not FLOPs.
 \label{subsec:threat}
 
 There are two parties. The \emph{prover} is the monitored operator: it controls the
-workload, the operand values, the numeric formats, the clocks, and the idle
-states of the machine, and it may wish to run compute it does not declare.
+workload, the operand values, the numeric formats, the clocks, \DIFdelbegin \DIFdel{and }\DIFdelend the idle
+states of the machine, and \DIFaddbegin \DIFadd{how much of the machine's capacity the declared work
+occupies, and }\DIFaddend it may wish to run compute it does not declare.
 The \emph{verifier} is the inspecting party: it reads $P_{\mathrm{obs}}$ from
 an off-chip meter it trusts, and it never sees $r$, $F$, or $P_0$ separately.
 The prover declares a workload of $C_{\mathrm{dec}}$ operations. The verifier wants to know if  $C_{\mathrm{dec}}$ is consistent with $P_{\mathrm{obs}}$. The verifier makes two assumptions:
@@ -829,8 +963,7 @@ corner; \cref{app:boundkind} treats both. Writing
 $W \equiv w_\kappa w_\alpha w_C w_V$ we can express the slope as 
 \begin{equation}
 	s \;=\;
-	\frac{r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}}
-	     {r_{\mathrm{lo}}^{\mathrm{cov}}}
+	\frac{r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}}{r_{\mathrm{lo}}^{\mathrm{cov}}}
 	\;=\; \frac{r_{\mathrm{lo}}^{\mathrm{dec}}}{r_{\mathrm{lo}}^{\mathrm{cov}}}
 	      \,\bigl(W - 1\bigr).
 	\label{eq:slopebridge}
@@ -1389,10 +1522,10 @@ direction: on our own measured peaks ($246.9$\,Top/s fp16 and $307.7$\,Top/s
 int8, so $\gamma = 1.25$ rather than $2$) the headline would read
 $\beta^{*} = 0.91$ rather than $1.16$.
 Third, we can measure how much of this conceded width a real attack
-occupies. On a second card of the same SKU we ran pairs of runs matched
-in total energy: an honest run executing $N$ declared fp16 iterations on
-expensive operands, and a cheating run executing the same iterations on
-cheap operands plus a covert int8 fill sized to draw the same energy. Every
+occupies. On the same card we ran pairs of runs matched in total energy:
+an honest run executing $N$ declared fp16 iterations on expensive
+operands, and a cheating run executing the same iterations on cheap
+operands plus a covert int8 fill sized to draw the same energy. Every
 cheating run passes the no-alarm test of \cref{eq:noalarm} while
 executing $0.19$--$0.41$ machines of covert work at $h = 0.10$--$0.216$. The identified set is therefore at least $0.41$ wide at
 $h = 0.216$, against the model's $\beta(0.216) = 0.72$; the attack does
@@ -1461,11 +1594,20 @@ The rest of this section takes these restrictions in turn. They compound. Each
 one keeps everything granted above it and turns one more dial, so the bound can
 only fall as we descend: from the headline $\beta^{*} = 1.16$, where the meter
 and the declared format are all the verifier has, to $\beta^{*} = 0.059$ at the
-bottom, with every restriction in place.  \cref{tab:ladder,fig:ladder} walk down that ladder. 
+bottom, with every restriction in place.  \cref{tab:ladder,fig:ladder} walk down that ladder.
+
+\DIFaddbegin \DIFadd{The ladder is not a menu we assembled. Its rungs are the mechanisms
+\mbox{%DIFAUXCMD
+\citet{baker2025verifying} }\hskip0pt%DIFAUXCMD
+pair with analogue compute accounting---re-execution
+of the declared work, a threat model that restricts what covert work can be, an
+observable for the machine's idle state---priced one at a time on a common
+scale. 
+}
 
 
 
-\begin{table*}[t]
+\DIFaddend \begin{table*}[t]
 	\centering
 	\small
 	\begin{tabular}{@{}llcc@{}}
@@ -1641,7 +1783,25 @@ place of $0.34$. \Cref{fig:betafloor} traces both scenarios.
 We have shown how a power meter can restrict hidden compute to an interval, $\beta$. For a meter that also checks the declared precision, the worst case is
 $\beta^{*} = 1.16$ machines of covert compute.  A set of reasonable assumptions made by the verifier push $\beta^{*}$ down, to a lowest value of $\beta^{*} = 0.059$, with every additional assumption of \cref{sec:decreasing-beta} in place. 
 
-\paragraph{Limitations.}
+\DIFaddbegin \paragraph{\DIFadd{What the meter is priced against.}}
+\DIFadd{\mbox{%DIFAUXCMD
+\Cref{ass:declaration} }\hskip0pt%DIFAUXCMD
+is load-bearing, and the numbers now in hand say how
+much it bears. We have priced the meter as an addition to a
+declaration-checking scheme, not a substitute for one. Drop the assumption and
+the prover may claim work it never ran, so the numerator of \mbox{%DIFAUXCMD
+\cref{eq:betaen}
+}\hskip0pt%DIFAUXCMD
+carries the whole declared cost $r_{\mathrm{hi}}^{\mathrm{dec}}$ rather than
+the width of its band: the slope rises from $2.14$ to $4.29$, energy stops
+binding above $h = 0.41$, and the worst case degenerates to the capacity clip,
+$\beta^{*} = \gamma = 2$ (granting that the declared work ran but not what it
+cost, it reads $1.45$). A meter without a trusted declaration says nothing the
+machine's published peak rate did not already say. The declaration layer is a
+prerequisite for reading a power meter, not an optional companion to it.
+}
+
+\DIFaddend \paragraph{Limitations.}
 The above claim on the value of $\beta$ has a series of caveats as follows. (i) The empirical values of  \cref{sec:decreasing-beta} come from one vendor, one
 GPU model, one driver, and one cluster. Consequently the quoted values of $\beta$ are
 A100-specific, though the framework and closed form of Section \ref{sec:floor} is general.
@@ -1705,17 +1865,40 @@ $f$ radiates at $f$ and its harmonics, and magnetic emanations from a GPU's
 power delivery are measurable in practice \citep{maia2022magnetic}. A verifier
 who could read the clock this way would get the voltage too, since that follows
 from the hardware's $V$--$f$ table. The DVFS factor $w_V$ would fall to $1$, and
-the declared band would narrow to its activity core $w_\alpha$ alone. We defer the study of multiple measurement channels to a future work. 
+the declared band would narrow to its activity core $w_\alpha$ alone. We defer the study of multiple measurement channels to a future work.
+
+\DIFaddbegin \paragraph{\DIFadd{Resolution buys constraint and leaks architecture together.}}
+\DIFadd{The attacks we cited as evidence that this channel carries information recover
+architectures and hyperparameters from traces sampled at kHz rates
+\mbox{%DIFAUXCMD
+\citep{gao2023deeptheft,chaudhuri2025energon}}\hskip0pt%DIFAUXCMD
+. A referee may reasonably ask
+whether a meter fine enough to bound compute is also fine enough to leak the
+workload, which would undercut the appeal of off-chip sensing as a mechanism
+that reveals nothing the operator has not declared. Our result answers that in
+the verifier's favour, at the price of the bound's own strength. Every quantity
+in \mbox{%DIFAUXCMD
+\cref{eq:betaen} }\hskip0pt%DIFAUXCMD
+is a functional of the window's total energy: one number
+per window, which can hardly encode a network. The energy integral is coarse,
+so it leaks little and bounds little, and the richer telemetry above would
+tighten the bound only by reading structure in the trace---the same structure
+those attacks read. We have not measured how leakage grows with sampling rate,
+but the two plainly move together, which makes trace resolution a term an
+inspection agreement should set deliberately rather than an unpriced
+consequence of choosing a meter. 
+}
 
 
 
-\section{Conclusion}
+\DIFaddend \section{Conclusion}
 \label{sec:conclusion}
 
-So, can power draw constrain covert compute? Not on its own. A meter that
+So, can \DIFdelbegin \DIFdel{power draw constrain covert }\DIFdelend \DIFaddbegin \DIFadd{a power meter bound covert AI }\DIFaddend compute? Not on its own. A meter that
 reads the energy of a window, and knows the numeric format the declared work
 ran in, leaves room for more undeclared computation than the machine's whole
-declared capacity: $\beta^{*} = 1.16$. But the meter is rarely all a verifier
+declared capacity: $\beta^{*} = 1.16$\DIFaddbegin \DIFadd{, and a constructed attack it accepts
+occupies $0.41$ of that}\DIFaddend . But the meter is rarely all a verifier
 has. Re-running the declared work on trusted hardware, restricting hidden
 work to useful computation, and pinning the idle draw to a card known to be
 busy bring $\beta^{*}$ to $0.059$, six per cent of one machine. What
@@ -1725,7 +1908,9 @@ closed form prices each piece of it.
 That is the case for reading power alongside other channels rather than by
 itself. The clock is the clearest example: the meter cannot see it, an
 antenna beside the rack might, and a verifier who reads it fixes the voltage
-too and narrows the declared band to its activity core. Pricing that rung,
+too and narrows the declared band to its activity core\DIFaddbegin \DIFadd{. $\beta$ is the unit in
+which such a channel can be compared with this one, because it prices the
+ambiguity rather than the instrument}\DIFaddend . Pricing that rung,
 replacing the on-die counter with a retrofitted meter on the power feed, and
 carrying the floor from one device to a whole facility are natural next steps.
 
