@@ -260,10 +260,10 @@ def exchange_band_strata(exp1: Sequence[RunRecord]) -> dict[int, dict]:
 #
 # Hence "conditional": group cells by the other DESIGNED axes, take max/min across
 # the axis of interest within each group, and report the median over groups. On the
-# committed A100 artifact this yields w_kappa = 13.5, w_alpha = 1.90, w_C = 1.04,
-# whose product 26.8 reproduces the pooled 24.9x span to 8% (the residual is
-# factor interaction), and w_alpha * w_C = 1.98 predicts the fp16 sub-band's
-# measured 2.00x to 1%. Those two checks are what license the paper's
+# committed A100 artifact this yields w_kappa = 13.5, w_alpha = 1.88, w_C = 1.04,
+# whose product 26.5 reproduces the pooled 24.8x span to 7% (the residual is
+# factor interaction), and w_alpha * w_C = 1.96 predicts the fp16 sub-band's
+# measured 2.00x to 2%. Those two checks are what license the paper's
 # one-factor-per-rung reading of the ladder.
 #
 # Two design decisions here, both load-bearing:
@@ -273,7 +273,7 @@ def exchange_band_strata(exp1: Sequence[RunRecord]) -> dict[int, dict]:
 #     uncontrolled nuisance, not a swept factor. Adding it to the conditioning key
 #     shatters a balanced 6-level operand axis into groups of 1-6 levels, and the
 #     thin groups contribute ratios near 1.01 that drag the median down (w_alpha
-#     1.90 -> 1.58 on the committed artifact). That is a sparsity artifact, not a
+#     1.88 -> 1.58 on the committed artifact). That is a sparsity artifact, not a
 #     cleaner measurement. Groups are additionally required to be COMPLETE on the
 #     axis, so every reported width is a like-for-like comparison.
 #
