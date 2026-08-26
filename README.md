@@ -24,7 +24,7 @@ repo root on `sys.path` themselves.
 reported headline value:
 
 ```bash
-pytest -m "not gpu"    # 205 passed, 5 skipped, 2 deselected (CPU-only install)
+pytest -m "not gpu"    # 226 passed, 5 skipped, 2 deselected (CPU-only install)
 ```
 
 ### Experiment numbering
@@ -52,9 +52,20 @@ manuscript Experiment 5, not Experiment 2 (that is `exp3_overhead`); and manuscr
 Experiment 3 is capture `exp7`. The table is the authority.
 
 Capture ids 5 and 6 were the matched-pair and qblock harnesses (`bench/runner.py`), which
-the manuscript reports without numbering. Nothing is missing from either list. A third
-scheme — the `experiment` integer inside the records, which is `8` for the qblock-marginal
-capture — is mapped in [docs/experiment-numbering.md](docs/experiment-numbering.md).
+the manuscript reports without numbering. Nothing is missing from either list. The ids were
+never renumbered to follow the manuscript because they are baked into the committed record
+filenames, the `--expN` flags and the Slurm scripts; renaming them would invalidate every
+path in `measured_bands.json`'s `inputs` block.
+
+**A third scheme, inside the records.** Every row of a `.jsonl` capture carries an
+`experiment` integer. It equals the capture id in all but one case: the qblock-marginal
+capture sets `8` (`QBLOCK_MARG_EXPERIMENT` in `powertoflops/bench/qblock.py`), kept distinct
+from the total-quotient qblock's `6` so that the two can never be pooled. There is no
+`exp8_*` file and no manuscript Experiment 8 — an `8` in a record means manuscript
+Experiment 4. Rows tagged `experiment: 0` are the idle and zero-dose reference cells that
+anchor each sweep (40 of the 340 rows in `exp1`, 10 of the 70 in `exp7`, 10 of the 60 in
+`qblock_marginal`). The `matched_pair_*` files are single-object `.json` witnesses rather
+than record streams, and carry no `experiment` field at all.
 
 **The measured-band artifact.** `results/bench/measured_bands.json` is the single source
 every figure and every quoted number reads from. Rebuild it from explicitly named records
@@ -77,6 +88,25 @@ declares that the qblock captures ran on other cards of the same SKU; it is not 
 here, since the mixed-device guard covers `exp1`–`exp3` and `exp7` only and this command
 succeeds without it.
 
+**Checking the mapping yourself.** That artifact's `inputs` block is authoritative for which
+record priced which band:
+
+```bash
+python -c "
+import json, re
+d = json.load(open('results/bench/measured_bands.json'))
+for k, v in d['inputs'].items():
+    name = re.findall(r'[\w.-]+\.jsonl', v['path'])[0]
+    print(f\"{k:14s} {name:38s} n={v['n_records']:4d}  {v['uuids'][0][:12]}\")
+"
+```
+
+Two quirks there, hence the regex rather than a plain `basename`. The `inputs` keys are a
+*fourth* naming — the analyser's own argument names, so `qblock_marg`, matching the
+`--qblock-marg` flag. And `path` is a plain string for `exp1`/`exp2`/`exp3`/`exp7` but the
+*stringified list* `"['results/bench/qblock_….jsonl']"` for the two qblock captures, whose
+flags use `action="append"`.
+
 The cross-device artifact (per-device bands plus the 3-card spread) is separate. `--core`
 takes one path per flag and appends, so repeat the flag rather than globbing:
 
@@ -98,8 +128,19 @@ python scripts/plot_beta_phys.py           # figures/beta_phys_curve.*     (the 
 python scripts/plot_capability_ladder.py   # figures/capability_ladder.*   (β down the rungs)
 ```
 
-Regenerated figures are not always byte-identical to the committed ones, for reasons that
-are not a regression — see [docs/provenance.md](docs/provenance.md).
+Regenerated figures are not always byte-identical to the committed ones, and that is not a
+regression. `plotstyle.save` suppresses the PDF `CreationDate`, so a rerun on unchanged data
+is deterministic on one machine, but two things still differ across machines. **Fonts** are a
+real content change: `plotstyle.py` asks for `[Helvetica, Arial, DejaVu Sans]`, and the
+committed figures were rendered on a node carrying neither of the first two, so matplotlib
+fell through to its bundled DejaVu Sans. Regenerating anywhere Helvetica *is* installed — any
+Mac — silently re-renders every figure in a different typeface. Pin `font.sans-serif` to
+`["DejaVu Sans"]` first, or regenerate where Helvetica is absent. **Compression** is not a
+content change: a different zlib build re-encodes identical bytes differently. Measured on one
+Mac, all six PDFs came back two bytes apart with every decompressed stream equal, and three
+PNGs differed in IDAT encoding while being pixel-identical. So a dirty `git status figures/`
+after a rerun is a prompt to compare decompressed PDF streams or decoded PNG pixels, not
+proof that anything moved.
 
 
 
@@ -153,8 +194,20 @@ different kernels and move the band edges. Re-measure rather than assume.
 | `results/bench/` | the committed measurement records, their manifests, and `measured_bands.json` |
 | `data/qblock/` | provenance for the trained-weight artifacts (the large `.npz` are not tracked — see the README there) |
 | `figures/` | the six manuscript figures, regenerated by `scripts/plot_*.py` |
-| `docs/` | notes that do not belong on the front page: experiment numbering, split provenance, figure byte-reproducibility |
 | `paper/` | the manuscript (ICML 2026 two-column, preprint mode) |
+
+Two notes for anyone reading the code. The package is called `powertoflops` and not `code`,
+which is what it was called upstream — the old name shadowed the standard library's `code`
+module, which newer `pdb` imports eagerly, so the failure is an obscure one at debugger
+start-up rather than an import error a test would catch. And comments and docstrings carry
+about 130 short review tags — `referee B1`–`B6`, `review C1`–`C7`, `R2.x`, `R3.x`. Each
+records *why* a particular guard, band definition or protocol constraint exists and which
+objection it answers; the tag is always followed by the substance, so nothing external is
+needed to read them. `referee B*` was the round that forced every term to be evaluated
+inside one jointly feasible scenario and the covert cost to be a genuine *incremental* lower
+bound; `review C*` the earlier round on measurement design; `R2.*`/`R3.*` the steps of the
+re-measurement campaign that produced the records in `results/bench/`. They are not
+requirements and not open items.
 
 ## Record provenance
 
@@ -183,9 +236,12 @@ fail on them. That is not a broken chain: the check that matters is local and st
 namely that re-running the `analyze_bands.py` command above reproduces the committed
 `measured_bands.json`, with the stamp the only field that differs. Regenerating on a
 different CPU also perturbs regression outputs in the last one or two digits (BLAS
-reduction order), well below any reported precision. See
-[docs/provenance.md](docs/provenance.md) for the split this repository came from and why
-those upstream hashes exist.
+reduction order), well below any reported precision.
+
+Those upstream hashes exist because this repository was split out of a larger private
+research repository, and starts from a single import commit rather than carrying that
+history. Nothing was re-measured for the split: every record, figure and reported number is
+bit-for-bit what the source repository carried.
 
 ## Paper
 
