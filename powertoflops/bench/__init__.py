@@ -19,7 +19,7 @@ written, manuscript experiments in the order the argument needs them. The map is
     qblock_marginal -> Experiment 4 (marginal useful cost)
     exp2 -> Experiment 5 (operand sweep; appendix only, prices nothing)
     exp4_core, qblock, matched_pair -> unnumbered in the manuscript
-README.md carries the same table and is the authority. Do not "fix" a capture id
+This map is the authority (the README points here). Do not "fix" a capture id
 to match a manuscript number.
 
 NVML is a *proxy* meter: on-chip and prover-owned, which is the untrusted
