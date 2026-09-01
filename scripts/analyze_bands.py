@@ -129,7 +129,7 @@ def main() -> None:
                          "the min-over-devices LCB and records the spread)")
     ap.add_argument("--qblock-marg", action="append", default=[],
                     dest="qblock_marg",
-                    help="qblock-marginal capture (manuscript Experiment 5): "
+                    help="qblock-marginal capture (manuscript Experiment 4): "
                          "marginal useful-cost dose-response records JSONL "
                          "(referee B5; repeatable for the multi-card capture). "
                          "The incremental useful edge replacing --qblock as the "

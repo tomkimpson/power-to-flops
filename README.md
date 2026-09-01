@@ -4,6 +4,7 @@
 
 A verifier wants to constrain the total compute that an adversarial prover is running, given only an off-chip power meter.
 
+How tight can the verifier make those constraints? 
 
 ## Setup
 
@@ -16,7 +17,7 @@ pip install -r requirements-gpu.txt    # only to re-capture on hardware (pinned 
 
 ## Reproducing the results
 
-Reproducing every number and figure below needs **no GPU and no LaTeX** — it consumes the
+Reproducing every number and figure needs **no GPU and no LaTeX** — it consumes the
 committed records in `results/bench/`. `pip install -e .` is optional; the scripts put the
 repo root on `sys.path` themselves.
 
@@ -24,52 +25,21 @@ repo root on `sys.path` themselves.
 reported headline value:
 
 ```bash
-pytest -m "not gpu"    # 226 passed, 5 skipped, 2 deselected (CPU-only install)
+pytest -m "not gpu"    # the gpu-marked tests need a CUDA card with NVML
 ```
 
-### Experiment numbering
-
-The manuscript numbers its experiments **1–5**. Records, CLI flags and Slurm scripts use
-**capture identifiers**, which match the filenames in `results/bench/` and are *not* the
-same numbers. Everywhere below, `expN` means the capture identifier.
-
-| manuscript | capture id | record that prices it | flag | GPU |
-|---|---|---|---|---|
-| Experiment 1 — exchange band (three factor widths) | `exp1` | `exp1_exchange_e2958cc757b9.jsonl` (340) | `--exp1` | `GPU-ac1cbae9` |
-| Experiment 2 — overhead band | `exp3` | `exp3_overhead_b9af294e862e.jsonl` (85) | `--exp3` | `GPU-ac1cbae9` |
-| Experiment 3 — marginal covert cost | `exp7` | `exp7_marginal_b73b5094c430.jsonl` (70) | `--exp7` | `GPU-ac1cbae9` |
-| Experiment 4 — marginal useful cost | `qblock_marginal` | `qblock_marginal_5dd152cc216f.jsonl` (60) | `--qblock-marg` | `GPU-747045fa` |
-| Experiment 5 — operand sweep *(appendix only; prices nothing)* | `exp2` | `exp2_operand_cbfbb110b29e.jsonl` (135) | `--exp2` | `GPU-ac1cbae9` |
-| *(unnumbered)* cross-device spread | `exp4` | `exp4_core_*.jsonl` | `--core` | 3 further cards |
-| *(unnumbered)* matched-energy witnesses | `matched_pair` | `matched_pair_*.json` | — | `GPU-108c1549` |
-| *(disclosure only)* useful total quotient | `qblock` | `qblock_5ba826fed96c.jsonl` (40) | `--qblock` | `GPU-757ff02a` |
-
-**Mind the collisions.** Captures are numbered in the order they were written, manuscript
-experiments in the order the argument needs them, so *no* digit can be trusted to agree
-across the two schemes. Three traps in particular: capture `exp4` is the cross-device
-sweep and not manuscript Experiment 4 (that is `qblock_marginal`); capture `exp2` is
-manuscript Experiment 5, not Experiment 2 (that is `exp3_overhead`); and manuscript
-Experiment 3 is capture `exp7`. The table is the authority.
-
-Capture ids 5 and 6 were the matched-pair and qblock harnesses (`bench/runner.py`), which
-the manuscript reports without numbering. Nothing is missing from either list. The ids were
-never renumbered to follow the manuscript because they are baked into the committed record
-filenames, the `--expN` flags and the Slurm scripts; renaming them would invalidate every
-path in `measured_bands.json`'s `inputs` block.
-
-**A third scheme, inside the records.** Every row of a `.jsonl` capture carries an
-`experiment` integer. It equals the capture id in all but one case: the qblock-marginal
-capture sets `8` (`QBLOCK_MARG_EXPERIMENT` in `powertoflops/bench/qblock.py`), kept distinct
-from the total-quotient qblock's `6` so that the two can never be pooled. There is no
-`exp8_*` file and no manuscript Experiment 8 — an `8` in a record means manuscript
-Experiment 4. Rows tagged `experiment: 0` are the idle and zero-dose reference cells that
-anchor each sweep (40 of the 340 rows in `exp1`, 10 of the 70 in `exp7`, 10 of the 60 in
-`qblock_marginal`). The `matched_pair_*` files are single-object `.json` witnesses rather
-than record streams, and carry no `experiment` field at all.
+**Capture identifiers.** Record filenames, CLI flags and Slurm scripts use *capture ids*
+(`exp1`, `exp7`, `qblock_marginal`, …), which are **not** the manuscript's experiment
+numbers — captures are numbered in the order they were written, manuscript experiments in
+the order the argument needs them. The map is in the `powertoflops.bench` package
+docstring, which is the authority. Don't renumber a capture to match a manuscript number.
 
 **The measured-band artifact.** `results/bench/measured_bands.json` is the single source
-every figure and every quoted number reads from. Rebuild it from explicitly named records
-— nothing is selected newest-by-mtime:
+every figure and every quoted number reads from, and its `inputs` block is authoritative
+for which record priced which band. `results/bench/` carries the full capture history
+rather than a curated subset, so anything not named in that block is context, not a
+reported number. Rebuild the artifact from explicitly named records — nothing is selected
+newest-by-mtime:
 
 ```bash
 python scripts/analyze_bands.py \
@@ -82,30 +52,9 @@ python scripts/analyze_bands.py \
     --allow-multi-device
 ```
 
-`--qblock-marg` (manuscript Experiment 4) is **required**: without it the artifact carries
-no `r_useful_marg` and the bottom two ladder rungs cannot be priced. `--allow-multi-device`
-declares that the qblock captures ran on other cards of the same SKU; it is not load-bearing
-here, since the mixed-device guard covers `exp1`–`exp3` and `exp7` only and this command
-succeeds without it.
-
-**Checking the mapping yourself.** That artifact's `inputs` block is authoritative for which
-record priced which band:
-
-```bash
-python -c "
-import json, re
-d = json.load(open('results/bench/measured_bands.json'))
-for k, v in d['inputs'].items():
-    name = re.findall(r'[\w.-]+\.jsonl', v['path'])[0]
-    print(f\"{k:14s} {name:38s} n={v['n_records']:4d}  {v['uuids'][0][:12]}\")
-"
-```
-
-Two quirks there, hence the regex rather than a plain `basename`. The `inputs` keys are a
-*fourth* naming — the analyser's own argument names, so `qblock_marg`, matching the
-`--qblock-marg` flag. And `path` is a plain string for `exp1`/`exp2`/`exp3`/`exp7` but the
-*stringified list* `"['results/bench/qblock_….jsonl']"` for the two qblock captures, whose
-flags use `action="append"`.
+`--qblock-marg` is required: without it the artifact carries no `r_useful_marg` and the
+bottom two ladder rungs cannot be priced. `--allow-multi-device` declares that the qblock
+captures ran on other cards of the same SKU.
 
 The cross-device artifact (per-device bands plus the 3-card spread) is separate. `--core`
 takes one path per flag and appends, so repeat the flag rather than globbing:
@@ -141,9 +90,6 @@ Mac, all six PDFs came back two bytes apart with every decompressed stream equal
 PNGs differed in IDAT encoding while being pixel-identical. So a dirty `git status figures/`
 after a rerun is a prompt to compare decompressed PDF streams or decoded PNG pixels, not
 proof that anything moved.
-
-
-
 
 ## Measurement campaign
 
@@ -183,65 +129,13 @@ Kernel dispatch is load-bearing for the int8 result: the covert edge comes from
 `requirements-gpu.txt`, with the B operand **column-major**. A different build may dispatch
 different kernels and move the band edges. Re-measure rather than assume.
 
-## Repository layout
+## Reading the code
 
-| path | contents |
-|---|---|
-| `powertoflops/` | library: `floor.py` (closed form), `measured.py` (band artifact loader), `joint_model.py` (the headline), `ladder.py` (the rungs), `plotstyle.py` |
-| `powertoflops/bench/` | NVML capture harness plus the pure-Python band extraction that consumes its records |
-| `scripts/` | entry points: `analyze_bands.py`, `analyze_pair.py`, three `plot_*.py`, the capture drivers, and the Slurm recipes |
-| `tests/` | pytest suite; `gpu`-marked tests need a CUDA GPU + NVML |
-| `results/bench/` | the committed measurement records, their manifests, and `measured_bands.json` |
-| `data/qblock/` | provenance for the trained-weight artifacts (the large `.npz` are not tracked — see the README there) |
-| `figures/` | the six manuscript figures, regenerated by `scripts/plot_*.py` |
-| `paper/` | the manuscript (ICML 2026 two-column, preprint mode) |
-
-Two notes for anyone reading the code. The package is called `powertoflops` and not `code`,
-which is what it was called upstream — the old name shadowed the standard library's `code`
-module, which newer `pdb` imports eagerly, so the failure is an obscure one at debugger
-start-up rather than an import error a test would catch. And comments and docstrings carry
-about 130 short review tags — `referee B1`–`B6`, `review C1`–`C7`, `R2.x`, `R3.x`. Each
-records *why* a particular guard, band definition or protocol constraint exists and which
-objection it answers; the tag is always followed by the substance, so nothing external is
-needed to read them. `referee B*` was the round that forced every term to be evaluated
-inside one jointly feasible scenario and the covert cost to be a genuine *incremental* lower
-bound; `review C*` the earlier round on measurement design; `R2.*`/`R3.*` the steps of the
-re-measurement campaign that produced the records in `results/bench/`. They are not
-requirements and not open items.
-
-## Record provenance
-
-`results/bench/` carries the full capture history, not a curated subset. The authoritative
-list of what actually prices the reported bands is the `inputs` block of
-`measured_bands.json`, tabulated under "Experiment numbering" above; the rest is context.
-
-**Superseded captures, retained for the record.** Earlier runs of the same experiments,
-replaced by the records in that table and used by no reported number:
-`exp1_exchange_796438566c67`, `exp1_exchange_a754ce2c43a9`, `exp2_operand_b835c2c71f65`,
-`exp2_operand_efb7b61a6922`, `exp3_overhead_016bc12dea38`, `exp3_overhead_2e655de0e9ca`,
-`qblock_d7ba70b76931`.
-
-**Matched-energy witnesses.** Three fixed-`T`, same-`C_dec` pairs support the attained
-`0.41` bound, at declared utilisation `h` = 0.10, 0.15 and 0.216:
-`matched_pair_c1762bafbb5d`, `matched_pair_03ae3aaefa9f`, `matched_pair_133496492841`.
-`matched_pair_c922a1f23b27` is **not** one of them — it is an earlier-schema exploratory
-pair with an fp32 declared format at `h = 0.5`, above the measured busy-time ceiling
-`h_max ≈ 0.24`. It carries no `acceptance` block, so it cannot support an acceptance claim
-and none is made from it.
-
-**The commit stamps.** `measured_bands.json` carries `analysis_git_commit`; the
-`*_manifest.json` files carry `git_commit`. Records captured before this repository existed
-carry hashes from the upstream history, which **do not resolve here** — `git show` will
-fail on them. That is not a broken chain: the check that matters is local and stronger,
-namely that re-running the `analyze_bands.py` command above reproduces the committed
-`measured_bands.json`, with the stamp the only field that differs. Regenerating on a
-different CPU also perturbs regression outputs in the last one or two digits (BLAS
-reduction order), well below any reported precision.
-
-Those upstream hashes exist because this repository was split out of a larger private
-research repository, and starts from a single import commit rather than carrying that
-history. Nothing was re-measured for the split: every record, figure and reported number is
-bit-for-bit what the source repository carried.
+Comments and docstrings carry about 130 short review tags — `referee B1`–`B6`,
+`review C1`–`C7`, `R2.x`, `R3.x`. Each records *why* a particular guard, band definition or
+protocol constraint exists and which objection it answers; the tag is always followed by the
+substance, so nothing external is needed to read them. They are not requirements and not
+open items.
 
 ## Paper
 

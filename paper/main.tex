@@ -105,12 +105,13 @@ units of declared machine capacity. $\beta$ is set by how widely the energy
 cost of an operation can vary, how cheaply a hidden operation can run, and
 how much idle draw the meter must allow for; we measure each on NVIDIA A100
 GPUs. A verifier that reads the power and checks the declared numeric format
-gets $\beta = 1.16$: more than a full machine of hidden compute. That bound
-is loose. We hid $0.19$ to $0.41$ machines of undeclared work undetected.
-Re-running the declared work, restricting hidden work to useful computation,
-and pinning the idle draw together lower $\beta$ to $0.059$. A power meter
-alone is therefore a weak bound on compute, and the closed form prices what
-each further capability buys. It gives a quantitative basis for what
+gets $\beta = 1.16$. Matched schedules hide up to $0.41$ machines of
+undeclared work undetected, bracketing the true worst-case ambiguity as
+$0.41 \leq \beta \leq 1.16$. Re-executing the declared work at an observed operating point,
+restricting covert work to two measured transformer-block configurations,
+and pinning the resident-card overhead, lowers the relaxed bound to $0.059$.
+A power meter alone is therefore a weak bound on compute, and the closed form prices what
+each further capability or restriction buys. It gives a quantitative basis for what
 off-chip sensing can contribute to verifying agreements on AI compute.
 \end{abstract}
 
@@ -175,12 +176,12 @@ computation, since every operation costs energy and total energy therefore
 budgets total work. We defer the study of other channels to a future work.
 
 This paper is organised as follows. \Cref{sec:setup} sets up the problem mathematically.
-\cref{sec:floor} derives a floor on the covert compute a power trace admits, in closed
-form, from a handful of physical bands.
-\Cref{sec:howbig} empirically determines how large that floor is by measuring the
+\cref{sec:floor} derives a conservative outer bound on the covert compute a
+power trace admits, in closed form, from a handful of physical bands.
+\Cref{sec:howbig} empirically evaluates that bound by measuring the
 bands directly on NVIDIA A100 hardware.
 \Cref{sec:decreasing-beta} shows how additional information gained by the
-verifier beyond the power trace (e.g a precision declaration) pushes the floor lower. We close with a discussion in 
+verifier beyond the power trace (e.g a precision declaration) pushes the bound lower. We close with a discussion in
 \cref{sec:discussion}.
 
 \section{Setup and threat model}
@@ -309,10 +310,11 @@ $C$-axis,
 	[\,C_{\mathrm{lo}},\, C_{\mathrm{hi}}\,].
 	\label{eq:projection}
 \end{equation}
-We define $\beta$ as the width of that interval, measured against the
+We define the true physical ambiguity $\beta_{\mathrm{ID}}$ as the width of
+that interval, measured against the
 machine's peak declared-format capacity $C_{\max} = F_{\max}^{\mathrm{dec}}T$,
 \begin{equation}
-	\beta \;\equiv\; \frac{C_{\mathrm{hi}} - C_{\mathrm{lo}}}{C_{\max}}.
+	\beta_{\mathrm{ID}} \;\equiv\; \frac{C_{\mathrm{hi}} - C_{\mathrm{lo}}}{C_{\max}}.
 	\label{eq:betadef}
 \end{equation}
 Under \cref{ass:declaration} the lower edge is the declaration itself,
@@ -327,14 +329,23 @@ work plus the largest covert load a cheater could slip past the meter,
 Substituting $C_{\mathrm{lo}} = C_{\mathrm{dec}}$ and \cref{eq:chi} into
 \cref{eq:betadef} leaves a single unknown,
 \begin{equation}
-	\beta \;=\; \frac{C_{\mathrm{hi}} - C_{\mathrm{lo}}}{C_{\max}}
+	\beta_{\mathrm{ID}} \;=\; \frac{C_{\mathrm{hi}} - C_{\mathrm{lo}}}{C_{\max}}
 	\;=\; \frac{C_{\mathrm{cov}}^{\max}}{C_{\max}}.
 	\label{eq:beta-reduced}
 \end{equation}
 The width $C_{\mathrm{hi}} - C_{\mathrm{dec}} = C_{\mathrm{cov}}^{\max}$ is
 exactly the covert operations a cheater could hide. A wider interval means a larger
-$\beta$ and more room for undeclared work; $\beta \gg 1$ means the ambiguity
+$\beta_{\mathrm{ID}}$ and more room for undeclared work;
+$\beta_{\mathrm{ID}} \gg 1$ means the ambiguity
 exceeds the entire machine.
+
+Computing that physical maximum requires the joint feasible set of schedules.
+The closed form below instead replaces it by the Cartesian product of measured
+rate and overhead bands. We denote this band-relaxed outer bound by $\beta$:
+$\beta_{\mathrm{ID}}(h) \leq \beta(h)$, with equality only when the band
+edges used together are jointly attainable. This distinction is immaterial to
+the conservative security guarantee, but it matters when interpreting the
+number as a statement about what the hardware can actually schedule.
 
 
 
@@ -400,7 +411,7 @@ exceeds the entire machine.
 			\draw[dashed, orange!85!black] (3.9,1.3)  -- (3.9,0.55);
 			\fill (1.0,0.55) circle (1.2pt) node[below=2pt] {\scriptsize $C_{\mathrm{lo}}$};
 			\fill (3.9,0.55) circle (1.2pt) node[below=2pt] {\scriptsize $C_{\mathrm{hi}}$};
-			\draw[<->] (1.0,0.9) -- (3.9,0.9) node[midway, fill=white, inner sep=2pt] {\scriptsize $\beta\,C_{\max}$};
+			\draw[<->] (1.0,0.9) -- (3.9,0.9) node[midway, fill=white, inner sep=2pt] {\scriptsize $\beta_{\mathrm{ID}}\,C_{\max}$};
 			\node[anchor=north] at (2.45,0.25) {\footnotesize (c) identified set};
 		\end{scope}
 
@@ -413,7 +424,7 @@ exceeds the entire machine.
 		$[r_{\mathrm{lo}},r_{\mathrm{hi}}]$ cuts the constant-energy arc
 		$A$--$B$, whose projection onto the $C$-axis spans
 		$[C_{\mathrm{lo}},C_{\mathrm{hi}}]$; relative to capacity that width is
-		the floor $\beta$. The faint grey
+		the physical ambiguity $\beta_{\mathrm{ID}}$. The faint grey
 		ribbon is meter noise (ignored in this work). Each rate is drawn
 		constant only for clarity; in reality $r(t)$ varies in time. This does
 		not matter for a question about total operations, which depends on $r(t)$
@@ -426,14 +437,14 @@ exceeds the entire machine.
 \section{Derivation of \texorpdfstring{$\beta$}{beta}}
 \label{sec:floor}
 
-We now derive a closed form for $\beta$. Two physical constraints cap the
+We now derive a closed form for the band-relaxed bound $\beta$. Two physical constraints cap the
 covert work that can run inside the observation window $[0,T]$. The first is the
 \emph{energy budget}: the total the meter reports must stay explainable as
 honest declared work, so covert operations can spend only the joules that
 ambiguity leaves free (\cref{subsec:derivation}). The second is
 \emph{capacity}: covert operations must also fit on the machine, in whatever
 machine-time the declared work leaves unused (\cref{subsec:capclip}). The
-floor $\beta$ is the smaller of the two widths (\cref{subsec:betafloor}).
+bound $\beta$ is the smaller of the two relaxed widths (\cref{subsec:betafloor}).
 
 \subsection{The energy budget}
 \label{subsec:derivation}
@@ -549,9 +560,9 @@ the energy budget admits,
 Divide by $C_{\max}$ and write the declared hardware utilisation
 $h = C_{\mathrm{dec}}/C_{\max}$ for the fraction of the machine's
 declared-format capacity the declared work occupies. The result is a covert load in the
-normalised units of \cref{eq:betadef}: the width the identified set would
-have if energy were the only constraint. We write it
-$\beta_{\mathrm{en}}$, the \emph{energy-only width},
+normalised units of \cref{eq:betadef}: the band-relaxed outer width if energy
+were the only constraint. We write it $\beta_{\mathrm{en}}$, the
+\emph{energy-only width},
 \begin{equation}
 \;\beta_{\mathrm{en}}(h) \;=\; h\,
 		\frac{r_{\mathrm{hi}}^{\mathrm{dec}} - r_{\mathrm{lo}}^{\mathrm{dec}}}{r_{\mathrm{lo}}^{\mathrm{cov}}}
@@ -658,11 +669,11 @@ may exceed $C_{\max}$: the normaliser is the machine's capacity priced in
 \emph{declared-format} operations, not a ceiling on how many operations can
 run.
 
-\subsection{The floor}
+\subsection{The relaxed bound}
 \label{subsec:betafloor}
 
-The covert load must fit under both caps at once, so the floor is the
-smaller of the two widths,
+The covert load must fit under both relaxed caps at once, so the bound is the
+smaller of the two,
 \begin{equation}
 	\;\beta(h) \;=\;
 	\min\bigl[\,\beta_{\mathrm{en}}(h),\; (1-h)\,\gamma\,\bigr].\;
@@ -691,7 +702,7 @@ smaller of the two widths,
 		\node[gray!55!black, anchor=south west, inner sep=1pt] at (0.80,1.28)
 			{\scriptsize $(1-h)\,\gamma$};
 
-		% ---------- the floor: the lower of the two ----------
+		% ---------- the relaxed bound: the lower of the two ----------
 		\draw[blue!55!black, line width=1.1pt]
 			(0,0.15) -- (1.875,0.9375) -- (5.0,0);
 		\fill[blue!55!black] (1.875,0.9375) circle (1.6pt);
@@ -714,11 +725,11 @@ smaller of the two widths,
 
 	\end{tikzpicture}%
 	}
-	\caption{The shape of the floor. The energy-only width
+	\caption{The shape of the band-relaxed bound. The energy-only width
 		$\beta_{\mathrm{en}}(h) = s\,h + b$ rises with declared utilisation---more
 		honest work offers more cover (dashed)---while the capacity clip
 		$(1-h)\,\gamma$ falls, since more honest work leaves less machine free
-		(dotted). The floor \cref{eq:betafloor} is the lower of the two (solid):
+		(dotted). The bound \cref{eq:betafloor} is the lower of the two (solid):
 		a tent peaking at the crossing $(h^{*}, \beta^{*})$ of
 		\cref{eq:betaworst}, with energy binding to its left, capacity to its
 		right, and $\beta(1) = 0$ because a fully occupied machine leaves
@@ -733,8 +744,10 @@ declared work leaves less machine to hide on. At full declared utilisation
 the machine is spoken for and $\beta(1) = 0$; at idle there
 is capacity but almost no cover. The declared utilisation is the prover's to
 set, so the guarantee a verifier can quote is the worst case over it,
-$\beta^{*} \equiv \max_h \beta(h)$; this is the figure of merit the rest of
-the paper tracks. The maximum sits at the crossing,
+$\beta^{*} \equiv \max_h \beta(h)$. The corresponding physical quantity is
+$\beta_{\mathrm{ID}}^{*} \equiv \max_h \beta_{\mathrm{ID}}(h)$, and the
+outer relaxation guarantees $\beta_{\mathrm{ID}}^{*} \leq \beta^{*}$.
+The paper tracks the computable bound $\beta^{*}$. Its maximum sits at the crossing,
 \begin{equation}
 	h^{*} = \frac{\gamma - b}{s + \gamma}, \qquad
 	\beta^{*} = \gamma\,\frac{s + b}{s + \gamma},
@@ -749,11 +762,11 @@ $h < h^{*}$ (the trace itself caps the covert load), capacity binds for
 $h > h^{*}$, and both bind at the crossing. Where the crossing sits is an
 empirical question about $s$.
 
-One caveat is that the cheating strategy of \cref{subsec:derivation} pushed three
-quantities to their edges at once---cheap declared work, idled overhead,
-cheap covert work---and no single schedule is guaranteed to reach all three
-edges together, so $\beta$ upper-bounds the true identified-set width.
-\Cref{app:boundkind} discusses this corner assumption.
+The relaxation is exact only if one schedule can attain the three selected
+edges together---cheap declared work, low overhead, and cheap covert work.
+No such joint attainment is assumed, so throughout
+$\beta_{\mathrm{ID}}(h) \leq \beta(h)$. \Cref{app:boundkind} discusses this
+corner assumption and brackets the remaining gap with a constructed schedule.
 
 \section{How big is \texorpdfstring{$\beta$}{beta}?}
 \label{sec:howbig}
@@ -1345,7 +1358,7 @@ with no covert work at all (\cref{fig:marginal-dose}). We record the missing
 clock control as a limitation of the platform (\cref{sec:discussion}).
 
 \paragraph{Assembling $\beta$.}
-We now combine the three experiments into an estimate of $\beta$
+We now combine the three experiments to evaluate the band-relaxed bound $\beta$
 (cf.\ \cref{tab:inputs}):
 \begin{itemize}
 	\item the declared band, from Experiment~1's fp16 cells:
@@ -1394,8 +1407,9 @@ in total energy: an honest run executing $N$ declared fp16 iterations on
 expensive operands, and a cheating run executing the same iterations on
 cheap operands plus a covert int8 fill sized to draw the same energy. Every
 cheating run passes the no-alarm test of \cref{eq:noalarm} while
-executing $0.19$--$0.41$ machines of covert work at $h = 0.10$--$0.216$. The identified set is therefore at least $0.41$ wide at
-$h = 0.216$, against the model's $\beta(0.216) = 0.72$; the attack does
+executing $0.19$--$0.41$ machines of covert work at $h = 0.10$--$0.216$.
+The witness therefore establishes $\beta_{\mathrm{ID}}(0.216) \geq 0.41$,
+against the relaxed model's $\beta(0.216) = 0.72$; the attack does
 not exhaust the bound because no single schedule reaches every edge of
 the band at once. Restricting the model to utilisations the attack can
 occupy ($h \lesssim 0.24$) would lower the worst case to ${\approx}0.77$,
@@ -1405,7 +1419,7 @@ not quote it as a bound. \Cref{app:witness} records the protocol.
 \begin{figure}[t]
 	\centering
 	\includegraphics[width=\columnwidth]{beta_phys_curve}
-	\caption{The capacity-clipped floor $\beta(h)$
+	\caption{The capacity-clipped, band-relaxed bound $\beta(h)$
 	(\cref{eq:betafloor}) from the jointly feasible fp16-declared bands,
 	for covert int8 ($\gamma = 2$, blue) and covert fp16 ($\gamma = 1$,
 	orange), both priced at Experiment~3's marginal lower limits. Faint
@@ -1421,7 +1435,7 @@ not quote it as a bound. \Cref{app:witness} records the protocol.
 \label{sec:decreasing-beta}
 
 The headline of \cref{sec:empirical-measurements}, $\beta^{*} = 1.16$
-(\cref{eq:betafloormeasured}), is a worst-case bound under
+(\cref{eq:betafloormeasured}), is a band-relaxed worst-case bound under
 \cref{ass:meter,ass:declaration} alone: the verifier reads the power and
 checks the declared precision, and nothing else. In practice the verifier can
 make a series of reasonable checks and assumptions to remove ambiguity and push
@@ -1450,7 +1464,9 @@ $\bar r^{\mathrm{dec}}$ directly, bypassing $w_\alpha$ rather than pinning it.
 
 \emph{The covert price $r_{\mathrm{lo}}^{\mathrm{cov}}$.} By definition, this is not accessible to the verifier; the prover still chooses the covert format, operands and locality freely,
 and the meter never resolves them. However, a threat-model or an assumption about what the
-adversary is trying to do does introduce restrictions. For example, assuming that the covert work is useful, or that we know its numeric format.  
+adversary is trying to do does introduce restrictions. For example,
+restricting covert work to a measured workload class, or assuming that we know
+its numeric format.
 
 \emph{The overhead width $\Delta E_0$.} Similarly, this dial is not
 accessible to the verifier but can be restricted through reasonable
@@ -1460,8 +1476,9 @@ window being priced, so its overhead cannot be that of a cold card.
 The rest of this section takes these restrictions in turn. They compound. Each
 one keeps everything granted above it and turns one more dial, so the bound can
 only fall as we descend: from the headline $\beta^{*} = 1.16$, where the meter
-and the declared format are all the verifier has, to $\beta^{*} = 0.059$ at the
-bottom, with every restriction in place.  \cref{tab:ladder,fig:ladder} walk down that ladder. 
+and the declared format are all the verifier has, to a conditional
+$\beta^{*} = 0.059$ at the bottom, with every restriction in place.
+\cref{tab:ladder,fig:ladder} walk down that ladder.
 
 
 
@@ -1475,7 +1492,7 @@ bottom, with every restriction in place.  \cref{tab:ladder,fig:ladder} walk down
 		precision declared \& checked$^{\dagger}$ & $w_\kappa = 1$; band $[1.10, 2.19]$ & $1.16$ & $2.4$ \\
 		clock \& locality observed & $w_V, w_C \to 1$ \emph{(unpriced)} & --- & --- \\
 		declared work re-executed$^{\ddagger}$ & \emph{bypasses} $w_\alpha$: band $\to$ gap & $0.34$ & $0.35$ \\
-		covert work on useful data$^{\ddagger}$ & denominator: $0.51 \to 2.53$ & $0.071$ & $0.072$ \\
+		measured Experiment~4 transformer blocks$^{\ddagger}$ & denominator: $0.51 \to 2.53$ & $0.071$ & $0.072$ \\
 		overhead band pinned to the window$^{\ddagger}$ & $\Delta P_0$: $41.2 \to 31.3$\,W & $0.059$ & $0.059$ \\
 		\midrule
 		\multicolumn{4}{@{}l@{}}{\emph{branch --- covert format known to be fp16}$^{\S}$} \\
@@ -1486,7 +1503,7 @@ bottom, with every restriction in place.  \cref{tab:ladder,fig:ladder} walk down
 	\caption{The capability ladder. Each row grants the verifier one more
 	capability, cumulatively from the top, and moves one dial of
 	\cref{eq:betadials}; the top row is the headline of
-	\cref{eq:betafloormeasured}. Every row is the clipped worst case
+	\cref{eq:betafloormeasured}. Every row is the clipped, band-relaxed worst case
 	$\beta^{*} = \max_h \beta(h)$ (\cref{eq:betaworst}) for the fp16-declared,
 	int8-covert case study of \cref{sec:empirical-measurements}, computed
 	directly from the edges beside it; rate edges are in pJ/op. We include
@@ -1498,7 +1515,7 @@ bottom, with every restriction in place.  \cref{tab:ladder,fig:ladder} walk down
 	$\ddagger$ --- re-execution transfers at an observed operating point.
 	$\S$ --- the branch restricts covert work to fp16 instead of int8, and is
 	quoted only at the two rungs where its denominator is measured: it acts on
-	the same dial as the useful-data row, so the two do not compose
+	the same dial as the measured-workload row, so the two do not compose
 	(\cref{sec:decreasing-beta}).}
 	\label{tab:ladder}
 \end{table*}
@@ -1507,7 +1524,7 @@ bottom, with every restriction in place.  \cref{tab:ladder,fig:ladder} walk down
 	\centering
 	\includegraphics[width=\linewidth]{capability_ladder}
 	\caption{The capability ladder of \cref{tab:ladder} on a log scale;
-	every plotted value is the clipped worst case
+	every plotted value is the clipped, band-relaxed worst case
 	$\beta^{*} = \max_h \beta(h)$. Filled circles are capabilities the
 	verifier gains; square rungs are forced by the threat model rather than
 	granted by a channel; the shaded slot is the unpriced prospective
@@ -1563,11 +1580,17 @@ no on-site sensing, stalls at $\beta^{*} \approx 1$. Re-executing the
 declared work buys it almost nothing that checking the precision had not
 already bought. Methods for pinning the clock are therefore a prerequisite for this rung, and no methods are currently deployable.
 
-\paragraph{Restrict covert work to useful data ($0.34 \to 0.071$; dial $r_{\mathrm{lo}}^{\mathrm{cov}}$; Experiment~4).}
-This rung is granted by restrictions introduced by the threat model. Covert work is unseeable by definition: no declaration reaches it, so nothing but the silicon bounds its cost. That bound
-is the int8 marginal edge, $0.51$\,pJ/op. But the cheapest operations at that
-edge are operand zeros. In practice hidden zero-ops are no
-threat as they compute nothing. An adversary who uses the hidden slack to perform useful computation pays more than the silicon floor.
+\paragraph{Restrict covert work to the measured transformer-block configurations
+($0.34 \to 0.071$; dial $r_{\mathrm{lo}}^{\mathrm{cov}}$; Experiment~4).}
+This is a workload-class restriction, granted by restrictions introduced by the threat model
+Covert work is unseeable by definition: no declaration reaches it, so the
+unrestricted hardware edge remains the int8 marginal cost of
+$0.51$\,pJ/op.  But the cheapest operations at that edge are operand zeros and in practice hidden zero-ops are no
+threat as they compute nothing.  For this rung we instead restrict covert work to either of the
+two int8-quantised transformer-block configurations measured in Experiment~4,
+or to a class for which the verifier can independently justify the same
+marginal-cost floor. We do not claim that every useful computation costs at
+least this much, but we take it as a representative example of useful work beyond operand zeros.
 
 We measured this by taking an int8 quantised transformer block built from one trained Pythia-6.9B
 layer, run on real text activations rather than synthetic
@@ -1580,16 +1603,18 @@ operation count is fp16 attention rather than int8 matmul, and so bound the
 per-operation cost from either side. Regressing window energy on covert nominal
 operations gives a marginal cost of $2.54$ and $3.21$\,pJ/op for the two
 shapes, both fits linear to $R^{2} > 0.999$. We carry the one-sided $95\%$ lower limits,
-$r_{\mathrm{useful}} = [2.53, 3.16]$\,pJ/op. 
+$r_{\mathrm{block}} = [2.53, 3.16]$\,pJ/op.
 
-Restricting the adversary to work worth doing therefore raises the covert edge
-to the bottom of that band, $0.51 \to 2.53$\,pJ/op, i.e. every
-slack joule now buys the adversary ${\approx}4.9\times$ fewer useful operations
-than silicon-floor accounting would concede. The rung drops to $\beta^{*} = 0.071$. 
+For these two configurations, using the lower edge of the measured band raises
+the covert denominator from $0.51$ to $2.53$\,pJ/op: every slack joule buys
+${\approx}4.9\times$ fewer operations than silicon-floor accounting would
+concede. The relaxed bound drops to $\beta^{*} = 0.071$ under this restricted
+scenario. Again we emphasise that this is a conditional case study, not a hardware-wide lower bound on
+the cost of useful computation.
 
 \paragraph{Pin the overhead band to the window being priced
 ($0.071 \to 0.059$; dial $\Delta E_0$; Experiment~2).}
-Like the useful-data rung, this rung is granted by restrictions introduced by the threat model. The band of \cref{eq:measuredoverhead} spans Experiment~2's
+Like the measured-workload rung, this rung is granted by restrictions introduced by the threat model. The band of \cref{eq:measuredoverhead} spans Experiment~2's
 twenty-five idle windows.  Its low edge, $62.9$\,W, is the cold-card cell ---
 the device before any CUDA context exists. But in practice the card is not
 cold. The declared burst runs for $h\,T$ and covert work fills the rest of the
@@ -1638,8 +1663,15 @@ place of $0.34$. \Cref{fig:betafloor} traces both scenarios.
 
 \section{Discussion}
 \label{sec:discussion}
-We have shown how a power meter can restrict hidden compute to an interval, $\beta$. For a meter that also checks the declared precision, the worst case is
-$\beta^{*} = 1.16$ machines of covert compute.  A set of reasonable assumptions made by the verifier push $\beta^{*}$ down, to a lowest value of $\beta^{*} = 0.059$, with every additional assumption of \cref{sec:decreasing-beta} in place. 
+We have shown how a power meter constrains hidden compute only to an identified
+set. For a meter that also checks the declared precision, matched schedules
+establish $\beta_{\mathrm{ID}}^{*} \geq 0.41$, while the band-relaxed model
+gives $\beta_{\mathrm{ID}}^{*} \leq \beta^{*} = 1.16$. The capability ladder
+can lower the relaxed bound to $0.059$, but only under all of its stated
+conditions: the declared operating point and locality are observed,
+re-execution transfers with the assumed $0.05$\,pJ/op gap, covert work is
+restricted to Experiment~4's two measured transformer-block configurations,
+and the overhead is that of a resident card.
 
 \paragraph{Limitations.}
 The above claim on the value of $\beta$ has a series of caveats as follows. (i) The empirical values of  \cref{sec:decreasing-beta} come from one vendor, one
@@ -1648,8 +1680,9 @@ A100-specific, though the framework and closed form of Section \ref{sec:floor} i
 (ii) The covert denominator behind the headline,
 $r_{\mathrm{lo}}^{\mathrm{cov}} = 0.51$\,pJ/op, is measured, but on synthetic
 operands: its corner cell is int8 on zeros, which compute nothing.
-Experiment~4 prices genuinely useful covert work instead, and the bottom rungs
-rest on the lower edge of that measurement. (iii) The hardware gap behind the
+Experiment~4 measures only two Pythia transformer-block configurations on real
+text activations. The bottom rungs rest on the lower edge of that measurement;
+it is not a universal lower bound for useful computation. (iii) The hardware gap behind the
 re-execution rung (${\approx}0.05$\,pJ/op) is an assumption. The same-SKU
 piece is grounded - band edges agree to $2$--$3\%$ across three A100s
 (\cref{sec:empirical-measurements}). However the cross-hardware gap (different
@@ -1674,11 +1707,12 @@ device carries its own capacity clip and its own utilisation. The
 prover chooses how the declared work is spread across devices and formats, so
 the width of the identified set depends on an allocation the prover is free to
 pick. How to make the multi-device floor precise is an open question.
-(vii) The floor is a worst case in a strong sense. It
+(vii) The band-relaxed bound is a worst case in a strong sense. It
 prices a window in which the declared work is at its cheapest, the overhead at
 its lowest, and the covert work at its cheapest --- all three at the same time.
-We do not show that any single schedule can do all three at once. If none can, the true ambiguity is narrower than the
-$\beta$ we quote (\cref{eq:relaxation}), and we have conceded the adversary
+We do not show that any single schedule can do all three at once. If none can,
+$\beta_{\mathrm{ID}}$ is narrower than the $\beta$ we quote
+(\cref{eq:relaxation}), and we have conceded the adversary
 more than the silicon allows.
 
 \paragraph{Richer telemetry}
@@ -1712,24 +1746,25 @@ the declared band would narrow to its activity core $w_\alpha$ alone. We defer t
 \section{Conclusion}
 \label{sec:conclusion}
 
-So, can power draw constrain covert compute? Not on its own. A meter that
-reads the energy of a window, and knows the numeric format the declared work
-ran in, leaves room for more undeclared computation than the machine's whole
-declared capacity: $\beta^{*} = 1.16$. But the meter is rarely all a verifier
-has. Re-running the declared work on trusted hardware, restricting hidden
-work to useful computation, and pinning the idle draw to a card known to be
-busy bring $\beta^{*}$ to $0.059$, six per cent of one machine. What
-separates the two numbers is information available to the verifier, and the
-closed form prices each piece of it.
+So, can power draw constrain covert compute? Only weakly on its
+own. Against a meter that also knows the declared numeric format, matched
+schedules demonstrate at least $0.41$ machines of physical ambiguity, while
+the conservative band model caps the worst case at $1.16$:
+$0.41 \leq \beta_{\mathrm{ID}}^{*} \leq 1.16$.
 
-That is the case for reading power alongside other channels rather than by
-itself. The clock is the clearest example: the meter cannot see it, an
-antenna beside the rack might, and a verifier who reads it fixes the voltage
+However the meter is rarely all a verifier has. Additional information and threat-model restrictions can narrow the relaxed
+bound. Assuming the declared operating point and locality are observed, re-execution transfers
+with the stated hardware gap, covert work belongs to one of the two measured
+transformer-block configurations (or a separately justified class with the
+same cost floor), and the card has resident-workload rather than cold-card
+overhead, brings $\beta_{\mathrm{ID}}^{*}$ to $0.059$. However this is is a case study of what those restrictions buy, not a universal
+bound on arbitrary useful computation.
+
+The lowering of $beta_{\mathrm{ID}}^{*}$ brought by additional restrictions strongly motivates is the case for reading power alongside other channels rather than by itself. The clock is the clearest example: the meter cannot see it, an
+antenna beside the rack might. A verifier who can read the clock fixes the voltage
 too and narrows the declared band to its activity core. Pricing that rung,
 replacing the on-die counter with a retrofitted meter on the power feed, and
 carrying the floor from one device to a whole facility are natural next steps.
-
-
 
 \section*{Acknowledgements}
 
@@ -1743,7 +1778,7 @@ Following the disclosure principles of the Leiden Declaration on Artificial
 Intelligence and Mathematics \citep{alper2026leiden}, we record the AI tools
 this work relied on. Large language models (mostly Anthropic's Claude Opus~5, with some Claude Fable~5 and OpenAI's
 GPT-5.6-Sol) were used for writing,
-refactoring and debugging the benchmark and analysis code. The mathematics was derived without LLM assistance; LLMs were used to check the consistency of the algebra. Similarly the prose was drafted without LLM assistance; LLMs were used for a final editing pass. Nothing entered the paper on a model's say-so. Every derivation was checked by hand. Every reported number is regenerated from the committed records by scripts in the repository, and the authors take full
+refactoring and debugging the benchmark and analysis code. The mathematics was derived without LLM assistance; LLMs were used to check the consistency of the algebra. Nothing entered the paper on a model's say-so. Every derivation was checked by hand. Every reported number is regenerated from the committed records by scripts in the repository, and the authors take full
 responsibility for the content of this paper.
 
 \bibliography{references}
@@ -1934,8 +1969,12 @@ The model bound $\beta^{*} = 1.16$ is an \emph{upper} limit: it maximises
 over a box of band edges whose corner no single schedule is guaranteed to
 reach. A constructed cheating schedule, accepted by the meter, puts a
 measured \emph{lower} limit of $0.41$ machines on the same ambiguity. The
-identified set against a format-checked meter is therefore at least
-$0.41$ and at most $1.16$ machines wide, and this appendix records both
+physical identified set against a format-checked meter therefore obeys
+\begin{equation}
+	0.41 \;\leq\; \beta_{\mathrm{ID}}^{*} \;\leq\; \beta^{*} = 1.16,
+	\label{eq:ambiguity-bracket}
+\end{equation}
+and this appendix records both
 halves of that bracket.
 
 \paragraph{The upper end: $\beta$ maximises over a box.}
@@ -1953,7 +1992,7 @@ the \emph{same} declared work $C_{\mathrm{dec}}$, and one device in a
 at their \emph{achieved} rates. The box is
 an outer relaxation of what a device can schedule, and
 \begin{equation}
-	\text{true identified-set width} \;\le\; \beta(h),
+	\beta_{\mathrm{ID}}(h) \;\le\; \beta(h),
 	\label{eq:relaxation}
 \end{equation}
 with equality only if the corner is jointly feasible. Conceding the adversary more
@@ -1994,7 +2033,9 @@ none of the box's edges: the achieved rates are $1.84$\,pJ/op for the
 expensive declared arm (band ceiling $2.19$), $0.82$ for the cheap arm,
 and $0.54$ for the covert fill (marginal edge $0.51$). That is why the
 accepted $0.41$ at $h = 0.216$ sits below the model's
-$\beta(0.216) = 0.72$: the relaxation gap of \cref{eq:relaxation},
+$\beta(0.216) = 0.72$: specifically,
+$0.41 \leq \beta_{\mathrm{ID}}(0.216) \leq 0.72$. This is the relaxation
+gap of \cref{eq:relaxation},
 measured rather than assumed. Time is the other reason. The clip
 \cref{eq:capclip} converts idle seconds into covert operations at
 published peak rates, but at the rates these kernels achieve,

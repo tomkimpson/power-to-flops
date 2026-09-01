@@ -1,7 +1,7 @@
 """Capability-ladder figure — beta* down the rungs, log scale.
 
 Plots the cumulative ladder of powertoflops.ladder.build_ladder (referee B4): every
-priced rung is the capacity-clipped physical worst case
+priced rung is the capacity-clipped, band-relaxed worst case
 beta* = max_h beta_phys(h) under the B1 joint model (fp16-declared case
 study, int8 covert at the Exp-7 marginal LCB), the same quantity tab:ladder
 quotes. The clock/locality rung is unpriced (B6: w0 is descriptive, attested
@@ -11,7 +11,7 @@ re-execution rung down).
 
 The covert-format branch (build_covert_format_branch) is drawn as hollow
 markers hanging off the two rungs where its denominator is measured, NOT as a
-continuation of the chain: it reaches the same dial as the useful-data rung, so
+continuation of the chain: it reaches the same dial as the measured-workload rung, so
 it does not compose with the rungs below (see that function). Also prints the
 hardware-gap sensitivity sweep and the "power + paperwork" stall value quoted
 in the manuscript.
@@ -59,7 +59,7 @@ LABELS = {
     "precision declared & checked": "precision declared\n& checked",
     "clock & locality observed": "clock & locality\nobserved",
     "declared work re-executed": "declared work\nre-executed",
-    "covert work on useful data": "covert work on\nuseful data",
+    "covert work on useful data": "Exp. 4 covert\nconfigurations",
     "overhead band pinned to the window": "overhead band\npinned to window",
 }
 
@@ -150,7 +150,7 @@ def main() -> None:
     ax.set_xlim(-0.4, len(rungs) - 0.15)
     ax.set_xticks(range(len(rungs)))
     ax.set_xticklabels(labels, fontsize=6.5, rotation=38, ha="right")
-    ax.set_ylabel(r"worst case $\beta^{*} = \max_h \beta(h)$")
+    ax.set_ylabel(r"band-relaxed $\beta^{*} = \max_h \beta(h)$")
     ax.tick_params(axis="x", length=0)
 
     fig.tight_layout(pad=0.4)
