@@ -55,9 +55,9 @@
 \crefname{assumption}{Assumption}{Assumptions}
 \Crefname{assumption}{Assumption}{Assumptions}
 
-% Todonotes is useful during development; disable before submission by
-% swapping to \usepackage[disable,textsize=tiny]{todonotes}
-\usepackage[textsize=tiny]{todonotes}
+% Todonotes is disabled for submission; swap back to
+% \usepackage[textsize=tiny]{todonotes} to see notes during development.
+\usepackage[disable,textsize=tiny]{todonotes}
 
 % Short form of the title for the running header:
 \icmltitlerunning{Can Power Draw Constrain Covert AI Compute?}
@@ -69,16 +69,10 @@
 
   \begin{icmlauthorlist}
     \icmlauthor{Tom Kimpson}{unimelb,mats}
-    \icmlauthor{Mauricio Baker}{rand}
     \icmlauthor{Emlyn Graham}{mats}
-    \icmlauthor{Anjay Friedman}{rand}
-    \icmlauthor{Maximus Rafla}{rand}
-    \icmlauthor{Coby Joseph}{rand}
-    % Placeholder: further authors to be added here.
   \end{icmlauthorlist}
 
   \icmlaffiliation{unimelb}{School of Mathematics and Statistics, The University of Melbourne, Parkville, VIC, Australia}
-  \icmlaffiliation{rand}{RAND Corporation}
   \icmlaffiliation{mats}{Machine Alignment, Transparency \& Security (MATS)}
 
   \icmlcorrespondingauthor{Tom Kimpson}{tom.kimpson@unimelb.edu.au}
@@ -1582,7 +1576,7 @@ already bought. Methods for pinning the clock are therefore a prerequisite for t
 
 \paragraph{Restrict covert work to the measured transformer-block configurations
 ($0.34 \to 0.071$; dial $r_{\mathrm{lo}}^{\mathrm{cov}}$; Experiment~4).}
-This is a workload-class restriction, granted by restrictions introduced by the threat model
+This is a workload-class restriction, granted by restrictions introduced by the threat model.
 Covert work is unseeable by definition: no declaration reaches it, so the
 unrestricted hardware edge remains the int8 marginal cost of
 $0.51$\,pJ/op.  But the cheapest operations at that edge are operand zeros and in practice hidden zero-ops are no
@@ -1757,16 +1751,19 @@ bound. Assuming the declared operating point and locality are observed, re-execu
 with the stated hardware gap, covert work belongs to one of the two measured
 transformer-block configurations (or a separately justified class with the
 same cost floor), and the card has resident-workload rather than cold-card
-overhead, brings $\beta_{\mathrm{ID}}^{*}$ to $0.059$. However this is is a case study of what those restrictions buy, not a universal
+overhead, brings $\beta^{*}$ to $0.059$. However this is a case study of what those restrictions buy, not a universal
 bound on arbitrary useful computation.
 
-The lowering of $beta_{\mathrm{ID}}^{*}$ brought by additional restrictions strongly motivates is the case for reading power alongside other channels rather than by itself. The clock is the clearest example: the meter cannot see it, an
+The lowering of $\beta^{*}$ brought by additional restrictions strongly motivates the case for reading power alongside other channels rather than by itself. The clock is the clearest example: the meter cannot see it, an
 antenna beside the rack might. A verifier who can read the clock fixes the voltage
 too and narrows the declared band to its activity core. Pricing that rung,
 replacing the on-die counter with a retrofitted meter on the power feed, and
 carrying the floor from one device to a whole facility are natural next steps.
 
 \section*{Acknowledgements}
+
+We thank Mauricio Baker, Anjay Friedman, Maximus Rafla, and Coby Joseph for
+discussions and feedback that shaped this work.
 
 TK and EG thank the Machine Alignment, Transparency \& Security (MATS) program --- its
 directors, organisers, funders, and staff --- who made it possible for us to
