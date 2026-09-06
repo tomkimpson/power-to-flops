@@ -1091,7 +1091,12 @@ which band.
 \begin{table}[t]
 	\centering
 	\small
-	\setlength{\tabcolsep}{3pt}
+	% 8pt keeps the four columns inside \columnwidth; icml2026.sty makes
+	% \footnotesize identical to \small, so the size is set explicitly. The
+	% group keeps the caption at \small.
+	\begingroup
+	\fontsize{8}{9.5}\selectfont
+	\setlength{\tabcolsep}{4pt}
 	\begin{tabular}{@{}lllr@{}}
 		\toprule
 		quantity & what it is & source & value \\
@@ -1111,6 +1116,7 @@ which band.
 		$\Delta P_0$ & overhead band & Exp.~2 & $41.2$\,W \\
 		\bottomrule
 	\end{tabular}
+	\endgroup
 	\caption{Summary of results from Experiments 1--3. Values in pJ/op unless marked
 	otherwise.
 	%
@@ -2229,7 +2235,10 @@ again on the side the confound predicts.
 
 \begin{figure}[t]
 	\centering
-	\includegraphics[width=\columnwidth]{operand_envelope}
+	% The appendix is \onecolumn, so \columnwidth here is the full text width and
+	% \columnwidth would set this figure at twice the size of every figure in the
+	% body. Set it at the body column width instead, so its fonts match theirs.
+	\includegraphics[width=0.5\dimexpr\columnwidth-\columnsep\relax]{operand_envelope}
 	\caption{The shape of the activity factor $\alpha$ (Experiment~5, $n=96$
 	windows across six operand distributions). Kernel, shape, and
 	precision (fp16) are held fixed and only the operand values vary; the clock
