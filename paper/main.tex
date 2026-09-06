@@ -60,12 +60,12 @@
 \usepackage[disable,textsize=tiny]{todonotes}
 
 % Short form of the title for the running header:
-\icmltitlerunning{Can Power Draw Constrain Covert AI Compute?}
+\icmltitlerunning{Can Power Draw Constrain Covert Compute?}
 
 \begin{document}
 
 \twocolumn[
-  \icmltitle{Can Power Draw Constrain Covert AI Compute?}
+  \icmltitle{Can Power Draw Constrain Covert Compute? Limits of Analogue Verification for AI Governance}
 
   \begin{icmlauthorlist}
     \icmlauthor{Tom Kimpson}{unimelb,mats}
@@ -87,7 +87,7 @@
 \printAffiliationsAndNotice{}
 
 \begin{abstract}
-Frontier AI treaties or agreements on limiting computation require external verification; an external auditor must be able to confirm how much computation actually ran and that parties are adhering to the agreement.  Analogue, off-chip measurements such as power draw provide an information channel for verification. It is unknown how well these analogue channels can constrain computation against an adversary who actively tries to subvert the audit. We derive a closed form for $\beta$, the largest hidden computation a power trace cannot exclude, as a fraction of the declared machine capacity. Measurements on NVIDIA A100 GPUs constrain $\beta = 1.16$, while adversarial matched energy strategies are show to hide up to $\beta = 0.41$ of compute. Analogue power measurements alone therefore constrain compute weakly. Additional restrictions granted by the threat model such as the ability of the verifier to re-execute the declared work at an observed operating point let the verifier push $\beta$ down to $0.059$ in the maximally restricted case. This gives a quantitative estimate of what analogue measurements can contribute to compute verification. 
+Frontier AI treaties or agreements on limiting computation require external verification; an external auditor must be able to confirm how much computation actually ran and that parties are adhering to the agreement.  Analogue, off-chip measurements such as power draw provide an information channel for verification. It is unknown how well these analogue channels can constrain computation against an adversary who actively tries to subvert the audit. We derive a closed form for $\beta$, the largest hidden computation a power trace cannot exclude, as a fraction of the declared machine capacity. Measurements on NVIDIA A100 GPUs constrain $\beta = 1.16$ in the worst case, while adversarial matched energy strategies are shown to hide up to $\beta = 0.41$ of compute. Analogue power measurements alone therefore constrain compute weakly. Additional restrictions granted by the threat model, such as the ability of the verifier to re-execute the declared work at an observed operating point, let the verifier push $\beta$ down to $0.059$ in the maximally restricted case. This gives a quantitative estimate of what analogue measurements can contribute to compute verification. 
 \end{abstract}
 
 \section{Introduction}
@@ -99,7 +99,7 @@ As frontier AI systems grow more capable
 rely on \emph{verification}: the ability of an outside party to check what a
 monitored operator is doing \citep{reuel2025openproblems,baker2025verifying}. One proposed mechanism is a threshold on compute
 \citep{sastry2024computing}. Above a specified number of floating-point
-operations (FLOP), a training run triggers registration, reporting, or audit
+operations (FLOPs), a training run triggers registration, reporting, or audit
 obligations \citep{shavit2023chinchilla,baker2025verifying,heim2024thresholds}. For example, U.S.~Executive Order 14110 temporarily required reports on models
 trained using more than $10^{26}$ integer or floating-point operations
 \citep{whitehouse2023eo14110,whitehouse2025eo14148}.
@@ -108,21 +108,21 @@ trained using more than $10^{26}$ integer or floating-point operations
 %But the prover is not honest
 Compute verification policies need to be robust to adversarial
 operators who do not behave honestly, but instead try to subvert the
-threshold by hiding computation. Verification methods that rely on passive telemetry such as utilisation counters, on-chip clocks or memory traffic read silicon the
+threshold by hiding computation. Verification methods that rely on passive telemetry such as utilisation counters, on-chip clocks, or memory traffic read silicon the
 operator controls.
 Consequently they rely on  tamper-resistant read paths and attested
 monitoring firmware that do not yet exist
 \citep{ogara2025hardware,ansari2026hardware,rahman2026telemetry}.
-Cryptographic proof-of-training protocols
+Similarly, cryptographic proof-of-training protocols
 \citep{jia2021proofoflearning,garg2023zkpot} depend on the operator's
-cooperation. Active challenge--response schemes \citep{monfared2026timing}
+cooperation, while active challenge--response schemes \citep{monfared2026timing}
 run their probes on the operator's own untrusted hardware.
 
 % off-chip analogue sensors
 ``Off-chip'' analogue sensors have been suggested as an alternative verification method
 \citep{baker2025verifying}. This involves measurement hardware physically separate from
-the monitored chips such as a meter on the power feed, an antenna beside the
-rack, a microphone, or a thermal camera. Each
+the monitored chips such as a meter on the power feed, or an antenna, a microphone, or a thermal camera beside the
+rack. Each
 reads a physical side channel such as power, electromagnetic, acoustic, or
 thermal emissions and so its measurements reach the verifier without passing
 through any silicon or software the operator controls. Such sensors could
@@ -146,7 +146,7 @@ workloads to their emissions. Verification poses the inverse
 problem (i.e. emissions to workload) against an operator actively trying to
 evade the sensor. It is an open question how well analogue-sensor
 measurements can constrain compute in that setting. This paper addresses that
-question for one channel: power, the channel most directly linked to
+question for power draw measurements. The power channel is the channel most directly linked to
 computation, since every operation costs energy and total energy therefore
 budgets total work. We defer the study of other channels to a future work.
 
@@ -175,7 +175,7 @@ a static term,
 	\label{eq:cmoslaw}
 \end{equation}
 with $V$ the supply voltage, $f$ the clock frequency, $C$ the total capacitance of
-the logic, and $\alpha$ the activity factor: the fraction of $C$ that
+the logic, and $\alpha$ the activity factor, i.e. the fraction of $C$ that
 actually toggles in a given cycle ($0 \le \alpha \le 1$), so that
 $\alpha C$ is the capacitance switched per clock tick. A datapath that retires $N_{\mathrm{op}}$
 nominal operations per cycle runs at operation rate $F = N_{\mathrm{op}}f$.
@@ -188,14 +188,13 @@ forward model
 \end{equation}
 where $P_0$ collects $P_{\mathrm{stat}}$ and the remaining non-compute
 overhead (idle draw, cooling, I/O). We call $r$ the \emph{exchange rate}
-[J/op]. The clock frequency
-has dropped out: what an operation costs does not depend on
+[J/op]. Note that the clock frequency
+has dropped out - what an operation costs does not depend on
 how fast the operations run, only on what each switching event costs and how
 many operations it delivers. \Cref{app:cmos} gives this derivation in full.
 
 The exchange rate $r(t)$ is not a constant of the device but a property of the
-execution, and it changes whenever the execution does. Take its three factors in
-turn. The activity factor $\alpha$ depends on the operand values being
+execution. The activity factor $\alpha$ depends on the operand values being
 multiplied \citep{chandrakasan1992lowpower}. The capacitance switched per operation,
 $C/N_{\mathrm{op}}$, depends on the numeric format (which sets both the
 datapath width and the packing $N_{\mathrm{op}}$) and on where the operands
@@ -213,17 +212,16 @@ In practice, the meter reports only a noisy version of the power,
 	\label{eq:obs}
 \end{equation}
 with $\eta(t)$ a zero-mean measurement noise the prover cannot forge. The
-noise is a measurement limit: zero-mean noise with a suitable correlation
+noise is a measurement limit; zero-mean noise with a suitable correlation
 structure (stationary, finitely correlated) averages away over
 the window and shrinks the longer the verifier watches. Throughout this paper
-we therefore assume a perfect meter and work with the clean power $P(t)$; every
-floor we derive is a floor on what even a noiseless meter can establish.
+we therefore assume a perfect meter and work with the clean power $P(t)$.
 
 We count
 hardware operations (i.e. what the silicon actually executes) rather than
 model FLOPs (i.e. the algorithmically required operations).  Every executed operation costs joules, so
 the meter sees hardware operations. We count them as
-nominal operations of whichever numeric format runs: a multiply--add
+nominal operations of whichever numeric format runs. For example a multiply--add
 retires two nominal ops whether it executes at fp32 or int8, and integer
 multiply--adds are ops, not FLOPs. 
 
@@ -264,7 +262,7 @@ Define $G$ as the forward map that carries a workload to its power trace,
 \end{equation}
 defined pointwise by \cref{eq:forward}. The verifier faces an inverse
 problem: read the power trace and recover the workload that produced it,
-i.e.\ invert $G$. But $G$ is \emph{non-injective}. Since $r(\cdot)$ is free
+i.e.\ invert $G$. But $G$ is non-injective. Since $r(\cdot)$ is free
 to vary, a low rate spent on much computation draws exactly the same power as
 a high rate spent on little. Distinct workloads $(F,r,P_0)$ map to identical
 traces, and a many-to-one map has no inverse. Inversion therefore returns the identified set $\mathcal{A}(P_{\mathrm{obs}})$ which
@@ -415,7 +413,7 @@ number as a statement about what the hardware can actually schedule.
 We now derive a closed form for the band-relaxed bound $\beta$. Two physical constraints cap the
 covert work that can run inside the observation window $[0,T]$. The first is the
 \emph{energy budget}: the total the meter reports must stay explainable as
-honest declared work, so covert operations can spend only the joules that
+honest declared work, so covert operations can only spend joules that
 ambiguity leaves free (\cref{subsec:derivation}). The second is
 \emph{capacity}: covert operations must also fit on the machine, in whatever
 machine-time the declared work leaves unused (\cref{subsec:capclip}). The
@@ -424,7 +422,7 @@ bound $\beta$ is the smaller of the two relaxed widths (\cref{subsec:betafloor})
 \subsection{The energy budget}
 \label{subsec:derivation}
 
-The derivation of the first width is straightforward: integrate the forward
+The derivation of the first constraint is straightforward: integrate the forward
 model over the window, split the total energy into declared, covert, and
 overhead pieces, and ask how large the covert piece can grow before the total
 stops looking honest. We work with the integrated trace (i.e. the total
@@ -479,8 +477,7 @@ $\bar r^{\mathrm{dec}} \in [r_{\mathrm{lo}}^{\mathrm{dec}}, r_{\mathrm{hi}}^{\ma
 and
 $\bar r^{\mathrm{cov}} \ge r_{\mathrm{lo}}^{\mathrm{cov}}$.\footnote{No upper
 edge is needed for the covert cost: $\bar r^{\mathrm{cov}}$ enters the bound
-only as a divisor in \cref{eq:cov}, so the worst case sits at its lower edge
-and a ceiling would never bind---expensive covert work only hurts the
+only as a divisor in \cref{eq:cov}, so the worst case sits at its lower edge. Upper limits are uninformative as expensive covert work only hurts the
 adversary.} These band edges,
 \begin{equation}
 	\bigl(r_{\mathrm{hi}}^{\mathrm{dec}},\;r_{\mathrm{lo}}^{\mathrm{dec}},\;
@@ -641,7 +638,7 @@ $C_{\max} = F_{\max}^{\mathrm{dec}}\,T$ gives
 When $\gamma > 1$ the covert format executes more operations per unit of
 machine-time than the declared one, so $C_{\mathrm{dec}} + C_{\mathrm{cov}}$
 may exceed $C_{\max}$: the normaliser is the machine's capacity priced in
-\emph{declared-format} operations, not a ceiling on how many operations can
+declared-format operations, not a ceiling on how many operations can
 run.
 
 \subsection{The relaxed bound}
@@ -1376,7 +1373,7 @@ for both scenarios.
 Three remarks. First, $\beta_{\mathrm{en}}(1)$ is an energy-only
 diagnostic, not a physical floor: at full declared utilisation the
 capacity clip $(1-h)\gamma$ is zero, so no covert work fits and
-$\beta(1) = 0$. Second, the clip is evaluated at \emph{published peak}
+$\beta(1) = 0$. Second, the clip is evaluated at published peak
 capacities rather than the rates our kernels achieve. Peaks give the covert
 stream more room than it can really use, which is the adversary-favorable
 direction: on our own measured peaks ($246.9$\,Top/s fp16 and $307.7$\,Top/s
@@ -1741,7 +1738,7 @@ same cost floor), and the card has resident-workload rather than cold-card
 overhead, brings $\beta^{*}$ to $0.059$. However this is a case study of what those restrictions buy, not a universal
 bound on arbitrary useful computation.
 
-The lowering of $\beta^{*}$ brought by additional restrictions strongly motivates the case for reading power alongside other channels rather than by itself. The clock is the clearest example: the meter cannot see it, an
+The lowering of $\beta^{*}$ brought by additional restrictions strongly motivates the case for reading power alongside other channels rather than by itself. The clock is the clearest example; the meter cannot see it, but an
 antenna beside the rack might. A verifier who can read the clock fixes the voltage
 too and narrows the declared band to its activity core. Pricing that rung,
 replacing the on-die counter with a retrofitted meter on the power feed, and
@@ -1760,9 +1757,9 @@ throughout.
 \section*{Declaration on AI usage}
 Following the disclosure principles of the Leiden Declaration on Artificial
 Intelligence and Mathematics \citep{alper2026leiden}, we record the AI tools
-this work relied on. Large language models (mostly Anthropic's Claude Opus~5, with some Claude Fable~5 and OpenAI's
+this work relied on. Large language models (primarily Claude Opus~5, with additional inputs from Claude Fable~5 and
 GPT-5.6-Sol) were used for writing,
-refactoring and debugging the benchmark and analysis code. The mathematics was derived without LLM assistance; LLMs were used to check the consistency of the algebra. Nothing entered the paper on a model's say-so. Every derivation was checked by hand. Every reported number is regenerated from the committed records by scripts in the repository, and the authors take full
+refactoring and debugging the benchmark and analysis code. The mathematics was derived without LLM assistance; LLMs were used to check the consistency of the algebra. Every reported number is regenerated from the committed records by scripts in the repository, and the authors take full
 responsibility for the content of this paper.
 
 \bibliography{references}
