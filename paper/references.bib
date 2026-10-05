@@ -2,9 +2,10 @@
 % paper-viterbi/references.bib (entries verified there).
 
 % ---- governance / verification + energy-of-computing (from paper/references.bib) ----
-@misc{reuel2025openproblems,
+@article{reuel2025openproblems,
   author        = {Reuel, Anka and Bucknall, Ben and Casper, Stephen and Fist, Tim and Soder, Lisa and Aarne, Onni and Hammond, Lewis and Ibrahim, Lujain and Chan, Alan and Wills, Peter and Anderljung, Markus and Garfinkel, Ben and Heim, Lennart and Trask, Andrew and Mukobi, Gabriel and Schaeffer, Rylan and Baker, Mauricio and Hooker, Sara and Solaiman, Irene and Luccioni, Alexandra Sasha and Rajkumar, Nitarshan and Mo{\"e}s, Nicolas and Ladish, Jeffrey and Bau, David and Bricman, Paul and Guha, Neel and Newman, Jessica and Bengio, Yoshua and South, Tobin and Pentland, Alex and Koyejo, Sanmi and Kochenderfer, Mykel J. and Trager, Robert},
   title         = {Open Problems in Technical {AI} Governance},
+  journal       = {Transactions on Machine Learning Research},
   year          = {2025},
   eprint        = {2407.14981},
   archivePrefix = {arXiv},
@@ -34,7 +35,7 @@
 
 @misc{bengio2026safetyreport,
   author        = {Bengio, Yoshua and Clare, Stephen and Prunkl, Carina and Andriushchenko, Maksym and Bucknall, Ben and others},
-  title         = {International {AI} Safety Report 2026},
+  title         = {{International AI Safety Report 2026}},
   year          = {2026},
   month         = feb,
   eprint        = {2602.21012},
@@ -78,42 +79,44 @@
   booktitle = {Proceedings of the Linux Symposium},
   volume    = {2},
   pages     = {223--238},
-  year      = {2006}
+  year      = {2006},
+  url       = {https://www.kernel.org/doc/ols/2006/ols2006v2-pages-223-238.pdf}
 }
 
-@misc{gao2023deeptheft,
+@inproceedings{gao2023deeptheft,
   author        = {Gao, Yansong and Qiu, Huming and Zhang, Zhi and Wang, Binghui and Ma, Hua and Abuadbba, Alsharif and Xue, Minhui and Fu, Anmin and Nepal, Surya},
   title         = {{DeepTheft}: Stealing {DNN} Model Architectures through Power Side Channel},
-  year          = {2023},
-  month         = sep,
+  booktitle     = {2024 IEEE Symposium on Security and Privacy (SP)},
+  year          = {2024},
+  pages         = {3311--3326},
+  doi           = {10.1109/SP54263.2024.00250},
   eprint        = {2309.11894},
   archivePrefix = {arXiv},
-  primaryClass  = {cs.CR},
-  note          = {Published at 2024 IEEE Symposium on Security and Privacy (S\&P)},
-  url           = {https://arxiv.org/abs/2309.11894}
+  primaryClass  = {cs.CR}
 }
 
-@misc{chaudhuri2025energon,
+@inproceedings{chaudhuri2025energon,
   author        = {Chaudhuri, Arunava and Shukla, Shubhi and Bhattacharya, Sarani and Mukhopadhyay, Debdeep},
   title         = {``{Energon}'': Unveiling Transformers from {GPU} Power and Thermal Side-Channels},
+  booktitle     = {2025 IEEE/ACM International Conference on Computer-Aided Design (ICCAD)},
   year          = {2025},
-  month         = aug,
+  pages         = {1--9},
+  doi           = {10.1109/ICCAD66269.2025.11240793},
   eprint        = {2508.01768},
   archivePrefix = {arXiv},
-  primaryClass  = {cs.CR},
-  url           = {https://arxiv.org/abs/2508.01768}
+  primaryClass  = {cs.CR}
 }
 
-@misc{arefin2024hdmi,
+@inproceedings{arefin2024hdmi,
   author        = {Arefin, Sayed Erfan and Serwadda, Abdul},
   title         = {Exploiting {HDMI} and {USB} Ports for {GPU} Side-Channel Insights},
-  year          = {2024},
-  month         = oct,
+  booktitle     = {Proceedings of the Fifteenth ACM Conference on Data and Application Security and Privacy (CODASPY)},
+  year          = {2025},
+  pages         = {131--142},
+  doi           = {10.1145/3714393.3726511},
   eprint        = {2410.02539},
   archivePrefix = {arXiv},
-  primaryClass  = {cs.CR},
-  note          = {Published at ACM CODASPY 2025},
-  url           = {https://arxiv.org/abs/2410.02539}
+  primaryClass  = {cs.CR}
 }
 
 @misc{sastry2024computing,
@@ -146,7 +149,6 @@
   eprint        = {2508.14318},
   archivePrefix = {arXiv},
   primaryClass  = {cs.DC},
-  note          = {Microsoft},
   url           = {https://arxiv.org/abs/2508.14318}
 }
 
@@ -163,7 +165,7 @@
 
 @misc{whitehouse2023eo14110,
   author       = {{The White House}},
-  title        = {Executive Order 14110: Safe, Secure, and Trustworthy Development and Use of Artificial Intelligence},
+  title        = {{Executive Order} 14110: Safe, Secure, and Trustworthy Development and Use of Artificial Intelligence},
   year         = {2023},
   howpublished = {Federal Register 88 FR 75191},
   url          = {https://www.federalregister.gov/documents/2023/11/01/2023-24283/}
@@ -171,9 +173,9 @@
 
 @misc{whitehouse2025eo14148,
   author       = {{The White House}},
-  title        = {Executive Order 14148: Initial Rescissions of Harmful Executive Orders and Actions},
+  title        = {{Executive Order} 14148: Initial Rescissions of Harmful Executive Orders and Actions},
   year         = {2025},
-  howpublished = {Federal Register Doc.\ 2025-01901},
+  howpublished = {Federal Register 90 FR 8237, Doc.\ 2025-01901},
   url          = {https://www.federalregister.gov/documents/2025/01/28/2025-01901/}
 }
 
@@ -190,17 +192,22 @@
 @inproceedings{ogara2025hardware,
   author    = {O'Gara, Aidan and Kulp, Gabriel and Hodgkins, Will and Petrie, James and Immler, Vincent and Aysu, Aydin and Basu, Kanad and Bhasin, Shivam and Picek, Stjepan and Srivastava, Ankur},
   title     = {Hardware-Enabled Mechanisms for Verifying Responsible {AI} Development},
-  booktitle = {ICML 2025 Workshop on Technical AI Governance (TAIG)},
-  year      = {2025},
-  url       = {https://arxiv.org/abs/2505.03742}
+  booktitle     = {ICML 2025 Workshop on Technical {AI} Governance (TAIG)},
+  year          = {2025},
+  eprint        = {2505.03742},
+  archivePrefix = {arXiv},
+  url           = {https://arxiv.org/abs/2505.03742}
 }
 
-@misc{seferis2025structuring,
-  author       = {Seferis, Emmanouil and Fist, Tim},
-  title        = {Detecting Compute Structuring in {AI} Governance is Likely Feasible},
-  year         = {2025},
-  howpublished = {Working paper},
-  url          = {https://openreview.net/forum?id=qseqw1sWzz}
+@inproceedings{seferis2025structuring,
+  author    = {Seferis, Emmanouil and Fist, Tim},
+  title     = {Detecting Compute Structuring in {AI} Governance is Likely Feasible},
+  booktitle = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume    = {40},
+  number    = {44},
+  pages     = {37904--37912},
+  year      = {2026},
+  url       = {https://openreview.net/forum?id=qseqw1sWzz}
 }
 
 @misc{rahman2026telemetry,
@@ -221,30 +228,37 @@
   url           = {https://arxiv.org/abs/2602.09369}
 }
 
-@misc{tang2022supercloud,
+@inproceedings{tang2022supercloud,
   author        = {Tang, Benny J. and Chen, Qiqi and Weiss, Matthew L. and Frey, Nathan and McDonald, Joseph and others},
   title         = {The {MIT} {Supercloud} Workload Classification Challenge},
+  booktitle     = {2022 IEEE International Parallel and Distributed Processing Symposium Workshops (IPDPSW)},
   year          = {2022},
+  pages         = {708--714},
+  doi           = {10.1109/IPDPSW55747.2022.00122},
   eprint        = {2204.05839},
-  archivePrefix = {arXiv},
-  url           = {https://arxiv.org/abs/2204.05839}
+  archivePrefix = {arXiv}
 }
 
-@misc{latif2025power,
-  author       = {Latif, Imran and Newkirk, Alex C. and Carbone, Matthew R. and Munir, Arslan and Lin, Yuewei and Koomey, Jonathan and Yu, Xi and Dong, Zhiyuan},
-  title        = {Single-Node Power Demand During {AI} Training: Measurements on an 8-{GPU} {NVIDIA} {H100} System},
-  year         = {2025},
-  howpublished = {Technical report, Office of Scientific and Technical Information (OSTI)},
-  url          = {https://www.osti.gov/biblio/2555926}
+@article{latif2025power,
+  author  = {Latif, Imran and Newkirk, Alex C. and Carbone, Matthew R. and Munir, Arslan and Lin, Yuewei and Koomey, Jonathan and Yu, Xi and Dong, Zhihua},
+  title   = {Single-Node Power Demand During {AI} Training: Measurements on an 8-{GPU} {NVIDIA} {H100} System},
+  journal = {IEEE Access},
+  volume  = {13},
+  pages   = {61740--61747},
+  year    = {2025},
+  doi     = {10.1109/ACCESS.2025.3554728},
+  url     = {https://www.osti.gov/biblio/2555926}
 }
 
-@misc{yang2023parttime,
+@inproceedings{yang2023parttime,
   author        = {Yang, Zeyu and Ad{\'a}mek, Karel and Armour, Wesley},
-  title         = {Part-time Power Measurements: nvidia-smi's Lack of Attention},
-  year          = {2023},
+  title         = {Accurate and Convenient Energy Measurements for {GPUs}: A Detailed Study of {NVIDIA} {GPU}'s Built-In Power Sensor},
+  booktitle     = {SC24: International Conference for High Performance Computing, Networking, Storage and Analysis},
+  year          = {2024},
+  pages         = {1--17},
+  doi           = {10.1109/SC41406.2024.00028},
   eprint        = {2312.02741},
-  archivePrefix = {arXiv},
-  url           = {https://arxiv.org/abs/2312.02741}
+  archivePrefix = {arXiv}
 }
 
 @misc{patel2023polca,
@@ -261,17 +275,21 @@
   title     = {{WattsUpDoc}: Power Side Channels to Nonintrusively Discover Untargeted Malware on Embedded Medical Devices},
   booktitle = {2013 USENIX Workshop on Health Information Technologies (HealthTech 13)},
   year      = {2013},
+  url       = {https://www.usenix.org/conference/healthtech13/workshop-program/presentation/clark},
   publisher = {USENIX Association}
 }
 
-@misc{gangwal2019cryptomining,
+@inproceedings{gangwal2019cryptomining,
   author        = {Gangwal, Ankit and Piazzetta, Samuele Giuliano and Lain, Gianluca and Conti, Mauro},
   title         = {Detecting Covert Cryptomining Using {HPC}},
-  year          = {2019},
+  booktitle     = {Cryptology and Network Security (CANS 2020)},
+  series        = {Lecture Notes in Computer Science},
+  publisher     = {Springer},
+  year          = {2020},
+  pages         = {344--364},
+  doi           = {10.1007/978-3-030-65411-5_17},
   eprint        = {1909.00268},
-  archivePrefix = {arXiv},
-  note          = {Published at CANS 2020},
-  url           = {https://arxiv.org/abs/1909.00268}
+  archivePrefix = {arXiv}
 }
 
 @inproceedings{maia2022magnetic,
@@ -280,7 +298,8 @@
   booktitle = {31st USENIX Security Symposium (USENIX Security 22)},
   year      = {2022},
   pages     = {4383--4400},
-  publisher = {USENIX Association}
+  publisher = {USENIX Association},
+  url       = {https://www.usenix.org/conference/usenixsecurity22/presentation/maia}
 }
 
 @inproceedings{naghibijouybari2018rendered,
@@ -289,7 +308,8 @@
   booktitle = {Proceedings of the 2018 ACM SIGSAC Conference on Computer and Communications Security (CCS)},
   year      = {2018},
   pages     = {2139--2153},
-  publisher = {ACM}
+  publisher = {ACM},
+  doi       = {10.1145/3243734.3243831}
 }
 
 @inproceedings{hu2020deepsniffer,
@@ -298,7 +318,8 @@
   booktitle = {Proceedings of the 25th International Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS)},
   year      = {2020},
   pages     = {385--399},
-  publisher = {ACM}
+  publisher = {ACM},
+  doi       = {10.1145/3373376.3378460}
 }
 
 @inproceedings{wei2020leaky,
@@ -307,7 +328,8 @@
   booktitle = {2020 50th Annual IEEE/IFIP International Conference on Dependable Systems and Networks (DSN)},
   year      = {2020},
   pages     = {125--137},
-  publisher = {IEEE}
+  publisher = {IEEE},
+  doi       = {10.1109/DSN48063.2020.00031}
 }
 
 @inproceedings{xu2026wave,
@@ -315,6 +337,7 @@
   title     = {Wave: Leveraging Architecture Observation for Privacy-Preserving Model Oversight},
   booktitle = {Proceedings of the 31st ACM International Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS)},
   year      = {2026},
+  pages     = {2212--2231},
   doi       = {10.1145/3779212.3790247}
 }
 
@@ -323,6 +346,7 @@
   title         = {Proof-of-Learning: Definitions and Practice},
   booktitle     = {2021 IEEE Symposium on Security and Privacy (SP)},
   year          = {2021},
+  pages         = {1039--1056},
   eprint        = {2103.05633},
   archivePrefix = {arXiv},
   primaryClass  = {cs.CR},
@@ -334,6 +358,7 @@
   title     = {Experimenting with Zero-Knowledge Proofs of Training},
   booktitle = {Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Security (CCS)},
   year      = {2023},
+  pages     = {1880--1894},
   doi       = {10.1145/3576915.3623202}
 }
 
@@ -357,12 +382,12 @@
                   {\tt nvmlDeviceGetTotalEnergyConsumption}. The stated
                   +/- 5\% accuracy is given for Fermi and Kepler power
                   readings; no accuracy specification is given for the
-                  total-energy counter on GA100}
+                  total-energy counter on GA100. Accessed 2026-10-05}
 }
 
 @misc{alper2026leiden,
   author       = {Alper, Jarod and Barany, Michael and Chavarri Villarello, Alain and Dahmen, Sander and Dean, Walter and Ganapathy, Karthik and Harris, Michael and Holmes, David and Jamnik, Mateja and Kelk, Steven and Kra, Bryna and Martin, Ursula and Naskr{{\fontencoding{T1}\selectfont \k{e}}}cki, Bartosz and Ochigame, Rodrigo and Portegies, Jim and Schmitt, Johannes},
-  title        = {Leiden Declaration on Artificial Intelligence and Mathematics},
+  title        = {{Leiden Declaration on Artificial Intelligence and Mathematics}},
   year         = {2026},
   month        = jun,
   publisher    = {Zenodo},
