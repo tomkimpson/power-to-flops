@@ -65,9 +65,6 @@
 \crefname{assumption}{Assumption}{Assumptions}
 \Crefname{assumption}{Assumption}{Assumptions}
 
-% Todonotes is disabled for submission; swap back to
-% \usepackage[textsize=tiny]{todonotes} to see notes during development.
-\usepackage[disable,textsize=tiny]{todonotes}
 
 % Short form of the title for the running header:
 \icmltitlerunning{Can Power Draw Constrain Covert Compute?}
@@ -122,7 +119,8 @@ threshold by hiding computation. Verification methods that rely on passive telem
 operator controls.
 Consequently they rely on  tamper-resistant read paths and attested
 monitoring firmware that do not yet exist
-\citep{ogara2025hardware,ansari2026hardware,rahman2026telemetry}.
+\citep{ogara2025hardware,ansari2026hardware}; even existing telemetry
+classifiers lose accuracy against disguised workloads \citep{rahman2026telemetry}.
 Similarly, cryptographic proof-of-training protocols
 \citep{jia2021proofoflearning,garg2023zkpot} depend on the operator's
 cooperation, while active challenge--response schemes \citep{monfared2026timing}
@@ -130,10 +128,11 @@ run their probes on the operator's own untrusted hardware.
 Zero-knowledge proofs of inference \citep{sun2024zkllm} can show that a
 declared model produced an output. They cannot show how much computation that
 took: a ``hollow'' model with computationally trivial weights passes the same
-proof at a fraction of the cost \citep{gong2026hollowllm}. Proof-of-useful-work schemes
-\citep{komargodski2025pouw} aim to close that gap with a lower bound on the
-work done. All of these methods bound the declared work from below. None of
-them bounds the undeclared work that can run beside it.
+proof at a fraction of the cost \citep{gong2026hollowllm}. Proof-of-useful-work schemes,
+developed for blockchain consensus, prove a lower bound on the work done
+\citep{komargodski2025pouw} and could help close that gap. At best, these
+methods bound the declared work from below. None of them bounds the
+undeclared work that can run beside it.
 
 ``Off-chip'' analogue sensors have been suggested as an alternative verification method
 \citep{baker2025verifying}. This involves measurement hardware physically separate from
@@ -146,11 +145,13 @@ be retrofitted to existing data centres and physically secured against
 tampering by the adversary.
 
 There are reasons for optimism: in non-adversarial settings, physical
-emissions are known to leak workload information. Physical side channels let an observer recover
-model architectures and hyperparameters
-\citep{hu2020deepsniffer,maia2022magnetic,gao2023deeptheft,chaudhuri2025energon},
-and software-visible counters and timing let a co-resident process do the
-same \citep{naghibijouybari2018rendered,wei2020leaky}. On-node telemetry
+emissions are known to leak workload information. Physical side channels, such as a GPU's
+magnetic emanations \citep{maia2022magnetic} and snooped memory-bus traffic
+\citep{hu2020deepsniffer}, let an observer recover model architectures and
+hyperparameters. Software-visible power and energy counters
+\citep{gao2023deeptheft,chaudhuri2025energon}, and other counters and timing
+\citep{naghibijouybari2018rendered,wei2020leaky}, let a co-resident process
+do the same. On-node telemetry
 and on-chip counters classify workloads
 \citep{tang2022supercloud,xu2026wave,gangwal2019cryptomining}, and power
 draw betrays anomalous computation \citep{clark2013wattsupdoc} and running
@@ -874,17 +875,12 @@ from measured band edges directly.
 		mem/.style={font=\tiny, draw=teal!60!black, fill=teal!4,
 			rounded corners=1pt, minimum height=0.4cm, inner sep=1.3pt}]
 
-		% Four equal panels form a physical zoom-out: complementary MOSFETs make
-		% logic, logic makes a width-selected FMA, the FMA exchanges operands with
-		% the memory hierarchy, and one voltage supply energises the whole path.
 		% ============ (1) complementary CMOS switching --- alpha ============
 		\begin{scope}[shift={(0,0)}]
 			\draw[panel] (0,0.1) rectangle (3.55,4.25);
 			\node[title] at (1.775,3.98) {(1) CMOS switch};
 			\draw[black!12] (0.18,3.72) -- (3.37,3.72);
 
-			% A deliberately simple CMOS inverter: the complementary devices share
-			% their input and output, and drive one effective load capacitance.
 			\node[mos] (pmos) at (1.38,3.35) {pMOS};
 			\node[mos] (nmos) at (1.38,2.63) {nMOS};
 			\draw[orange!85!black, line width=0.65pt]
@@ -907,7 +903,6 @@ from measured band edges directly.
 			\node[tiny, anchor=west] at (2.62,2.76) {load \(c_i\)};
 			\node[tiny, anchor=south] at (2.02,3.02) {output};
 
-			% An operand changes only some of the many cells in a datapath.
 			\foreach \x/\c in {0.82/gray!28,1.20/orange!85!black,
 				1.58/orange!85!black,1.96/gray!28,2.34/gray!28,2.72/orange!85!black}
 				\fill[\c] (\x-0.12,1.52) rectangle (\x+0.12,1.76);
@@ -927,7 +922,6 @@ from measured band edges directly.
 			\node[title] at (1.775,3.98) {(2) FMA datapath};
 			\draw[black!12] (0.18,3.72) -- (3.37,3.72);
 
-			% CMOS logic implements a multiplier followed by an accumulator.
 			\node[tiny] (ain) at (0.40,3.35) {\(a\)};
 			\node[tiny] (bin) at (0.40,2.99) {\(b\)};
 			\node[logic] (mul) at (1.30,3.17) {\(\times\)};
@@ -944,8 +938,6 @@ from measured band edges directly.
 					(\x-0.035,3.405) rectangle (\x+0.035,3.475);
 			\node[tiny, text=orange!85!black] at (1.82,3.62) {networks of CMOS cells};
 
-			% A fixed-width fabric can hold one wide word or several narrow words.
-			% The partitions make the numeric encoding and packing explicit.
 			\node[tiny, anchor=east] at (0.58,2.40) {fp32};
 			\draw[blue!55!black, fill=blue!13] (0.70,2.26) rectangle (3.05,2.54);
 			\node[tiny] at (1.875,2.40) {one 32-bit word};
@@ -977,9 +969,6 @@ from measured band edges directly.
 			\node[mem, minimum width=0.48cm] (reg) at (2.18,2.87) {regs};
 			\node[fma, minimum width=0.52cm, line width=0.8pt]
 				(memfma) at (3.02,2.87) {FMA};
-			% A value can enter at any level, but must reach the register/FMA end.
-			% Equal line widths avoid implying that remote physical wires are thicker;
-			% the chain length instead shows how many hierarchy stages are activated.
 			\draw[->, teal!60!black, line width=0.7pt] (dram) -- (cache);
 			\draw[->, teal!60!black, line width=0.7pt] (cache) -- (reg);
 			\draw[->, teal!60!black, line width=0.7pt] (reg) -- (memfma);
@@ -1006,8 +995,6 @@ from measured band edges directly.
 			\draw[panel] (0,0.1) rectangle (3.55,4.25);
 			\node[title] at (1.775,3.98) {(4) voltage domain};
 			\draw[black!12] (0.18,3.72) -- (3.37,3.72);
-			% The repeated memory--FMA motif makes this panel a containing scale of
-			% panel (3), rather than a visually unrelated die cartoon.
 			\draw[violet!70!black, fill=violet!2, rounded corners=2.5pt]
 				(0.48,1.72) rectangle (3.10,3.60);
 			\draw[violet!70!black, line width=1.05pt] (0.75,3.35) -- (2.84,3.35);
@@ -1035,7 +1022,6 @@ from measured band edges directly.
 				{energy to charge each\\switched capacitance};
 		\end{scope}
 
-		% The structural factors together set capacitance per operation.
 		\draw[decorate, decoration={brace, amplitude=5pt, mirror}, black!45]
 			(4.25,-0.05) -- (11.55,-0.05);
 		\node[font=\scriptsize] at (7.90,-0.50)
@@ -1705,7 +1691,7 @@ band and possibly a cheaper covert floor, raising both $s$ and $b$ in
 practice the verifier reads a retrofitted meter on the power feed. The on-die
 counter carries no published GA100 accuracy specification, so the $\pm 5\%$
 tolerance we apply is adopted from NVML's documented Fermi/Kepler figure, and
-the ${\sim}100$\,ms telemetry cadence is an empirical characterisation
+the ${\sim}100$\,ms power-telemetry cadence is an empirical characterisation
 \citep{yang2023parttime}, not a vendor specification. That retrofitted meter
 carries its own calibration band, and it also sees conversion and cooling draw
 the die counter never reports. Both widen $\Delta P_0$, and so widen $\beta$. (vi) We measured one device, whereas a facility is
@@ -2118,9 +2104,10 @@ specification for this counter on GA100; the documented $\pm 5\%$ applies
 to the power readings of the earlier Fermi and Kepler generations
 \citep{nvidia_nvml}, and we
 adopt that figure as a working meter tolerance wherever one is needed,
-always in the direction that widens the bound. The counter's underlying
-power telemetry updates on a ${\sim}100$\,ms cadence and samples only part
-of the runtime \citep{yang2023parttime}; each measured cell therefore
+always in the direction that widens the bound. On the A100, NVML's power
+readings update every ${\sim}100$\,ms and average only a $25$\,ms window
+of each period \citep{yang2023parttime}. Whether the energy counter shares
+this sampling is not documented. Each measured cell therefore
 fills a ${\sim}1.5$\,s window (${\gg}100$\,ms), as described under
 \emph{Metering the energy} below.
 
