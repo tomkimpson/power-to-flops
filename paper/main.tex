@@ -32,6 +32,8 @@
   \renewcommand{\Notice@String}{Under review. Do not distribute.}
   \makeatother
   \hypersetup{pdfsubject={}}
+  % Blind mode also draws a line-number ruler; the JRC portal adds its own.
+  \renewcommand{\icmlruler}[1]{}
 \else
   \usepackage[preprint]{icml2026}
 \fi
